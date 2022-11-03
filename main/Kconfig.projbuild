@@ -1,0 +1,14 @@
+menu "Acionna Configuration"
+
+	config WELL_SUPPORT
+        bool "Enable well support"
+        default 1
+        help
+            configure WELL flags and pins
+
+    config VALVES_SUPPORT
+        bool "Enable valves support"
+        default 1
+        help
+            configure valves machine state, flags and pins
+endmenu 
