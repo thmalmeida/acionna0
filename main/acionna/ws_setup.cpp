@@ -582,7 +582,8 @@ void send_json_data_back() {
 		{
 			DynamicJsonDocument doc(1024);
 			doc["id"] = IP_END;
-			doc["p"] = acionna0.pipe1_.pressure_mca();
+			doc["p1"] = acionna0.pipe1_.pressure_mca();
+			doc["p2"] = acionna0.pipe1_.pressure_mca();
 			doc["ton"] = acionna0.pump1_.time_on();
 			doc["toff"] = acionna0.pump1_.time_off();
 			doc["k1"] = static_cast<int>(acionna0.pump1_.state_k1());
@@ -837,7 +838,7 @@ void machine_run(void*)
 	temp_sensor_count = temp_sensor.getDeviceCount();
 	// ESP_LOGI(TAG_SENSORS, "Temp sensors count: %u", temp_sensor_count);
 
-	int count_down = 0;
+	// int count_down = 0;
 
 	while(1)
 	{

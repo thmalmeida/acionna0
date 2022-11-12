@@ -6,13 +6,16 @@
 #include <pinout.hpp>
 #include <cmath>
 
-class pipepvc {
+class Pipepvc {
 public:
-
-	int pressure_max = 70;			// max supported pressure by pipe [m.c.a];
-	int pressure_max_sensor = 150;	// sensor max pressure [psi]
-	int pressure_min = 30;			// min threshold pressure for indicate some problem;
-	uint16_t data_12bits = 0;
+	
+	int pressure_max = 70;				// max supported pressure by pipe [m.c.a];
+	int pressure_min = 30;				// min threshold pressure for indicate some problem;
+	int sensor_pressure_ref = 150;			// sensor max pressure [psi];
+	uint16_t sensor_data_dig = 0;	// readed value from ADC peripheral;
+	int channel_adc = 4;					// ADC channel;
+	int value_mca = 0;					// converted value [m.c.a.];
+		
 //	int PRessHold=0;						// max pressure converted on turned on period;
 //	uint8_t PRessureRef = 0;				// max threshold pressure;
 //	uint8_t PRessureRef_Valve = 0;			// max threshold valve pressure to turn open;
@@ -24,16 +27,15 @@ public:
 //	uint8_t flag_PressureUnstable = 1;
 //	uint8_t flag_PressureDown = 0;			// flag for pressure down occurrence;
 
-//	pipe() : sensor_press_{4, 11}{}
-
-	pipepvc() : sensor_pressure_{4, 12}
+	Pipepvc() : adc_{4}
 	{
-
+		
 	}
+
 	void update()
 	{
-		data_12bits = sensor_pressure_.read();
-		convert_pressure(data_12bits);
+		sensor_data_dig = adc_.read();
+		convert_pressure(sensor_data_dig);
 	}
 	int pressure_mca()
 	{
@@ -41,8 +43,7 @@ public:
 	}
 
 private:
-	ADC_Basic sensor_pressure_;
-
+	ADC_Basic adc_;
 	int pressure_mca_ = 0;					// last pressure converted;
 	int pressure_psi_ = 0;
 
@@ -145,5 +146,4 @@ private:
 //		return voltage;
 //	}
 };
-
 #endif /* PUMP_H__ */

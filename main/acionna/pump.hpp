@@ -26,6 +26,7 @@ static const char *TAG_PUMP = "PUMP";
 enum class states_motor {
 	off_idle = 0,
 	on_nominal_k1,
+	on_nominal_k2,
 	on_nominal_delta,
 	on_speeding_up,
 	off_k3_short_circuit,
@@ -34,10 +35,12 @@ enum class states_motor {
 };
 
 enum class start_types {
-	direct_single_kontactor = 1,	// Partida direta com um contator;
-	to_delta,						// Partida direta com dois contatores;
-	to_y,							// deslocamento para configuração Y;
-	y_delta_req						//  requisição de Partida estrela/triangulo (three phase)
+	direct_k1 = 1,		// Partida direta com um contator;
+	direct_k2,			// ativação do contator k2;
+	direct_k3,			// ativação do contator k3;
+	to_delta,			// Partida direta com dois contatores;
+	to_y,				// deslocamento para configuração Y;
+	y_delta_req			//  requisição de Partida estrela/triangulo (three phase)
 };
 enum class states_stop {
 	/*
@@ -61,7 +64,7 @@ enum class states_stop {
 	system_lock
 };
 
-class pump {
+class Pump {
 public:
 	// Check flags
 	states_flag flag_check_output_pin_only = states_flag::disable;
@@ -71,7 +74,7 @@ public:
 	states_flag flag_check_k3_off = states_flag::disable;
 
 	// auto turn start type select
-	start_types auto_start_mode = start_types::direct_single_kontactor;
+	start_types auto_start_mode[9]; // = start_types::direct_single_kontactor;
 
 	// Motor times
 	unsigned int time_wait_power_on = 0;			// 
@@ -95,8 +98,8 @@ public:
 	// uint8_t dayLog_ON[nLog], monthLog_ON[nLog];
 	// uint8_t dayLog_OFF[nLog], monthLog_OFF[nLog];
 
-//	pump() : drive_k1_{AC_LOAD1}, drive_k2_{AC_LOAD2}, drive_k3_{AC_LOAD3}{}
-	pump() : ac_load_{{AC_LOAD1},{AC_LOAD2},{AC_LOAD3}},
+//	Pump() : drive_k1_{AC_LOAD1}, drive_k2_{AC_LOAD2}, drive_k3_{AC_LOAD3}{}
+	Pump() : ac_load_{{AC_LOAD1},{AC_LOAD2},{AC_LOAD3}},
 				gpio_generic_{{GPIO_GENERIC1},{GPIO_GENERIC2},{GPIO_GENERIC3},{GPIO_GENERIC4}}
 	{
 		// pins directions for drive switches;
@@ -163,9 +166,19 @@ public:
 	{
 		switch (_start_type)
 		{
-			case start_types::direct_single_kontactor: {
+			case start_types::direct_k1: {
 				drive_k_(1, 1);
-				ESP_LOGI(TAG_PUMP, "start direct single contactor");
+				ESP_LOGI(TAG_PUMP, "start k1");
+				break;
+			}
+			case start_types::direct_k2: {
+				drive_k_(2, 1);
+				ESP_LOGI(TAG_PUMP, "start k2");
+				break;
+			}
+			case start_types::direct_k3: {
+				drive_k_(3, 1);
+				ESP_LOGI(TAG_PUMP, "start k3");
 				break;
 			}
 			case start_types::to_delta: {
@@ -472,12 +485,13 @@ private:
 		{
 			if ((state_k1_ == states_switch::off) && (state_k2_ == states_switch::off) && (state_k3_ == states_switch::off))
 			{
-				if(state_k1_pin() == states_switch::on)
+				// turn pin down if contactor is not on when pin is high
+				if((state_k1_pin() == states_switch::on) || (state_k2_pin() == states_switch::on))
 				{
 					stop(states_stop::contactor_not_on);
 				}
 				state_motor_ = states_motor::off_idle;
-				// ESP_LOGI(TAG_PUMP, "pump:idle");
+				ESP_LOGI(TAG_PUMP, "pump: off_idle");
 			}
 			else if((state_k1_ == states_switch::on) && (state_k2_ == states_switch::off) && (state_k3_ == states_switch::on))
 			{	
@@ -488,6 +502,11 @@ private:
 			{
 				ESP_LOGI(TAG_PUMP, "pump: on_nominal_k1");
 				state_motor_ = states_motor::on_nominal_k1;
+			}
+			else if((state_k1_ == states_switch::off) && (state_k2_ == states_switch::on) && (state_k3_ == states_switch::off))
+			{
+				ESP_LOGI(TAG_PUMP, "pump: on_nominal_k2");
+				state_motor_ = states_motor::on_nominal_k2;
 			}
 			else if((state_k1_ == states_switch::on) && (state_k2_ == states_switch::on) &&	(state_k3_ == states_switch::off))
 			{
@@ -505,7 +524,7 @@ private:
 	}
 	void update_time_()
 	{
-		if((state_motor_ == states_motor::on_nominal_k1) || (state_motor_ == states_motor::on_nominal_delta) || (state_motor_ == states_motor::on_speeding_up))
+		if((state_motor_ == states_motor::on_nominal_k1) || (state_motor_ == states_motor::on_nominal_k2) || (state_motor_ == states_motor::on_nominal_delta) || (state_motor_ == states_motor::on_speeding_up))
 		{
 			time_on_++;
 

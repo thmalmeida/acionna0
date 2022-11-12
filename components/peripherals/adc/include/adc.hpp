@@ -44,64 +44,41 @@ class ADC_Basic{
 	public:
 
 		// single read
-		esp_adc_cal_characteristics_t *adc_chars;	// outside the class use static
-		//static const adc_channel_t channel = ADC_CHANNEL_4;	//GPIO34 if ADC1, GPIO14 if ADC2
-//		static const adc_bits_width_t width = ADC_WIDTH_BIT_12;
-		adc_atten_t atten = ADC_ATTEN_DB_0;		// outside the class use static const
-		adc_unit_t unit = ADC_UNIT_1;
-//		static const uint8_t n_channels = 1;					// number of channels to scanning on DMA conversion
+		// esp_adc_cal_characteristics_t *adc_chars;	// outside the class use static
+
+		// dma read
+// 		static const uint8_t n_channels = 1;					// number of channels to scanning on DMA conversion
 //		static const uint32_t n_points = 256;
 
-		ADC_Basic(int channel, int number_bits) : channel_{static_cast<adc_channel_t>(channel)}
+		ADC_Basic(int channel) : channel_{static_cast<adc_channel_t>(channel)}
 		{
-			switch (number_bits)
-			{
-				case 9:
-					width_ = ADC_WIDTH_BIT_9;
-					break;
-
-				case 10:
-					width_ = ADC_WIDTH_BIT_10;
-					break;
-
-				case 11:
-					width_ = ADC_WIDTH_BIT_11;
-					break;
-
-				case 12:
-					width_ = ADC_WIDTH_BIT_12;
-					break;
-
-				default:
-					width_ = ADC_WIDTH_BIT_10;
-					break;
-			}
-
+			init_single_read();				// Single read initialize
+		}
+		ADC_Basic(int channel, int resolution, int attenuation) : channel_{static_cast<adc_channel_t>(channel)}, width_{static_cast<adc_bits_width_t>(resolution)}, attenuation_{static_cast<adc_atten_t>(attenuation)}
+		{
 			init_single_read();				// Single read initialize
 //			init_continuous_read_dma(_channel, channel_num)		// Continuous read initialize
-			printf("number_bits: %d, width_: %d\n", number_bits, width_);
 		}
-//		~ADC_Basic()
-//		{
-//		}
+		// ~ADC_Basic();
+
 		void init_single_read()
 		{
 			// Check if Two Point or Vref are burned into eFuse
 			check_efuse_();
 
 			//Configure ADC
-			if (unit == ADC_UNIT_1)
+			if (unit_ == ADC_UNIT_1)
 			{
 				adc1_config_width(width_);
-				adc1_config_channel_atten((adc1_channel_t)channel_, atten);
+				adc1_config_channel_atten((adc1_channel_t)channel_, attenuation_);
 			}
 			else
 			{
-				adc2_config_channel_atten((adc2_channel_t)channel_, atten);
+				adc2_config_channel_atten((adc2_channel_t)channel_, attenuation_);
 			}
 
 			//Characterize ADC
-			adc_chars = (esp_adc_cal_characteristics_t *)calloc(1, sizeof(esp_adc_cal_characteristics_t));
+			// adc_chars = (esp_adc_cal_characteristics_t *)calloc(1, sizeof(esp_adc_cal_characteristics_t));
 //			esp_adc_cal_value_t val_type = esp_adc_cal_characterize(unit, atten, width, DEFAULT_VREF, adc_chars);
 		}
 //		void continuous_adc_init(uint16_t adc1_chan_mask, uint16_t adc2_chan_mask, adc_channel_t *channel, uint8_t channel_num)
@@ -260,7 +237,7 @@ class ADC_Basic{
 
 			for (int i = 0; i < NO_OF_SAMPLES; i++)		//Multisampling
 			{
-				if (unit == ADC_UNIT_1)					// Sample ADC1
+				if (unit_ == ADC_UNIT_1)					// Sample ADC1
 				{
 					adc_reading += adc1_get_raw((adc1_channel_t)channel_);
 				}
@@ -275,6 +252,49 @@ class ADC_Basic{
 
 			return adc_reading;
 		}
+
+	private:
+		// used for single read
+		adc_channel_t channel_;						// ADC channel
+		adc_bits_width_t width_ = ADC_WIDTH_BIT_12;	// bits for resolution conversion
+		adc_atten_t attenuation_ = ADC_ATTEN_DB_0;	// attenuation for the channel
+		adc_unit_t unit_ = ADC_UNIT_1;				// unit conversion
+
+		// continuous DMA read
+		adc_channel_t channels[5] = {ADC_CHANNEL_0, ADC_CHANNEL_3, ADC_CHANNEL_4, ADC_CHANNEL_6, ADC_CHANNEL_7};
+		uint8_t n_channels = sizeof(channels) / sizeof(adc_channel_t);
+		uint32_t n_points = 120;
+		uint16_t adc1_chan_mask = (BIT(0) | BIT(3) | BIT(4) | BIT(6) | BIT(7));
+//		uint16_t *channel_0;
+//		uint16_t *channel_3;
+//		uint16_t *channel_4;
+//		uint16_t *channel_6;
+//		uint16_t *channel_7;
+
+//		// used for fixed sample rate read to DMA
+//		uint8_t list_channels_[n_channels] = {4};
+//
+		void check_efuse_(void)
+		{
+		    //Check if TP is burned into eFuse
+		    if (esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_TP) == ESP_OK) {
+		        printf("eFuse Two Point: Supported\n");
+		    } else {
+		        printf("eFuse Two Point: NOT supported\n");
+		    }
+		    //Check Vref is burned into eFuse
+		    if (esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF) == ESP_OK) {
+		        printf("eFuse Vref: Supported\n");
+		    } else {
+		        printf("eFuse Vref: NOT supported\n");
+		    }
+		}
+};
+
+#endif /* ADC_HPP__ */
+
+
+
 //		void read_stream(uint32_t* buffer, std::size_t buffer_len) const
 //		void read_stream()
 //		{
@@ -376,43 +396,4 @@ class ADC_Basic{
 //            //			adc_reading /= NO_OF_SAMPLES;
 //            //
 //            //			return adc_reading;
-//
 //        }
-
-	private:
-		// used for single read
-		adc_channel_t channel_;
-		adc_bits_width_t width_;
-//
-		// continuous DMA read
-		adc_channel_t channels[5] = {ADC_CHANNEL_0, ADC_CHANNEL_3, ADC_CHANNEL_4, ADC_CHANNEL_6, ADC_CHANNEL_7};
-		uint8_t n_channels = sizeof(channels) / sizeof(adc_channel_t);
-		uint32_t n_points = 120;
-		uint16_t adc1_chan_mask = (BIT(0) | BIT(3) | BIT(4) | BIT(6) | BIT(7));
-//		uint16_t *channel_0;
-//		uint16_t *channel_3;
-//		uint16_t *channel_4;
-//		uint16_t *channel_6;
-//		uint16_t *channel_7;
-
-//		// used for fixed sample rate read to DMA
-//		uint8_t list_channels_[n_channels] = {4};
-//
-		void check_efuse_(void)
-		{
-		    //Check if TP is burned into eFuse
-		    if (esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_TP) == ESP_OK) {
-		        printf("eFuse Two Point: Supported\n");
-		    } else {
-		        printf("eFuse Two Point: NOT supported\n");
-		    }
-		    //Check Vref is burned into eFuse
-		    if (esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF) == ESP_OK) {
-		        printf("eFuse Vref: Supported\n");
-		    } else {
-		        printf("eFuse Vref: NOT supported\n");
-		    }
-		}
-};
-
-#endif /* ADC_HPP__ */

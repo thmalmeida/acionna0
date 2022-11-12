@@ -84,11 +84,13 @@ void ACIONNA::operation_pump_control() {
 	// time matches occurred into check_time_match(), start motor
 	if(flag_check_time_match_ == states_flag::enable)
 	{
+		int index = 0;
 		for(int i=0; i<time_match_n; i++)
 		{
 			if(time_match_list[i] == time_day_sec_)
 			{
 				flag_time_match_ = states_flag::enable;
+				index = i;
 			}
 			// ESP_LOGI(TAG_ACIONNA, "TM FOR CHECK! tml:%d tds:%d", time_match_list[i], time_day_sec_);
 		}
@@ -101,49 +103,48 @@ void ACIONNA::operation_pump_control() {
 
 			if(pump1_.state() == states_motor::off_idle)
 			{
-				pump1_.start(pump1_.auto_start_mode);	// motor_start();
+				pump1_.start(pump1_.auto_start_mode[index]);	// motor_start();
 			}
 		}
 	}
 
-		// check high pressure
-		if(flag_check_pressure_high_ == states_flag::enable)
-		{
-			if(pipe1_.pressure_mca() > pipe1_.pressure_max)
-				if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
-					pump1_.stop(states_stop::pressure_high);
-		}
+	// check high pressure
+	if(flag_check_pressure_high_ == states_flag::enable)
+	{
+		if(pipe1_.pressure_mca() > pipe1_.pressure_max)
+			if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
+				pump1_.stop(states_stop::pressure_high);
+	}
 
-		// check low pressure
-		if(flag_check_pressure_low_ == states_flag::enable)
-		{
-			/*
-			 * needs better implementation. Check after some time since motor starts;
-			 */
+	// check low pressure
+	if(flag_check_pressure_low_ == states_flag::enable)
+	{
+		/*
+		* needs better implementation. Check after some time since motor starts;
+		*/
 //			if(pipe1_.pressure_mca < pipe1_.pressure_min)
 //			{
 //
 //			}
-		}
+	}
 
-		// check thermal relay
-		if(flag_check_thermal_relay_ == states_flag::enable)
-		{
-			if(pump1_.state_Rth() == states_switch::on)
-				if(pump1_.state() != states_motor::off_thermal_activated)
-					pump1_.stop(states_stop::thermal_relay);
-		}
+	// check thermal relay
+	if(flag_check_thermal_relay_ == states_flag::enable)
+	{
+		if(pump1_.state_Rth() == states_switch::on)
+			if(pump1_.state() != states_motor::off_thermal_activated)
+				pump1_.stop(states_stop::thermal_relay);
+	}
 
-		// check low level
-		#ifdef CONFIG_WELL_SUPPORT
-		if(flag_check_low_level_ == states_flag::enable)
-		{
-			if(well1_.state_L1() == states_level::low)
-				if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
-					pump1_.stop(states_stop::level_low);;
-		}
-		#endif
-
+	// check low level
+	#ifdef CONFIG_WELL_SUPPORT
+	if(flag_check_low_level_ == states_flag::enable)
+	{
+		if(well1_.state_L1() == states_level::low)
+			if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
+				pump1_.stop(states_stop::level_low);;
+	}
+	#endif
 }
 void ACIONNA::operation_pump_valves_irrigation() {
 
@@ -268,11 +269,14 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 		$4:e:64;		- erase page 64;
 
 	$3X;				- Acionamento do motor;
-		$30;			- desliga motor;
-		$31;			- liga o motor com um contator K1;
-		$32;			- liga o motor com o contator K2;
-		$33;			- liga motor com partida Y delta
-		$34;
+		$30;			- desliga todos contatores;
+		$31;			- ligar contator K1;
+		$32;			- ligar contator K2;
+		$33;			- ligar contator K3;
+		$34;			- direto para partida delta;
+		$35;			- direto para partida Y;
+		$36;			- liga motor com partida Y delta;
+
 
 	$5:n:X; ou $5:hX:HHMM;
 		$5;				- mostra os horários que irá ligar;
@@ -535,13 +539,13 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 						_aux2[3] = command_str[8];		// '0' in uint8_t is 48. ASCII
 						_aux2[4] = '\0';
 
-						pipe1_.pressure_max_sensor = atoi(_aux2);
+						pipe1_.pressure_max = atoi(_aux2);
 
-						sprintf(buffer, "set press max ref: %d\n", pipe1_.pressure_max_sensor);
+						sprintf(buffer, "set press max ref: %d\n", pipe1_.pressure_max);
 					} // 	$03:p:100;	- Set 100 psi the max pressure of sensor;
 					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == ';'))
 					{
-						sprintf(buffer, "sens press max ref: %d\n", pipe1_.pressure_max_sensor);
+						sprintf(buffer, "sens press max ref: %d\n", pipe1_.pressure_max);
 					} // 	$03:p:100;	- Set 100 psi the max pressure of sensor;
 					break;
 
@@ -635,8 +639,7 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 
 			switch (statusCommand)
 			{
-				case 0:
-				{
+				case 0: {
 					if(command_str[3]==';')
 					{
 						// if(pump1_.state == states_motor::)
@@ -645,46 +648,52 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 					}
 					break;
 				}
-
-				case 1:
-				{
+				case 1: {
 					if(command_str[3]==';')
 					{
-						pump1_.start(start_types::direct_single_kontactor);
+						pump1_.start(start_types::direct_k1);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
 				}
-
-				case 2:
-				{
+				case 2: {
 					if(command_str[3]==';')
 					{
-						pump1_.start(start_types::y_delta_req);
+						pump1_.start(start_types::direct_k2);
 						sprintf(buffer, "Motor: pump1_ start request");
 						// sprintf(buffer, "k1: %d, k2: %d, k3: %d\n", static_cast<int>(pump1_.state_k1()), static_cast<int>(pump1_.state_k2()), static_cast<int>(pump1_.state_k3()));
 					}
 					break;
 				}
-
-				case 3:
-				{
+				case 3: {
 					if(command_str[3]==';')
 					{
-						pump1_.start(start_types::to_y);
+						pump1_.start(start_types::direct_k3);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
-						// sprintf(buffer, "k1: %d, k2: %d, k3: %d\n", static_cast<int>(pump1_.state_k1()), static_cast<int>(pump1_.state_k2()), static_cast<int>(pump1_.state_k3()));
 					}
 					break;
 				}
-
-				case 4:
-				{
+				case 4: {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::to_delta);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
-						// sprintf(buffer, "k1: %d, k2: %d, k3: %d\n", static_cast<int>(pump1_.state_k1()), static_cast<int>(pump1_.state_k2()), static_cast<int>(pump1_.state_k3()));
+					}
+					break;
+				}
+				case 5: {
+					if(command_str[3]==';')
+					{
+						pump1_.start(start_types::to_y);
+						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
+					}
+					break;
+				}
+				case 6: {
+					if(command_str[3]==';')
+					{
+						pump1_.start(start_types::y_delta_req);
+						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
 				}
@@ -697,14 +706,14 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 		case 5: { // $5:h1:0900;
 			if(command_str[2] == ';') {	// $5;
 				memset(buffer, 0, sizeof(buffer));
-				sprintf(buffer,"tm flag:%d, n:%d, m:%d, ", (int)flag_check_time_match_, time_match_n, (int)pump1_.auto_start_mode);
-				char buffer_temp[15];
+				sprintf(buffer,"tm flag:%d, n:%d, ", (int)flag_check_time_match_, time_match_n);
+				char buffer_temp[30];
 				for(int i=0; i<time_match_n; i++)
 				{
-					sprintf(buffer_temp, "h%d %.2d:%.2d ", i+1, (int)timesec_to_hour(time_match_list[i]), (int)timesec_to_min(time_match_list[i]));
+					sprintf(buffer_temp, "h%d:%.2d:%.2d m:%d ", i+1, (int)timesec_to_hour(time_match_list[i]), (int)timesec_to_min(time_match_list[i]), (int)pump1_.auto_start_mode[i]);
 					strcat(buffer, buffer_temp);
 				}
-				strcat(buffer, "\n");			
+				strcat(buffer, "\n");
 			}
 			else if((command_str[2] == ':') && (command_str[4] == ';')) {
 				_aux[0] = '0';
@@ -753,21 +762,35 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 			else if((command_str[2] == ':') && (command_str[3] == 'n') && (command_str[4] == ';')) {
 				sprintf(buffer, "n: %d\n", time_match_n);
 			} // $5:n;
-			else if((command_str[2] == ':') && (command_str[3] == 'm') && (command_str[4] == ';')) {
-				sprintf(buffer, "auto start m: %d\n", (int)pump1_.auto_start_mode);
-			} // $5:m;
-			else if((command_str[2] == ':') && (command_str[3] == 'm') && (command_str[4] == ':') && (command_str[6] == ';')) {
+			else if((command_str[2] == ':') && (command_str[3] == 'm') && (command_str[5] == ':') && (command_str[7] == ';')) {
+				// $5:m1:1;
 				_aux[0] = '0';
-				_aux[1] = command_str[5];		// '0' in uint8_t is 48. ASCII
+				_aux[1] = command_str[4];		// '0' in uint8_t is 48. ASCII
+				_aux[2] = '\0';
+				int index = atoi(_aux);
+
+				_aux[0] = '0';
+				_aux[1] = command_str[6];		// '0' in uint8_t is 48. ASCII
 				_aux[2] = '\0';
 				int status_set = atoi(_aux);
 
-				if((status_set == 1) || (status_set == 4))
+				if(status_set)
 				{
-					pump1_.auto_start_mode = (start_types)status_set;
-					sprintf(buffer, "set auto start m: %d\n", (int)pump1_.auto_start_mode);
+					if(!index)	// fill all elements with same value
+					{
+						for(int i=0; i<9; i++)
+						{
+							pump1_.auto_start_mode[i] = (start_types)status_set;
+						}
+						sprintf(buffer, "set all elements\n");
+					}
+					else		// fill one element only
+					{
+						pump1_.auto_start_mode[index-1] = (start_types)status_set;
+						sprintf(buffer, "set auto start m: %d\n", (int)pump1_.auto_start_mode[index-1]);
+					}
 				}
-			} // $5:m:[1|4]
+			} // $5:m[1-9]:[1-4]
 			break;
 		}
 		case 6: {
@@ -1715,237 +1738,11 @@ void ACIONNA::parser_1(uint8_t* payload_str, int payload_str_len, uint8_t *comma
 		}
 	}
 }
-//void ACIONNA::check_thermal_safe()
-//{
-//	if(state_period == states_period::greenTime)
-//	{
-//
-//	}
-//	if(state_motor == states_motor::off)
-//	{
-//
-//	}
-//	if(motorStatus)
-//	{
-//		if(read_Rth())
-//		{
-//			flag_Th = 1;
-//		}
-//		else
-//		{
-//			flag_Th = 0;
-//		}
-//	}
-//}
-//void ACIONNA::operation_mode()
-//{
-//	switch (state_mode)
-//	{
-//		case 0:	// System Down!
-//			break;
-//
-//		case 1:	// Night Working;
-////			process_motorPeriodDecision();
-//			break;
-//
-//		case 2:	// For irrigation mode. Start in a programmed time.
-////			process_waterPumpControl();
-//			break;
-//
-//		case 3:	// For reservoir only. Works in a inverted pressured! Caution!
-////			process_valveControl();
-//			break;
-//
-//		case 4:	// Is that for a water pump controlled by water sensors. Do not use programmed time.
-////			process_waterPumpControl();
-//			break;
-//
-//		case 5:	// For irrigation mode and instantly low pressure turn motor off.
-////			process_waterPumpControl();
-//			break;
-//
-//		default:
-////			stateMode = 0;
-////			Serial.println("Standby");
-//			break;
-//	}
-// maximum time drive keeps turned ON
-//	if(motorTimerE)
-//	{
-//		if(motorStatus)
-//		{
-//			if(timeOn_min >= motorTimerE)
-//			{
-//				motor_stop(0x04);
-//			}
-//		}
-//	}
-//}
-//
-///*
-// * routine.cpp
-// *
-// *  Created on: 15 de dez. de 2021
-// *      Author: thmalmeida
-// */
-//
-///*
-// * acionna.h
-// *
-// *  Created on: 14 de fev de 2017
-// *      Author: titi
-// */
-//
-//#ifndef ACIONNA_HPP_
-//#define ACIONNA_HPP_
-//
-////#define stm32f1
-////
-////#ifdef atmega
-////
-////#define k1_on()				PORTD |=  (1<<2);
-////#define k1_off()			PORTD &= ~(1<<2);
-////#define k2_on()				PORTD |=  (1<<3);
-////#define k2_off()			PORTD &= ~(1<<3);
-////#define k3_on()				PORTD |=  (1<<4);
-////#define k3_off()			PORTD &= ~(1<<4);
-////#define drive_led_on()		PORTB |=  (1<<5);
-////#define drive_led_off()		PORTB &= ~(1<<5);
-////
-////#define DefOut_k1()			DDRD |=  (1<<2);
-////#define DefOut_k2()			DDRD |=  (1<<3);
-////#define DefOut_k3()			DDRD |=  (1<<4);
-////#define DefOut_led()		DDRB |=  (1<<5);
-////
-////#define DefIn__Rth()		DDRD &= ~(1<<6);
-////#define DefIn__read_k1()	DDRD &= ~(1<<5);
-////#define DefIn__read_k3()	DDRD &= ~(1<<7);
-////
-////
-//////#define readPin_Rth			(~PIND & 0b10000000)
-////#define readPin_k1		bit_is_set(PIND, 2)
-////
-////#define readPin_k1			bit_is_clear(PIND, 5)
-////#define readPin_Rth			bit_is_clear(PIND, 6)
-////#define readPin_k3			bit_is_clear(PIND, 7)
-////
-////#else
-//
-////#include <stm32f10x.h>
-//
-////#include "Modules/nRF24L01p.h"
-////#include "Hardware/rtc.h"
-////#include "Hardware/adc.h"
-////#include "Hardware/usart.h"
-////#include "Hardware/spi.h"
-////#include "Hardware/gpio.h"
-////#include "Hardware/EE.h"
-//
-//#define pin_out_led 2
-//#define pin_out_k1	6
-//#define pin_out_k2	7
-//#define pin_out_k3	8
-//#define pin_in_Rth	9
-//#define pin_in_k1	10
-//#define pin_in_k2	11
-//#define pin_in_k3	12
-//
-//
-//#define pin_analog_PRess_Dig 13
-//#define pin_analog_PRess 8 // ADC_Channel_8		// Observe que o channel é o valor do pino + 4. ADC12_IN6 é o pino 10 em PA6. 10 - 4 = 6
-//#define pin_analog_LL 7
-//#define pin_analog_ML 8
-//#define pin_analog_HL 9
-//
-//
-//
-//
-////SPI SerialSPI;
-////USART Serial;
-////EEPROM 	eeprom;
-////nRF24L01p radio;
-////RTCi rtc;
-//
-////GPIO_Basic gpio_sensor(DS18B20_DATA);
-//
-//GPIO_Basic led0(LED_0);
-//
-	// 1 signal onboard led output setup
-//	led0.mode(GPIO_MODE_OUTPUT);
-	//	while(1)
-//	{
-//		led0.toggle();
-//        vTaskDelay(CONFIG_BLINK_PERIOD / portTICK_PERIOD_MS);
-//	}
-//
-////void acn_test()
-////{
-//////	sprintf(Serial.buffer," T1:%d k1:%d k2:%d k3:%d", read_Rth(), read_k1(), read_k2(), read_k3());
-//////	Serial.println(Serial.buffer);
-////
-////	int a = adc_readChannel(pin_analog_PRess);
-////	sprintf(Serial.buffer," adc:%d", a);
-////	Serial.println(Serial.buffer);
-////
-////	_delay_ms(500);
-////}
-//void acn_test_1()
-//{
-//	uint32_t a;
-//	while (1)
-//	{
-////		adc_run_example();
-//		led0.toggle();
-//		a = press1.read();
-//		printf("a: %d\n", a);
-//		vTaskDelay(pdMS_TO_TICKS(1000));
-//	}
-//}
-////void acn_check_levelSensors()
-////{
-////	get_levelSensors();
-////}
-////void acn_check_period()
-////{
-////	// Season time verify
-////	if(((tm.Hour == HourOn) && (tm.Minute == MinOn)) || (tm.Hour > HourOn) || (tm.Hour < HourOff) || ((tm.Hour == HourOff) && (tm.Minute < MinOff)))
-////	{
-////		periodo = greenTime;
-////
-////		if(flag_01)
-////		{
-////			flag_01 = 0;
-//////			flag_timeMatch = 1;
-////		}
-////	}
-////
-////	if (((tm.Hour == HourOff) && (tm.Minute >= MinOff))	|| ((tm.Hour > HourOff) && (tm.Hour < HourOn))	|| ((tm.Hour == HourOn) && (tm.Minute < MinOn)))
-////	{
-////		periodo = redTime;
-////
-//////		flag_timeMatch = 0;
-////		flag_01 = 1;
-////	}
-////}
-////void acn_check_pressure()
-////{
-////	PRess = get_Pressure();	// Get current pressure
-////
-//////	switch (stateMode)
-//////	{
-//////		case 1:
-//////			break;
-//////
-//////		case 2:
-//////			break;
-//////
-//////		case 3:	// Valve mode case. Do not turn off.
-//////			break;
-//////
-//////		default:
-//////			break;
-//////	}
-////}
+
+
+
+
+
 ////void acn_check_pressureUnstable()	// this starts to check quick variation of pressure from high to low after 2 minutes on
 ////{
 ////	if(stateMode == 5 && timeOn_min > 2)
@@ -1977,158 +1774,7 @@ void ACIONNA::parser_1(uint8_t* payload_str, int payload_str_len, uint8_t *comma
 ////		}
 ////	}
 ////}
-////void acn_check_timeMatch()
-////{
-////	uint8_t i, nTM_var=1;
-////
-////	// matching time verify
-////	if(!motorStatus)
-////	{
-////		if(stateMode)
-////		{
-////			switch (stateMode)
-////			{
-////			case 1:
-////				nTM_var = 1;
-////				break;
-////
-////			case 2:
-////				nTM_var = nTM;
-////				break;
-////
-////			case 3:
-////				nTM_var = nTM;
-////				break;
-////			}
-////
-////			for(i=0;i<nTM_var;i++)
-////			{
-////				if((tm.Hour == HourOnTM[i]) && (tm.Minute == MinOnTM[i]))
-////				{
-////					flag_timeMatch = 1;	// IF conditions are OK, SET (flag_timeMatch) variable;
-////				}
-////			}
-////		}
-////	}
-////}
-////void acn_check_TimerVar()
-////{
-////	if(motorStatus)	// Load is ON;
-////	{
-////		if(timeOn_sec > 59)
-////		{
-////			timeOn_sec = 0;
-////			timeOn_min++;
-////		}
-////		else
-////		{
-////			timeOn_sec++;
-////		}
-////	}
-////	else			// Load is OFF;
-////	{
-////		if(timeOff_sec > 59)
-////		{
-////			timeOff_sec = 0;
-////			timeOff_min++;
-////		}
-////		else
-////		{
-////			timeOff_sec++;
-////		}
-////	}
-////
-////	if(flag_waitPowerOn)
-////	{
-////		if(waitPowerOn_sec == 0)
-////		{
-////			if(waitPowerOn_min == 0)
-////			{
-////				flag_waitPowerOn = 0;
-////			}
-////			else
-////			{
-////				waitPowerOn_sec = 59;
-////				waitPowerOn_min--;
-////			}
-////		}
-////		else
-////		{
-////			waitPowerOn_sec--;
-////		}
-////	}
-////}
-////void acn_driveMotor_OFF()
-////{
-////	k1_off();
-////	k2_off();
-////	k3_off();
-////}
-////void acn_drive_led_on()
-////{
-////	gateSet(pin_out_led, 0);
-////}
-////void acn_drive_led_off()
-////{
-////	gateSet(pin_out_led, 1);
-////}
-////void acn_drive_led_toggle()
-////{
-////	gateToggle(pin_out_led);
-////}
-////uint8_t acn_read_Rth()
-////{
-////	return !gateRead(pin_in_Rth, 0);
-////}
-////uint8_t acn_read_k1()
-////{
-////	return 	!gateRead(pin_in_k1, 0);
-////}
-////uint8_t acn_read_k2()
-////{
-////	return !gateRead(pin_in_k2, 0);
-////}
-////uint8_t acn_read_k3()
-////{
-////	return !gateRead(pin_in_k3, 0);
-////}
-////uint8_t acn_readPin_k1()
-////{
-////	return gateRead(pin_out_k1, 1);
-////}
-////void acn_k1_on()
-////{
-////	gateSet(pin_out_k1, 1);
-////}
-////void acn_k1_off()
-////{
-////	gateSet(pin_out_k1, 0);
-////}
-////void acn_k2_on()
-////{
-////	gateSet(pin_out_k2, 1);
-////}
-////void acn_k2_off()
-////{
-////	gateSet(pin_out_k2, 0);
-////}
-////void acn_k3_on()
-////{
-////	gateSet(pin_out_k3, 1);
-////}
-////void acn_k3_off()
-////{
-////	gateSet(pin_out_k3, 0);
-////}
-////void acn_blink_led(uint8_t qnt, uint8_t time)
-////{
-////	int i=0;
-////	for(i=1;i<2*qnt+1;i++)
-////	{
-////		drive_led_toggle();
-////		_delay_ms(time);
-////	}
-////}
+
 ////void acn_motor_stop(uint8_t reason)
 ////{
 ////	int i;

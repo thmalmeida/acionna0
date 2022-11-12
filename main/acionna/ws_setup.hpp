@@ -32,9 +32,9 @@
 
 #include "acionna.hpp"
 
-#define WIFI_SSID_STA	"0yd020"			// CONFIG_ESP_WIFI_SSID
+#define WIFI_SSID_STA	"0yd017"			// CONFIG_ESP_WIFI_SSID
 #define WIFI_SSID_AP    "0xd018"
-#define IP_END          33                  // local ip end: 192.168.1.IP_END
+#define IP_END          30                  // local ip end: 192.168.1.IP_END
 #define WIFI_PASS		"praticamente"	    //CONFIG_ESP_WIFI_PASSWORD
 #define WIFI_MAX_RETRY	600				    // CONFIG_ESP_MAXIMUM_RETRY
 

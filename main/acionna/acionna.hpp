@@ -43,7 +43,10 @@ enum class states_mode {
 class ACIONNA {
 public:
 //	tmElements_t tm;
-//	ACIONNA(){}
+	// ACIONNA() : pipe1_{4}
+	// {
+
+	// }
 //	~ACIONNA();
 
 	// states_period state_period = states_period::redTime;
@@ -106,8 +109,9 @@ public:
 	// communication member functions
 	void parser_1(uint8_t* payload_str, int payload_str_len, uint8_t* command_str, int& command_str_len);
 
-	pipepvc pipe1_;
-	pump pump1_;
+	Pipepvc pipe1_;
+	Pump pump1_;
+	// pipepvc pipe2_;
 
 private:
 	

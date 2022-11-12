@@ -35,7 +35,7 @@
 
 #define TAG_BT "BT_SPP"
 #define SPP_SERVER_NAME "SPP_SERVER"
-#define DEVICE_NAME "Cacimba_2cv"
+#define DEVICE_NAME "newOne"
 //#define SPP_SHOW_DATA 0
 //#define SPP_SHOW_SPEED 1
 //#define SPP_SHOW_MODE SPP_SHOW_DATA    /*Choose show mode: show data or speed*/
