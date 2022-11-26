@@ -103,7 +103,11 @@ void ACIONNA::operation_pump_control() {
 
 			if(pump1_.state() == states_motor::off_idle)
 			{
-				pump1_.start(pump1_.auto_start_mode[index]);	// motor_start();
+				pump1_.start(auto_start_mode[index]);	// motor_start();
+				if(time_to_shutdown[index])
+				{
+					pump1_.time_to_shutdown = time_to_shutdown[index];
+				}
 			}
 		}
 	}
@@ -126,6 +130,18 @@ void ACIONNA::operation_pump_control() {
 //			{
 //
 //			}
+		// Irrigation valves
+
+		// Well water pump fill reservoir
+		// if(pipe1_.broke_pipe_detect())
+		// {
+		// 	if((pump1_.state() == states_motor::on_nominal_k1) || (pupm1_.state() == states_motor::on_nominal_delta))
+		// 	{
+
+		// 	}
+		// }
+		// if(k2 only)
+
 	}
 
 	// check thermal relay
@@ -147,9 +163,6 @@ void ACIONNA::operation_pump_control() {
 	#endif
 }
 void ACIONNA::operation_pump_valves_irrigation() {
-
-}
-void ACIONNA::summary_Print(uint8_t opt) {
 
 }
 void ACIONNA::update_RTC() {
@@ -217,6 +230,8 @@ void ACIONNA::update_all() {
 	update_RTC();
 	update_objects();
 	update_stored_data();
+
+	// update_sensors();		// test sensors
 }
 std::string ACIONNA::handle_message(uint8_t* command_str)
 {
@@ -331,6 +346,8 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 		$90;			- Wifi RSSI
 		$91;			- WiFi Scan
 		$92;			- show firwmare version;
+		$95;			- do upgrade;
+		$96;			- show ota info;
 		$97;			- Show RAM usage;
 		$98;			- Show reset reason;
 		$99;			- Soft reset system;
@@ -524,12 +541,12 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 						_aux2[3] = command_str[8];		// '0' in uint8_t is 48. ASCII
 						_aux2[4] = '\0';
 
-						pump1_.time_switch_k3_to_k2 = atoi(_aux2);
+						pump1_.time_switch_k_change = atoi(_aux2);
 
-						sprintf(buffer, "set time_switch: %d\n", pump1_.time_switch_k3_to_k2);
+						sprintf(buffer, "set time_switch: %d\n", pump1_.time_switch_k_change);
 					} // 	$03:t:900;	- Set 500 milliseconds to wait K3 go off before start K2;
 					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ';')) {
-						sprintf(buffer, "time_switch: %d\n", pump1_.time_switch_k3_to_k2);
+						sprintf(buffer, "time_switch: %d\n", pump1_.time_switch_k_change);
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == ':') && (command_str[9] == ';'))
 					{
@@ -710,7 +727,7 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 				char buffer_temp[30];
 				for(int i=0; i<time_match_n; i++)
 				{
-					sprintf(buffer_temp, "h%d:%.2d:%.2d m:%d ", i+1, (int)timesec_to_hour(time_match_list[i]), (int)timesec_to_min(time_match_list[i]), (int)pump1_.auto_start_mode[i]);
+					sprintf(buffer_temp, "h%d:%.2d:%.2d m:%d ", i+1, (int)timesec_to_hour(time_match_list[i]), (int)timesec_to_min(time_match_list[i]), (int)auto_start_mode[i]);
 					strcat(buffer, buffer_temp);
 				}
 				strcat(buffer, "\n");
@@ -780,14 +797,14 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 					{
 						for(int i=0; i<9; i++)
 						{
-							pump1_.auto_start_mode[i] = (start_types)status_set;
+							auto_start_mode[i] = (start_types)status_set;
 						}
 						sprintf(buffer, "set all elements\n");
 					}
 					else		// fill one element only
 					{
-						pump1_.auto_start_mode[index-1] = (start_types)status_set;
-						sprintf(buffer, "set auto start m: %d\n", (int)pump1_.auto_start_mode[index-1]);
+						auto_start_mode[index-1] = (start_types)status_set;
+						sprintf(buffer, "set auto start m: %d\n", (int)auto_start_mode[index-1]);
 					}
 				}
 			} // $5:m[1-9]:[1-4]
@@ -1124,6 +1141,17 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 					strcat(fw_version, __TIME__);
 					strcat(fw_version, "\n");
 					strcpy(buffer, fw_version);
+					break;
+				}
+				case 5: {
+					signal_ota_update = 1;
+					sprintf(buffer, "ota update\n");
+					break;
+					break;
+				}
+				case 6: {
+					signal_ota_info = 1;
+					sprintf(buffer, "ota info\n");
 					break;
 				}
 				case 7: {
@@ -1685,6 +1713,7 @@ void ACIONNA::operation_mode() {
 		case states_mode::system_off:
 			operation_system_off();
 			break;
+
 		case states_mode::system_idle:
 			operation_pump_control();
 			break;
@@ -1704,12 +1733,11 @@ void ACIONNA::operation_mode() {
 	}
 }
 void ACIONNA::run() {
-	// comm_Bluetooth();	// receive/send messages
+	// comm_Bluetooth();	// run into ws_setup.cpp
 
-	// handle_message();	// handle received and send messages
+	// handle_message();	// handle message now is called when receive message into ws_setup.cpp
+
 	update_all();		// update variables and rtc
-
-	update_sensors();
 
 	operation_mode();	// execution process
 }
@@ -1738,6 +1766,15 @@ void ACIONNA::parser_1(uint8_t* payload_str, int payload_str_len, uint8_t *comma
 		}
 	}
 }
+
+
+
+
+
+
+
+
+
 
 
 

@@ -22,8 +22,8 @@
 #define WATER_LEVEL3		GPIO_NUM_12
 #define WATER_LEVEL4		GPIO_NUM_27
 
-#define PRESSURE_SENSOR1	GPIO_NUM_32		// Presssure/potenciometro 0V-1.1V - ADC
-#define PRESSURE_SENSOR2    GPIO_NUM_35     // For a second pressure sensor - motor 2;
+#define PRESSURE_SENSOR1	ADC1_CHANNEL_4  // (GPIO_NUM_32) Presssure/potenciometro 0V-1.1V - ADC
+#define PRESSURE_SENSOR2    ADC1_CHANNEL_7  // (GPIO_NUM_35) For a second pressure sensor - motor 2 (GPIO_NUM_35)
 #define	VOLTAGE_SENSOR		GPIO_NUM_34		//Voltage sensor 0V-2.6V - ADC
 
 #define CURRENT_SENSOR1		GPIO_NUM_36		//n-board mounted
@@ -32,7 +32,7 @@
 #define CURRENT_SENSOR2		GPIO_NUM_39
 #define CURRENT_SENSOR2_ADC	ADC1_CHANNEL_3
 
-#define VALVE_01            GPIO_NUM_25      // wrong!!!
+#define VALVE_01            GPIO_NUM_32      // wrong!!!
 #define VALVE_02            GPIO_NUM_25
 #define VALVE_03            GPIO_NUM_26
 #define VALVE_04            GPIO_NUM_27

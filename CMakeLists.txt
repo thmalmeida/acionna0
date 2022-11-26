@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.5)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-set(PROJECT_VER "20220810-0630")
+set(PROJECT_VER "20221125-1900")
 
 set(EXTRA_COMPONENT_DIRS
 						components/agro_mesh/modules/clock
@@ -15,6 +15,9 @@ set(EXTRA_COMPONENT_DIRS
 						components/peripherals
 						components/protocols
 						)
+
+
+						
 
 
 #get_filename_component(ProjectId ${CMAKE_CURRENT_LIST_DIR} NAME)

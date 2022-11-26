@@ -8,9 +8,15 @@
 #include "../../build/config/sdkconfig.h"
 
 #include "esp_timer.h"
+#include "esp_eeprom.hpp"
 
 #include "pump.hpp"
 #include "pipepvc.hpp"
+
+#include <i2c_master.h>
+#include "ds3231.hpp"
+#include "rtc_time.hpp"
+#include "helper.hpp"
 
 #ifdef CONFIG_WELL_SUPPORT
 #include "well.hpp"
@@ -32,43 +38,16 @@ enum class states_mode {
 	valve_control
 };
 
-#include <i2c_master.h>
-#include "ds3231.hpp"
-#include "rtc_time.hpp"
-
-#include "helper.hpp"
-
-#include "esp_eeprom.hpp"
-
 class ACIONNA {
 public:
-//	tmElements_t tm;
-	// ACIONNA() : pipe1_{4}
-	// {
-
-	// }
-//	~ACIONNA();
-
 	// states_period state_period = states_period::redTime;
 	states_mode state_mode = states_mode::system_idle;
 
-
-	// uint8_t HourOnTM[9];
-	// uint8_t MinOnTM[9];
-	uint32_t time_match_list[9] = {3600, 60*4, 0, 0, 0, 0, 0, 0, 0};
-	uint8_t time_match_n = 1;						// number of turn on in one day;
-
-	// uint8_t nTM;							
-	// const uint8_t HourOn  = 21;				// fixed season green tax period
-	// const uint8_t MinOn   = 30;
-	// const uint8_t HourOff = 6;
-	// const uint8_t MinOff  = 0;
-
-	// for communication
-	// uint8_t sInstr_[50];
-	// static const uint8_t sInstr_SIZE = 17;
-	// char sInstr[sInstr_SIZE];
-	// uint8_t enableDecode = 0;
+	// group of variables to setup turn on starts
+	uint8_t time_match_n = 1;											// turn times range 1-9
+	uint32_t time_match_list[9] = {3600, 0, 0, 0, 0, 0, 0, 0, 0};	// time clock list [s]
+	uint32_t time_to_shutdown[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};			// timer list to shutdown [s]
+	start_types auto_start_mode[9]; 									// auto turn start type select
 
 	uint8_t signal_restart = 0;
 	uint8_t signal_wifi_info = 0;
@@ -79,7 +58,8 @@ public:
 	uint8_t signal_reset_reason = 0;
 	uint8_t signal_json_data_back = 0;
 	uint8_t signal_json_data_server = 0;
-
+	uint8_t signal_ota_update = 0;
+	uint8_t signal_ota_info = 0;
 
 	// Initialize - should run once;
 	void init();
@@ -93,7 +73,6 @@ public:
 
 	uint32_t get_uptime();
 
-	void summary_Print(uint8_t opt);
 	void update_RTC();
 	void update_objects();
 	void update_stored_data();

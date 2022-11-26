@@ -14,7 +14,7 @@ TODO list
 */
 
 #include "ws_setup.hpp"
-#include "bt_stuffs.hpp"
+// #include "bt_stuffs.hpp"
 #include "pwm_ledc.hpp"
 
 #include <gpio.hpp>
@@ -37,75 +37,82 @@ static EventGroupHandle_t s_wifi_event_group;
 */
 
 // -- Websocket client part ----------------------
-// #include "esp_websocket_client.h"
+#include "esp_websocket_client.h"
 
-// #define CONFIG_WEBSOCKET_URI "ws://192.168.1.9"
-// #define CONFIG_WEBSOCKET_PORT 8999
-// #define TAG_WS_CLIENT "WS_CLIENT"
+#define CONFIG_WEBSOCKET_URI "ws://192.168.1.10"
+#define CONFIG_WEBSOCKET_PORT 8999
+#define TAG_WS_CLIENT "WS_CLIENT"
 
-// static int i_ws = 0;
-// static esp_websocket_client_config_t websocket_cfg = {};
-// static esp_websocket_client_handle_t client;
+enum class ws_client_states {
+	disconnected = 0,
+	connected
+};
 
-// static void ws_client_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
-// {
-// 	esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
+ws_client_states ws_client_state = ws_client_states::disconnected;
+static esp_websocket_client_config_t websocket_cfg = {};
+static esp_websocket_client_handle_t client;
+static int i_ws;
+static void ws_client_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
+{
+	esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
 
-// 	switch (event_id)
-// 	{
-// 		case WEBSOCKET_EVENT_CONNECTED:
-// 			ESP_LOGI(TAG_WS_CLIENT, "WEBSOCKET_EVENT_CONNECTED");
-// 			break;
+	switch (event_id)
+	{
+		case WEBSOCKET_EVENT_CONNECTED:
+			ESP_LOGI(TAG_WS_CLIENT, "WEBSOCKET_EVENT_CONNECTED");
+			ws_client_state = ws_client_states::connected;
+			break;
 		
-// 		case WEBSOCKET_EVENT_DISCONNECTED:
-// 			ESP_LOGI(TAG_WS_CLIENT, "WEBSOCKET_EVENT_DISCONNECTED");
-// 			break;
+		case WEBSOCKET_EVENT_DISCONNECTED:
+			ESP_LOGI(TAG_WS_CLIENT, "WEBSOCKET_EVENT_DISCONNECTED");
+			ws_client_state = ws_client_states::disconnected;
+			break;
 		
-// 		case WEBSOCKET_EVENT_DATA:
-// 			ESP_LOGI(TAG_WS_CLIENT, "WEBSOCKET_EVENT_DATA");
-// 			ESP_LOGI(TAG_WS_CLIENT, "Received opcode=%d", data->op_code);
-// 			if (data->op_code == 0x08 && data->data_len == 2) {
-// 				ESP_LOGW(TAG_WS_CLIENT, "Received closed message with code=%d", 256*data->data_ptr[0] + data->data_ptr[1]);
-// 			} else {
-// 				ESP_LOGW(TAG_WS_CLIENT, "Received=%.*s", data->data_len, (char *)data->data_ptr);
-// 			}
-// 			ESP_LOGW(TAG_WS_CLIENT, "Total payload length=%d, data_len=%d, current payload offset=%d\r\n", data->payload_len, data->data_len, data->payload_offset);
+		case WEBSOCKET_EVENT_DATA:
+			ESP_LOGI(TAG_WS_CLIENT, "WEBSOCKET_EVENT_DATA");
+			ESP_LOGI(TAG_WS_CLIENT, "Received opcode=%d", data->op_code);
+			if (data->op_code == 0x08 && data->data_len == 2) {
+				ESP_LOGW(TAG_WS_CLIENT, "Received closed message with code=%d", 256*data->data_ptr[0] + data->data_ptr[1]);
+			} else {
+				ESP_LOGW(TAG_WS_CLIENT, "Received=%.*s", data->data_len, (char *)data->data_ptr);
+			}
+			ESP_LOGW(TAG_WS_CLIENT, "Total payload length=%d, data_len=%d, current payload offset=%d\r\n", data->payload_len, data->data_len, data->payload_offset);
 
-// 			// xTimerReset(shutdown_signal_timer, portMAX_DELAY);
-// 			break;
+			// xTimerReset(shutdown_signal_timer, portMAX_DELAY);
+			break;
 
-// 		case WEBSOCKET_EVENT_ERROR:
-// 			ESP_LOGI(TAG_WS_CLIENT, "WEBSOCKET_EVENT_ERROR");
-// 			break;
-// 	}
-// }
-// static void ws_client_start(void)
-// {
-// 	websocket_cfg.uri = CONFIG_WEBSOCKET_URI;
-// 	websocket_cfg.port = CONFIG_WEBSOCKET_PORT;
+		case WEBSOCKET_EVENT_ERROR:
+			ESP_LOGI(TAG_WS_CLIENT, "WEBSOCKET_EVENT_ERROR");
+			break;
+	}
+}
+static void ws_client_start(void)
+{
+	websocket_cfg.uri = CONFIG_WEBSOCKET_URI;
+	websocket_cfg.port = CONFIG_WEBSOCKET_PORT;
 
-// 	client = esp_websocket_client_init(&websocket_cfg);
-// 	esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY, ws_client_event_handler, (void *)client);
+	client = esp_websocket_client_init(&websocket_cfg);
+	esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY, ws_client_event_handler, (void *)client);
 
-// 	esp_websocket_client_start(client);
-// }
-// static void ws_client_stop(void)
-// {
-// 	if (esp_websocket_client_is_connected(client)) {
-// 		esp_websocket_client_close(client, portMAX_DELAY);
-// 		ESP_LOGI(TAG_WS_CLIENT, "Websocket Stopped");
-// 		esp_websocket_client_destroy(client);
-// 	}
-// }
-// static void ws_client_run()
-// {
-// 	char data[32];
-// 	if (esp_websocket_client_is_connected(client)) {
-// 		int len = sprintf(data, "hello %04d", i_ws++);
-// 		ESP_LOGI(TAG_WS_CLIENT, "Sending %s", data);
-// 		esp_websocket_client_send_text(client, data, len, portMAX_DELAY);
-// 	}
-// }
+	esp_websocket_client_start(client);
+}
+static void ws_client_stop(void)
+{
+	if (esp_websocket_client_is_connected(client)) {
+		esp_websocket_client_close(client, portMAX_DELAY);
+		ESP_LOGI(TAG_WS_CLIENT, "Websocket Stopped");
+		esp_websocket_client_destroy(client);
+	}
+}
+static void ws_client_run(char* data, int len)
+{
+	// char data[32];
+	if (esp_websocket_client_is_connected(client)) {
+		// int len = sprintf(data, "hello %04d", i_ws++);
+		// ESP_LOGI(TAG_WS_CLIENT, "Sending %s", data);
+		esp_websocket_client_send_text(client, data, len, portMAX_DELAY);
+	}
+}
 // ------------------------
 
 struct async_resp_arg
@@ -122,6 +129,7 @@ const httpd_uri_t ws = {
 	true,                   // handle_ws_control_frames
 	NULL                    // supported_subprotocol
 };
+httpd_handle_t server = NULL;   // Server instance global declaration
 httpd_config_t server_config = {
 	tskIDLE_PRIORITY+5,     // task_priority
 	4096,                   // stack_size
@@ -132,19 +140,19 @@ httpd_config_t server_config = {
 	8,                      // max_uri_handlers
 	8,                      // max_resp_headers
 	5,                      //backlog_conn
-	false,                  // lru_purge_enable
+	true,                  // lru_purge_enable
 	5,                      // recv_wait_timeout
 	5,                      // send_wait_timeout
 	NULL,                   // global_user_ctx
 	NULL,                   // global_user_ctx_free_fn
 	NULL,                   // global_transport_ctx
 	NULL,                   // global_transport_ctx_free_fn
+	false,					// enable/disable linger
+	10,						// linger timeout in seconds
 	NULL,                   // open_fn
 	NULL,                   // close_fn
 	NULL                    // uri_match_fn
 };
-
-httpd_handle_t server = NULL;   // Server instance global declaration
 
 enum class ip_get_type {
 	static_ip = 0,
@@ -185,6 +193,8 @@ std::uint8_t temp_sensor_count;
 
 char buffer[100] = "not ocurred\n";
 
+uint8_t flag_ip_got = 0;
+
 static void esp_restart_async(void*)
 {
 	vTaskDelay(2000 / portTICK_PERIOD_MS);
@@ -208,11 +218,11 @@ esp_err_t ws_event_handler(httpd_req_t *req)
 {
 	if (req->method == HTTP_GET) {
 		ESP_LOGI(TAG_WS, "Handshake done, the new connection was opened");
-
 		ESP_LOGI(TAG_WS, "req->method %u", req->method);
 
 		sock0.fd = httpd_req_to_sockfd(req);
 		sock0.hd = req->handle;
+
 		return ESP_OK;
 	}
 
@@ -312,6 +322,12 @@ esp_err_t ws_event_handler(httpd_req_t *req)
 }
 void httpd_server_start(void)
 {
+	// Needs implementation for wss connection
+	// Prepare keep-alive engine
+	// wss_keep_alive_config_t keep_alive_config = KEEP_ALIVE_CONFIG_DEFAULT();
+
+	// httpd_ssl_config
+
 	// httpd_server_start(arg);
 	ESP_LOGI(TAG_WS, "HTTPD server start");
 
@@ -320,12 +336,9 @@ void httpd_server_start(void)
 	ESP_LOGI(TAG_WS, "server cast to arg");
 	if (server == NULL)
 	{
-		ESP_LOGI(TAG_WS, "Starting webserver");
-
-		ESP_LOGI(TAG_WS, "httpd_config_t config done");
 		// *server = start_webserver();
 		// Start the httpd server
-		ESP_LOGI(TAG_WS, "Starting server on port: '%d'", server_config.server_port);
+		ESP_LOGI(TAG_WS, "Starting webserver on port: '%d'", server_config.server_port);
 		if (httpd_start(&server, &server_config) == ESP_OK) // httpd_start(&server, &config)
 		{
 			// Registering the ws handler
@@ -406,7 +419,7 @@ void connection_event_handler(void* handler_arg, esp_event_base_t event_base, in
 			s_retry_num = 0;
 			xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
 
-			httpd_server_start();
+			esp_got_ip = 1;
 		}
 		else if(event_id == IP_EVENT_STA_LOST_IP)
 		{
@@ -422,6 +435,7 @@ void wifi_sta_init(void)
 	ESP_ERROR_CHECK(esp_netif_init());
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 
+	// Select ip station mode DHCP or STATIC
 	switch (ip_get_mode)
 	{
 		case ip_get_type::dhcp_ip:
@@ -455,6 +469,7 @@ void wifi_sta_init(void)
 
 	ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &connection_event_handler, NULL, &instance_any_id));
 	ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, ESP_EVENT_ANY_ID, &connection_event_handler, NULL, &instance_got_ip));
+
 // ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL, &instance_got_ip));
 
 //	wifi_config_t wifi_config = {
@@ -612,6 +627,12 @@ void send_json_data_back() {
 			ws_pkt.type = HTTPD_WS_TYPE_TEXT;
 
 			httpd_ws_send_frame_async(sock0.hd, sock0.fd, &ws_pkt);
+
+
+			// if(ws_client_state == ws_client_states::connected)
+			// {
+			// 	ws_client_run(&buffer[0], strlen(buffer));
+			// }
 		}
 		else
 			acionna0.signal_json_data_back = 0;
@@ -791,9 +812,7 @@ static void wifi_conn_led_indicator_pwm(void)
 // {
 // 	led0.mode(GPIO_MODE_OUTPUT);
 // 	led0.write(1);
-
 // 	int estado0 = 0;
-
 // 	while(1)
 // 	{
 // 		if(wifi_state == state_conn::connected) {
@@ -818,222 +837,247 @@ static void wifi_conn_led_indicator_pwm(void)
 // 			led0.write(0);
 // 		}
 // }
-void machine_run(void*)
+void machine_run(void *pvParameter)
 {
 	// wifi and ws server init;
-
-	bt_init();
+	// bt_init();
 	wifi_sta_init();
-
-	// // ws client test
-	// ws_client_start();
 
 	// ws server will ask to init into connection_event_handler when got IP.
 
-	// acionna initialize;
-	acionna0.init();
+	// ws client initialize
+	// ws_client_start();
 
-	dht0.begin();
-	temp_sensor.begin();
-	temp_sensor_count = temp_sensor.getDeviceCount();
+	// acionna initialize
+	// acionna0.init();
+
+	// dht0.begin();
+	// temp_sensor.begin();
+	// temp_sensor_count = temp_sensor.getDeviceCount();
 	// ESP_LOGI(TAG_SENSORS, "Temp sensors count: %u", temp_sensor_count);
 
-	// int count_down = 0;
 
 	while(1)
 	{
-		acionna0.run();
+		// acionna0.run();
 
-		wifi_conn_led_indicator_pwm();
+		// wifi_conn_led_indicator_pwm();
 
-		if(acionna0.signal_restart) {
-			acionna0.signal_restart = 0;
-			esp_shutdown_h_now();        
-		} else if(acionna0.signal_wifi_info) {   
-			acionna0.signal_wifi_info = 0;
-			ESP_LOGI(TAG_WIFI, "signal_wifi_info");
+		if(flag_ip_got)
+		{
+			flag_ip_got = 0;
+			// httpd_server_start();
+			// ota_get_info();
+			// _delay_ms(4000);
+			// xTaskCreate(&ota_task, "ota_task0", (1024 * 8), NULL, 5, NULL);
+			// ota_task();
+			// ws_client_start();
+		}
 
-			wifi_ap_record_t wifi_info;
 
-			if (esp_wifi_sta_get_ap_info(&wifi_info)== ESP_OK)
-			{
-				char *str0 = (char*) wifi_info.ssid;
-				sprintf(buffer, "SSID: %s, RSSI: %d\n", str0, static_cast<int>(wifi_info.rssi));
-			}
-			signal_send = states_flag::enable;
-		} else if(acionna0.signal_wifi_scan) {
-			acionna0.signal_wifi_scan = 0;
 
-			uint16_t ap_count = 0;
-			uint16_t number = DEFAULT_SCAN_LIST_SIZE;
-			wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
-			wifi_ap_record_t *ap_info_ptr = &ap_info[0];
+		// if(acionna0.signal_restart) {
+		// 	acionna0.signal_restart = 0;
+		// 	esp_shutdown_h_now();        
+		// } else if(acionna0.signal_wifi_info) {   
+		// 	acionna0.signal_wifi_info = 0;
+		// 	ESP_LOGI(TAG_WIFI, "signal_wifi_info");
 
-			memset(ap_info, 0, sizeof(ap_info));
+		// 	wifi_ap_record_t wifi_info;
 
-			wifi_scan2(number, ap_info_ptr, ap_count);
-			for(int i=0; (i<DEFAULT_SCAN_LIST_SIZE) && (i<ap_count); i++)
-			{
-				sprintf(buffer, "Ch: %d, RSSI: %d, SSID: %s\n", ap_info[i].primary, ap_info[i].rssi, ap_info[i].ssid);
+		// 	if (esp_wifi_sta_get_ap_info(&wifi_info)== ESP_OK)
+		// 	{
+		// 		char *str0 = (char*) wifi_info.ssid;
+		// 		sprintf(buffer, "SSID: %s, RSSI: %d\n", str0, static_cast<int>(wifi_info.rssi));
+		// 	}
+		// 	signal_send = states_flag::enable;
+		// } else if(acionna0.signal_wifi_scan) {
+		// 	acionna0.signal_wifi_scan = 0;
 
-				if(bt_state == state_conn::connected)
-				{
-					uint8_t* spp_pkt_data;
-					// *spp_pkt_data = &spp_data[0];
-					spp_pkt_data = reinterpret_cast<uint8_t*>(&buffer[0]);
+		// 	uint16_t ap_count = 0;
+		// 	uint16_t number = DEFAULT_SCAN_LIST_SIZE;
+		// 	wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
+		// 	wifi_ap_record_t *ap_info_ptr = &ap_info[0];
 
-					// for(int i=0; i<strlen(buffer); i++)
-					// {
-					//     printf("%c", spp_pkt_data[i]);
-					// }
+		// 	memset(ap_info, 0, sizeof(ap_info));
 
-					bt_sock0_len = strlen(buffer);
-					esp_spp_write(bt_sock0, bt_sock0_len, spp_pkt_data);	// send data;
-				}
+		// 	wifi_scan2(number, ap_info_ptr, ap_count);
+		// 	for(int i=0; (i<DEFAULT_SCAN_LIST_SIZE) && (i<ap_count); i++)
+		// 	{
+		// 		sprintf(buffer, "Ch: %d, RSSI: %d, SSID: %s\n", ap_info[i].primary, ap_info[i].rssi, ap_info[i].ssid);
 
-				if(wifi_state == state_conn::connected)
-				{
-					if(httpd_ws_get_fd_info(sock0.hd, sock0.fd) == HTTPD_WS_CLIENT_WEBSOCKET)
-					{
-						httpd_ws_frame_t ws_pkt;
-						memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-						ws_pkt.payload = reinterpret_cast<uint8_t*>(&buffer[0]);
-						// ws_pkt.payload = (uint8_t*)buffer;
-						ws_pkt.len = strlen(buffer);
-						ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+		// 		if(bt_state == state_conn::connected)
+		// 		{
+		// 			uint8_t* spp_pkt_data;
+		// 			// *spp_pkt_data = &spp_data[0];
+		// 			spp_pkt_data = reinterpret_cast<uint8_t*>(&buffer[0]);
 
-						httpd_ws_send_frame_async(sock0.hd, sock0.fd, &ws_pkt);
-					}
-				}
-			}
-		} else if (acionna0.signal_request_sensors) {
-			ESP_LOGI(TAG_SENSORS, "signal_request_sensors:%d", acionna0.signal_request_sensors);
-			acionna0.signal_request_sensors = 0;
+		// 			// for(int i=0; i<strlen(buffer); i++)
+		// 			// {
+		// 			//     printf("%c", spp_pkt_data[i]);
+		// 			// }
 
-			char buffer[100] = "not changed!!\n";
-			_delay_ms(2000);
-			temp_sensor.requestTemperatures();
+		// 			bt_sock0_len = strlen(buffer);
+		// 			esp_spp_write(bt_sock0, bt_sock0_len, spp_pkt_data);	// send data;
+		// 		}
 
-			if(dht0.read2())
-				sprintf(buffer, "Tout:%.2f, Tin:%.1f, Humidity: %.1f%%\n", temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
-			else
-				sprintf(buffer, "Tout:%.2f, Tin:%.1f, Humidity: %.1f%% ER\n", temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
-			_delay_ms(1000);
+		// 		if(wifi_state == state_conn::connected)
+		// 		{
+		// 			if(httpd_ws_get_fd_info(sock0.hd, sock0.fd) == HTTPD_WS_CLIENT_WEBSOCKET)
+		// 			{
+		// 				httpd_ws_frame_t ws_pkt;
+		// 				memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+		// 				ws_pkt.payload = reinterpret_cast<uint8_t*>(&buffer[0]);
+		// 				// ws_pkt.payload = (uint8_t*)buffer;
+		// 				ws_pkt.len = strlen(buffer);
+		// 				ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+
+		// 				httpd_ws_send_frame_async(sock0.hd, sock0.fd, &ws_pkt);
+		// 			}
+		// 		}
+		// 	}
+		// } else if (acionna0.signal_request_sensors) {
+		// 	ESP_LOGI(TAG_SENSORS, "signal_request_sensors:%d", acionna0.signal_request_sensors);
+		// 	acionna0.signal_request_sensors = 0;
+
+		// 	char buffer[100] = "not changed!!\n";
+		// 	_delay_ms(2000);
+		// 	temp_sensor.requestTemperatures();
+
+		// 	if(dht0.read2())
+		// 		sprintf(buffer, "Tout:%.2f, Tin:%.1f, Humidity: %.1f%%\n", temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
+		// 	else
+		// 		sprintf(buffer, "Tout:%.2f, Tin:%.1f, Humidity: %.1f%% ER\n", temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
+		// 	_delay_ms(1000);
 			
-			signal_send = states_flag::enable;
-			// if(wifi_state == state_conn::connected)
-			// {
-			// 	if(httpd_ws_get_fd_info(sock0.hd, sock0.fd) == HTTPD_WS_CLIENT_WEBSOCKET)
-			// 	{
-			// 		httpd_ws_frame_t ws_pkt;
-			// 		memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-			// 		ws_pkt.payload = reinterpret_cast<uint8_t*>(&buffer[0]);
-			// 		// ws_pkt.payload = (uint8_t*)buffer;
-			// 		ws_pkt.len = strlen(buffer);
-			// 		ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+		// 	signal_send = states_flag::enable;
+		// 	// if(wifi_state == state_conn::connected)
+		// 	// {
+		// 	// 	if(httpd_ws_get_fd_info(sock0.hd, sock0.fd) == HTTPD_WS_CLIENT_WEBSOCKET)
+		// 	// 	{
+		// 	// 		httpd_ws_frame_t ws_pkt;
+		// 	// 		memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+		// 	// 		ws_pkt.payload = reinterpret_cast<uint8_t*>(&buffer[0]);
+		// 	// 		// ws_pkt.payload = (uint8_t*)buffer;
+		// 	// 		ws_pkt.len = strlen(buffer);
+		// 	// 		ws_pkt.type = HTTPD_WS_TYPE_TEXT;
 
-			// 		httpd_ws_send_frame_async(sock0.hd, sock0.fd, &ws_pkt);
-			// 	}
-			// }
-		} else if(acionna0.signal_ram_usage) {
-			acionna0.signal_ram_usage = 0;
-			sprintf(buffer, "RAM - free:%d, min:%d\n", esp_get_free_internal_heap_size(), esp_get_minimum_free_heap_size());
-			signal_send = states_flag::enable;
-		} else if(acionna0.signal_reset_reason) {
-			acionna0.signal_reset_reason = 0;
-			esp_reset_reason_t last_rst = esp_reset_reason();
-			switch (last_rst)
-			{
-				case ESP_RST_UNKNOWN:	// 0
-					sprintf(buffer, "%d: can not be determined\n", static_cast<int>(last_rst));
-					break;
+		// 	// 		httpd_ws_send_frame_async(sock0.hd, sock0.fd, &ws_pkt);
+		// 	// 	}
+		// 	// }
+		// } else if(acionna0.signal_ram_usage) {
+		// 	acionna0.signal_ram_usage = 0;
+		// 	sprintf(buffer, "RAM - free:%d, min:%d\n", esp_get_free_internal_heap_size(), esp_get_minimum_free_heap_size());
+		// 	signal_send = states_flag::enable;
+		// } else if(acionna0.signal_reset_reason) {
+		// 	acionna0.signal_reset_reason = 0;
+		// 	esp_reset_reason_t last_rst = esp_reset_reason();
+		// 	switch (last_rst)
+		// 	{
+		// 		case ESP_RST_UNKNOWN:	// 0
+		// 			sprintf(buffer, "%d: can not be determined\n", static_cast<int>(last_rst));
+		// 			break;
 
-				case ESP_RST_POWERON:	// 1
-					sprintf(buffer, "%d: power-on\n", static_cast<int>(last_rst));
-					break;
+		// 		case ESP_RST_POWERON:	// 1
+		// 			sprintf(buffer, "%d: power-on\n", static_cast<int>(last_rst));
+		// 			break;
 
-				case ESP_RST_EXT:		// 2
-					sprintf(buffer, "%d: ext pin\n", static_cast<int>(last_rst));
-					break;
+		// 		case ESP_RST_EXT:		// 2
+		// 			sprintf(buffer, "%d: ext pin\n", static_cast<int>(last_rst));
+		// 			break;
 
-				case ESP_RST_SW:		// 3
-					sprintf(buffer, "%d: ext pin\n", static_cast<int>(last_rst));
-					break;
+		// 		case ESP_RST_SW:		// 3
+		// 			sprintf(buffer, "%d: ext pin\n", static_cast<int>(last_rst));
+		// 			break;
 
-				case ESP_RST_PANIC:		// 4
-					sprintf(buffer, "%d: panic\n", static_cast<int>(last_rst));
-					break;
+		// 		case ESP_RST_PANIC:		// 4
+		// 			sprintf(buffer, "%d: panic\n", static_cast<int>(last_rst));
+		// 			break;
 
-				case ESP_RST_INT_WDT:	// 5
-					sprintf(buffer, "%d: int wdt\n", static_cast<int>(last_rst));
-					break;
+		// 		case ESP_RST_INT_WDT:	// 5
+		// 			sprintf(buffer, "%d: int wdt\n", static_cast<int>(last_rst));
+		// 			break;
 
-				case ESP_RST_TASK_WDT:	// 6
-					sprintf(buffer, "%d: task wdt\n", static_cast<int>(last_rst));
-					break;
+		// 		case ESP_RST_TASK_WDT:	// 6
+		// 			sprintf(buffer, "%d: task wdt\n", static_cast<int>(last_rst));
+		// 			break;
 
-				case ESP_RST_WDT:		// 7
-					sprintf(buffer, "%d: other wdt\n", static_cast<int>(last_rst));
-					break;
+		// 		case ESP_RST_WDT:		// 7
+		// 			sprintf(buffer, "%d: other wdt\n", static_cast<int>(last_rst));
+		// 			break;
 
-				case ESP_RST_DEEPSLEEP:	// 8
-					sprintf(buffer, "%d: after exit deep sleep\n", static_cast<int>(last_rst));
-					break;
+		// 		case ESP_RST_DEEPSLEEP:	// 8
+		// 			sprintf(buffer, "%d: after exit deep sleep\n", static_cast<int>(last_rst));
+		// 			break;
 
-				case ESP_RST_BROWNOUT:	// 9
-					sprintf(buffer, "%d: brownout rst\n", static_cast<int>(last_rst));
-					break;
+		// 		case ESP_RST_BROWNOUT:	// 9
+		// 			sprintf(buffer, "%d: brownout rst\n", static_cast<int>(last_rst));
+		// 			break;
 
-				case ESP_RST_SDIO:	// 10
-					sprintf(buffer, "%d: over SDIO\n", static_cast<int>(last_rst));
-					break;
+		// 		case ESP_RST_SDIO:	// 10
+		// 			sprintf(buffer, "%d: over SDIO\n", static_cast<int>(last_rst));
+		// 			break;
 
-				default:
-					break;
-			}
+		// 		default:
+		// 			break;
+		// 	}
 
-			signal_send = states_flag::enable;
-		}
+		// 	signal_send = states_flag::enable;
+		// } else if(acionna0.signal_ota_update) {
+		// 	acionna0.signal_ota_update = 0;
+		// 	httpd_server_stop(server);
+		// 	server = NULL;
+		// 	ota_task();
+		// 	sprintf(buffer, "ota task inssue\n");
+		// 	// signal_send = states_flag::enable;
+		// } else if(acionna0.signal_ota_info) {
+		// 	acionna0.signal_ota_info = 0;
+		// 	ota_get_info();
+		// 	sprintf(buffer, "ota info");
+		// 	signal_send = states_flag::enable;
+		// }
 
-		if(acionna0.signal_send_async) {
-			wifi_ap_record_t wifi_info;
+		// if(acionna0.signal_send_async) {
+		// 	wifi_ap_record_t wifi_info;
 
-			if (esp_wifi_sta_get_ap_info(&wifi_info)== ESP_OK)
-			{
-				char *str0 = (char*) wifi_info.ssid;
-				sprintf(buffer, "SSID: %s, RSSI: %d", str0, static_cast<int>(wifi_info.rssi));
-			}
+		// 	if (esp_wifi_sta_get_ap_info(&wifi_info)== ESP_OK)
+		// 	{
+		// 		char *str0 = (char*) wifi_info.ssid;
+		// 		sprintf(buffer, "SSID: %s, RSSI: %d", str0, static_cast<int>(wifi_info.rssi));
+		// 	}
 
-			httpd_ws_frame_t ws_pkt;
-			memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-			// ws_pkt.payload = reinterpret_cast<uint8_t*>(&buffer[0]);
-			ws_pkt.payload = (uint8_t*)buffer;
-			ws_pkt.len = strlen(buffer);
-			ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+		// 	httpd_ws_frame_t ws_pkt;
+		// 	memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+		// 	// ws_pkt.payload = reinterpret_cast<uint8_t*>(&buffer[0]);
+		// 	ws_pkt.payload = (uint8_t*)buffer;
+		// 	ws_pkt.len = strlen(buffer);
+		// 	ws_pkt.type = HTTPD_WS_TYPE_TEXT;
 
-			if(httpd_ws_get_fd_info(sock0.hd, sock0.fd) == HTTPD_WS_CLIENT_WEBSOCKET)
-			{
-				httpd_ws_send_frame_async(sock0.hd, sock0.fd, &ws_pkt);
-			}
-			else
-			{
-				acionna0.signal_send_async = 0;
-				ESP_LOGI(TAG_WS, "SOCK0: connection closed");
-			}
-		}
+		// 	if(httpd_ws_get_fd_info(sock0.hd, sock0.fd) == HTTPD_WS_CLIENT_WEBSOCKET)
+		// 	{
+		// 		httpd_ws_send_frame_async(sock0.hd, sock0.fd, &ws_pkt);
+		// 	}
+		// 	else
+		// 	{
+		// 		acionna0.signal_send_async = 0;
+		// 		ESP_LOGI(TAG_WS, "SOCK0: connection closed");
+		// 	}
+		// }
 
-		if(acionna0.signal_json_data_back) {
-			send_json_data_back();
-		}
+		// if(acionna0.signal_json_data_back) {
+		// 	send_json_data_back();
+		// }
 
-		if(acionna0.signal_json_data_server) {
-			send_json_data_server();
-		}
+		// if(acionna0.signal_json_data_server) {
+		// 	send_json_data_server();
+		// }
+
+
+
+
 
 		// if(acionna0.signal_DHT21)
 		// {
-
-		// 	if(!count_down_sensors_DHT21_DS18B20)
 		// 	if(dht0.read2())
 		// 	{
 		// 		ESP_LOGI(TAG_SENSORS, "Temp outside: %.2f, Temp inside: %.2f, Humidity: %.2f%%", temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
@@ -1054,44 +1098,61 @@ void machine_run(void*)
 		// 	}
 		// }
 
-		if(signal_send == states_flag::enable)
-		{
-			signal_send = states_flag::disable;
+		// if(signal_send == states_flag::enable)
+		// {
+		// 	signal_send = states_flag::disable;
 
-			if(wifi_state == state_conn::connected)
-			{
-				if(httpd_ws_get_fd_info(sock0.hd, sock0.fd) == HTTPD_WS_CLIENT_WEBSOCKET)
-				{
-					httpd_ws_frame_t ws_pkt;
-					memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-					ws_pkt.payload = reinterpret_cast<uint8_t*>(&buffer[0]);
-					// ws_pkt.payload = (uint8_t*)buffer;
-					ws_pkt.len = strlen(buffer);
-					ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+		// 	if(wifi_state == state_conn::connected)
+		// 	{
+		// 		if(httpd_ws_get_fd_info(sock0.hd, sock0.fd) == HTTPD_WS_CLIENT_WEBSOCKET)
+		// 		{
+		// 			httpd_ws_frame_t ws_pkt;
+		// 			memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+		// 			ws_pkt.payload = reinterpret_cast<uint8_t*>(&buffer[0]);
+		// 			// ws_pkt.payload = (uint8_t*)buffer;
+		// 			ws_pkt.len = strlen(buffer);
+		// 			ws_pkt.type = HTTPD_WS_TYPE_TEXT;
 
-					httpd_ws_send_frame_async(sock0.hd, sock0.fd, &ws_pkt);
-				}
-			}
+		// 			httpd_ws_send_frame_async(sock0.hd, sock0.fd, &ws_pkt);
+		// 		}
+		// 	}
 
-			if(bt_state == state_conn::connected)
-			{
-				uint8_t* spp_pkt_data;
-				// *spp_pkt_data = &spp_data[0];
-				spp_pkt_data = reinterpret_cast<uint8_t*>(&buffer[0]);
+		// 	if(bt_state == state_conn::connected)
+		// 	{
+		// 		uint8_t* spp_pkt_data;
+		// 		// *spp_pkt_data = &spp_data[0];
+		// 		spp_pkt_data = reinterpret_cast<uint8_t*>(&buffer[0]);
 
-				// for(int i=0; i<strlen(buffer); i++)
-				// {
-				//     printf("%c", spp_pkt_data[i]);
-				// }
+		// 		// for(int i=0; i<strlen(buffer); i++)
+		// 		// {
+		// 		//     printf("%c", spp_pkt_data[i]);
+		// 		// }
 
-				bt_sock0_len = strlen(buffer);
-				esp_spp_write(bt_sock0, bt_sock0_len, spp_pkt_data);	// send data;
-			}
-		}
+		// 		bt_sock0_len = strlen(buffer);
+		// 		esp_spp_write(bt_sock0, bt_sock0_len, spp_pkt_data);	// send data;
+		// 	}
+		// }
 
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -27,26 +27,11 @@
 #include "lwip/netdb.h"
 
 #include "esp_http_server.h"    // Header for http_server websocket
-#include "esp_http_client.h"
-#include "esp_websocket_client.h"
+// #include "esp_http_client.h"
+// #include "esp_websocket_client.h"
 
 #include "acionna.hpp"
-
-#define WIFI_SSID_STA	"0yd017"			// CONFIG_ESP_WIFI_SSID
-#define WIFI_SSID_AP    "0xd018"
-#define IP_END          30                  // local ip end: 192.168.1.IP_END
-#define WIFI_PASS		"praticamente"	    //CONFIG_ESP_WIFI_PASSWORD
-#define WIFI_MAX_RETRY	600				    // CONFIG_ESP_MAXIMUM_RETRY
-
-#define DEFAULT_SCAN_LIST_SIZE      10
-/* The event group allows multiple bits for each event, but we only care about two events:
- * - we are connected to the AP with an IP
- * - we failed to connect after the maximum amount of retries */
-#define WIFI_CONNECTED_BIT BIT0
-#define WIFI_FAIL_BIT      BIT1
-
-
-// void led_indicator();
+#include "https_ota.hpp"
 
 esp_err_t ws_event_handler(httpd_req_t* req);
 void httpd_server_start(void); // suppose to be httpd_handle_t instead of void
@@ -57,7 +42,7 @@ void print_auth_mode(int authmode);
 void print_cipher_type(int pairwise_cipher, int group_cipher);
 void wifi_scan(void);
 // static void wifi_conn_led_indicator_pwm(void);
-void machine_run(void*);
+void machine_run(void *pvParameter);
 
 #endif
 

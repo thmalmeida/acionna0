@@ -6,7 +6,6 @@
 #include <pinout.hpp>
 
 #include "helper.hpp"
-
 #include "hardware_defs.h"
 
 //GPIO_Basic ac_load_[]={
@@ -73,15 +72,12 @@ public:
 	states_flag flag_check_wait_power_on = states_flag::disable;
 	states_flag flag_check_k3_off = states_flag::disable;
 
-	// auto turn start type select
-	start_types auto_start_mode[9]; // = start_types::direct_single_kontactor;
-
 	// Motor times
 	unsigned int time_wait_power_on = 0;			// 
 	unsigned int time_wait_power_on_config = 600;	// [s]
 	unsigned int time_to_shutdown = 0;				// time variable to shutdown the motor [s].
 	unsigned int time_to_shutdown_config = 30*60;	// [s]
-	unsigned int time_switch_k3_to_k2 = 400;		// [ms] delay on transition of k3 off to k2 on
+	unsigned int time_switch_k_change = 400;		// [ms] delay on transition of k3 off to k2 on
 	unsigned int time_delta_to_y_switch_ = 0;		// speeding up time from delta to Y start [s]
 	unsigned int time_delta_to_y_switch_config = 5;	// speeding up time from delta to Y start [s]
 
@@ -117,7 +113,7 @@ public:
 			// gpio_generic_[i].register_interrupt(gpio_input_interrput, nullptr);
 		}
 
-		ESP_LOGI(TAG_PUMP, "The PUMP was initialized HERE!");
+		ESP_LOGI(TAG_PUMP, "PUMP class initialize!");
 	}
 
 	// public member functions
@@ -168,17 +164,65 @@ public:
 		{
 			case start_types::direct_k1: {
 				drive_k_(1, 1);
-				ESP_LOGI(TAG_PUMP, "start k1");
+
+				// check K change with time
+				int i = 0;
+				while(state_k1() != states_switch::on)
+				{
+					i++;
+					delay_us(1);
+					update_switches_();
+
+					if(i == time_switch_k_change*1000)
+					{
+						ESP_LOGI(TAG_PUMP, "error on k1 change");
+						stop(states_stop::contactor_not_on);
+						return 1;
+					}
+				}
+				ESP_LOGI(TAG_PUMP, "k1 on");
 				break;
 			}
 			case start_types::direct_k2: {
 				drive_k_(2, 1);
-				ESP_LOGI(TAG_PUMP, "start k2");
+
+				// check K change with time
+				int i = 0;
+				while(state_k2() != states_switch::on)
+				{
+					i++;
+					delay_us(1);
+					update_switches_();
+
+					if(i == time_switch_k_change*1000)
+					{
+						ESP_LOGI(TAG_PUMP, "error on k2 change");
+						stop(states_stop::contactor_not_on);
+						return 1;
+					}
+				}
+				ESP_LOGI(TAG_PUMP, "k2 on");
 				break;
 			}
 			case start_types::direct_k3: {
 				drive_k_(3, 1);
-				ESP_LOGI(TAG_PUMP, "start k3");
+
+				// check K change with time
+				int i = 0;
+				while(state_k3() != states_switch::on)
+				{
+					i++;
+					delay_us(1);
+					update_switches_();
+
+					if(i == time_switch_k_change*1000)
+					{
+						ESP_LOGI(TAG_PUMP, "error on k3 change");
+						stop(states_stop::contactor_not_on);
+						return 1;
+					}
+				}
+				ESP_LOGI(TAG_PUMP, "k3 on");
 				break;
 			}
 			case start_types::to_delta: {
@@ -187,14 +231,14 @@ public:
 				{
 					ESP_LOGI(TAG_PUMP, "from Y to delta. K3: OFF");						
 					drive_k_(3, 0);
+					
 					int i = 0;
-
 					while((state_k3() == states_switch::on) || (state_k3_pin() == states_switch::on))
 					{
 						i++;
 						delay_us(1);
 						update_switches_();
-						if(i == time_switch_k3_to_k2*1000)
+						if(i == time_switch_k_change*1000)
 						{
 							ESP_LOGI(TAG_PUMP, "maybe k3 is lock");
 							drive_k_(1,0);
@@ -205,7 +249,7 @@ public:
 						}
 					}
 					ESP_LOGI(TAG_PUMP, "i: %d", i);
-					_delay_ms(time_switch_k3_to_k2);
+					_delay_ms(time_switch_k_change);
 				}
 
 				if((state_k3() == states_switch::off) && (state_k3_pin() == states_switch::off)) {
@@ -236,7 +280,7 @@ public:
 				// } else {
 				// 	drive_k_(3,0);
 				// 	ESP_LOGI(TAG_PUMP, "from Y to delta start. K3: OFF");
-				// 	delay_ms(time_switch_k3_to_k2);
+				// 	delay_ms(time_switch_k_change);
 				// 	update_state_();
 				// 	// state_k3() substitute for
 				// 	if((state_k3() == states_switch::off) && (state_k3_pin() == states_switch::off)) {
@@ -266,7 +310,7 @@ public:
 						i++;
 						delay_us(1);
 						update_switches_();
-						if(i == time_switch_k3_to_k2*1000)
+						if(i == time_switch_k_change*1000)
 						{
 							ESP_LOGI(TAG_PUMP, "maybe k2 is lock");
 							drive_k_(1,0);
@@ -277,7 +321,7 @@ public:
 						}
 					}
 					ESP_LOGI(TAG_PUMP, "i: %d", i);
-					_delay_ms(time_switch_k3_to_k2);
+					_delay_ms(time_switch_k_change);
 				}
 
 				if((state_k2() == states_switch::off) && (state_k2_pin() == states_switch::off)) {
@@ -321,41 +365,6 @@ public:
 		time_to_shutdown = time_to_shutdown_config;
 
 		return 0;	// ok!
-
-		// return 0;	// ok!
-		// }
-		// else
-		// 	return 1;	// error
-
-// 			if(_start_type == start_types::start_direct_single_kontactor)
-// 			{
-// 			}
-// 			else if (_start_type == start_types::start_direct_double_kontactor)
-// 			{
-// 			}
-// 			else if(_start_type == start_types::start_delta_y)
-// 			{
-
-
-
-
-
-// 				// delay ms of t =
-// 				delay_ms(time_k3_off_to_k2_on);
-// 				ESP_LOGI(TAG_PUMP, "turn k2 on");
-// 				drive_k_(2, 1);
-// 				// delay_ms(700);
-// //				update_pump_state();
-// 			}
-		//	if(s == start_types::direct_start_single_phase)
-		//	switch(_start_type)
-		//	{
-		//	case start_types::direct_start_single_phase:
-		//
-		//		break;
-		//	default:
-		//		break;
-		//	}
 	}
 	void stop(states_stop _reason)
 	{
@@ -416,12 +425,12 @@ public:
 
 private:
 
-	// Output TRIACS drives to motor controller
+	// Output TRIACS hardware drive to contactors
 	GPIO_Basic ac_load_[3];
 	const std::size_t ac_load_count_ = sizeof(ac_load_) / sizeof(ac_load_[0]);
 //	GPIO_Basic drive_kn_[3]={GPIO_Basic{AC_LOAD1},GPIO_Basic{AC_LOAD2},GPIO_Basic{AC_LOAD3}};
 
-	// input of kontators
+	// input of contators
 	GPIO_Basic gpio_generic_[4];
 	const std::size_t gpio_generic_count_ = sizeof(gpio_generic_) / sizeof(gpio_generic_[0]);
 
@@ -448,7 +457,6 @@ private:
 	unsigned int time_on_ = 0;
 	unsigned int time_off_ = 0;
 	
-	// void init();
 	void update_switches_()
 	{
 		state_k1_pin_ = read_k_pin_(1);
@@ -490,12 +498,16 @@ private:
 				{
 					stop(states_stop::contactor_not_on);
 				}
-				state_motor_ = states_motor::off_idle;
-				ESP_LOGI(TAG_PUMP, "pump: off_idle");
+
+				if(state_motor_ != states_motor::off_idle)
+				{
+					state_motor_ = states_motor::off_idle;
+					ESP_LOGI(TAG_PUMP, "pump: off_idle");
+				}
 			}
 			else if((state_k1_ == states_switch::on) && (state_k2_ == states_switch::off) && (state_k3_ == states_switch::on))
 			{	
-				state_motor_ = states_motor::on_speeding_up;	
+				state_motor_ = states_motor::on_speeding_up;
 				ESP_LOGI(TAG_PUMP, "pump: on_speeding_up");
 			}
 			else if((state_k1_ == states_switch::on) && (state_k2_ == states_switch::off) && (state_k3_ == states_switch::off))
@@ -610,20 +622,6 @@ private:
 		else
 			return states_switch::off;
 	}
-	// states_switch read_k2_()
-	// {
-	// 	if(gpio_generic_[1].read())
-	// 		return states_switch::on;
-	// 	else
-	// 		return states_switch::off;
-	// }
-	// states_switch read_k3_()
-	// {
-	// 	if(gpio_generic_[2].read())
-	// 		return states_switch::on;
-	// 	else
-	// 		return states_switch::off;
-	// }
 	states_switch read_Rth_()
 	{
 		if(!gpio_generic_[3].read())
@@ -638,11 +636,22 @@ private:
 			else
 				return states_switch::off;
 	}
-
-
-//	Function declaration
-//	void driveMotor_ON(uint8_t startType);
-//	void driveMotor_OFF();
 };
 
 #endif /* PUMP_H__ */
+
+
+	// states_switch read_k2_()
+	// {
+	// 	if(gpio_generic_[1].read())
+	// 		return states_switch::on;
+	// 	else
+	// 		return states_switch::off;
+	// }
+	// states_switch read_k3_()
+	// {
+	// 	if(gpio_generic_[2].read())
+	// 		return states_switch::on;
+	// 	else
+	// 		return states_switch::off;
+	// }

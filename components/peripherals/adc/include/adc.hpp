@@ -59,7 +59,7 @@ class ADC_Basic{
 			init_single_read();				// Single read initialize
 //			init_continuous_read_dma(_channel, channel_num)		// Continuous read initialize
 		}
-		// ~ADC_Basic();
+		~ADC_Basic() {}
 
 		void init_single_read()
 		{

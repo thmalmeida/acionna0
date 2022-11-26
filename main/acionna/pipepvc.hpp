@@ -11,27 +11,24 @@ public:
 	
 	int pressure_max = 70;				// max supported pressure by pipe [m.c.a];
 	int pressure_min = 30;				// min threshold pressure for indicate some problem;
-	int sensor_pressure_ref = 150;			// sensor max pressure [psi];
-	uint16_t sensor_data_dig = 0;	// readed value from ADC peripheral;
-	int channel_adc = 4;					// ADC channel;
-	int value_mca = 0;					// converted value [m.c.a.];
-		
-//	int PRessHold=0;						// max pressure converted on turned on period;
-//	uint8_t PRessureRef = 0;				// max threshold pressure;
-//	uint8_t PRessureRef_Valve = 0;			// max threshold valve pressure to turn open;
-//	uint8_t PRessureMax_Sensor = 100; 		// sensor max pressure [psi]
-//	uint8_t PRessurePer = 85;				// percent pressure bellow nominal to turn load off;
+	int sensor_pressure_ref = 150;		// sensor max pressure [psi];
+	uint16_t sensor_data_dig = 0;		// readed value from ADC peripheral;
+	int channel_adc = 4;				// ADC channel;
+	
+	int pressure_mca_previous = 0;		// for low press dectection algoritm;
+
+//	int PRessHold=0;					// max pressure converted on turned on period;
+//	uint8_t PRessureRef = 0;			// max threshold pressure;
+//	uint8_t PRessureRef_Valve = 0;		// max threshold valve pressure to turn open;
+//	uint8_t PRessureMax_Sensor = 100; 	// sensor max pressure [psi]
+//	uint8_t PRessurePer = 85;			// percent pressure bellow nominal to turn load off;
 //	uint8_t PRessureRef_Low = 10;
-//	uint16_t levelRef_10bit = 0;			// digital 10 bit number to threshold level sensor;
+//	uint16_t levelRef_10bit = 0;		// digital 10 bit number to threshold level sensor;
 //
 //	uint8_t flag_PressureUnstable = 1;
-//	uint8_t flag_PressureDown = 0;			// flag for pressure down occurrence;
+//	uint8_t flag_PressureDown = 0;		// flag for pressure down occurrence;
 
-	Pipepvc() : adc_{4}
-	{
-		
-	}
-
+	Pipepvc() : adc_{4} {}
 	void update()
 	{
 		sensor_data_dig = adc_.read();
@@ -41,11 +38,27 @@ public:
 	{
 		return pressure_mca_;
 	}
+	int air_intake_detect(int pump_state)
+	{
+		if(pressure_mca_ > pressure_mca_previous)
+		{
+			// pressure_current = 
+		}
+		// if(pump_state)
+		// {
+			
+		// }
+		return 0;
+	}
+	int broke_pipe_detect(int pump_state)
+	{
+		return 0;
+	}
 
 private:
 	ADC_Basic adc_;
-	int pressure_mca_ = 0;					// last pressure converted;
-	int pressure_psi_ = 0;
+	int pressure_mca_ = 0;					// converted value [m.c.a.];
+	int pressure_psi_ = 0;					// converted value [psi];
 
 	// Sensor functions
 	/*
