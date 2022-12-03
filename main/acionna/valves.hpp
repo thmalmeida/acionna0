@@ -3,13 +3,9 @@
 
 #include <adc.hpp>
 #include <gpio.hpp>
-#include "pinout.hpp"
-
-// #include "pinout2.hpp"
+#include <pinout.hpp>
 
 #include "helper.hpp"
-
-
 
 static const char *TAG_VALVES = "VALVES";
 
@@ -25,11 +21,6 @@ static const char *TAG_VALVES = "VALVES";
 #define valve09_nominal_pressure 64
 #define valve10_nominal_pressure 65
 #define valve11_nominal_pressure 65
-
-enum class states_valves {
-	system_off = 0,
-	automatic_switch
-};
 
 class valves {
 public:

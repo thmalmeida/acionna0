@@ -5,6 +5,8 @@
 #include <gpio.hpp>
 #include "pinout.hpp"
 
+#include "helper.hpp"
+
 enum class states_level {
 	low,
 	high

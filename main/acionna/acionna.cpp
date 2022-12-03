@@ -1,6 +1,6 @@
 #include "acionna.hpp"
 
-static const char *TAG_ACIONNA = "ACIONNA0";
+static const char *TAG_ACIONNA = "Acionna0";
 
 static I2C_Master i2c(I2C_NUM_0, I2C_SCL, I2C_SDA, I2C_FAST_SPEED_HZ);
 static DS3231 rtc{&i2c};
@@ -10,23 +10,24 @@ static DateTime dt;
 int timeout_sensors;
 int timeout_sensors_cfg = 600;
 
-uint32_t ACIONNA::get_uptime()
-{
-	return uptime_;
-}
-void ACIONNA::init()
-{
-	ESP_LOGI(TAG_ACIONNA, "initialize");
+// GPIO_Basic led0(LED_0);
+static pwm_ledc led_wifi_indicator(2, 1, 0, 1);
 
-	//	int count0 = 0;
 
+void Acionna::init()
+{
+	ESP_LOGI(TAG_ACIONNA, "initialization");
+
+	//
 	i2c.init();
 
+	// Clock time init
 	dt.setDate(2022, 8, 3);
 	dt.setTime(0, 0, 0, ND);
 	device_clock.set_time(dt.getUnixTime());
 	time_day_sec_ = dt.getHour()*3600 + dt.getMinute()*60 + dt.getSecond();
 
+	// Network connection init
 	#if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
 		device_clock.init(rtc);
 	#endif /* CONFIG_DEVICE_CLOCK_DS3231_SUPPORT */
@@ -54,20 +55,24 @@ void ACIONNA::init()
 	// restore parameters;
 	// update clock;
 }
-void ACIONNA::operation_motorPeriodDecision()
+uint32_t Acionna::get_uptime()
+{
+	return uptime_;
+}
+void Acionna::operation_motorPeriodDecision()
 {
 }
-void ACIONNA::operation_system_off()
+void Acionna::operation_system_off()
 {
 	if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
 	{
 		pump1_.stop(states_stop::system_lock);
 	}
 }
-void ACIONNA::operation_valve_control() {
+void Acionna::operation_valve_control() {
 
 }
-void ACIONNA::operation_pump_control() {
+void Acionna::operation_pump_control() {
 	/*
 	* Motor stop conditions
 	*
@@ -162,25 +167,25 @@ void ACIONNA::operation_pump_control() {
 	}
 	#endif
 }
-void ACIONNA::operation_pump_valves_irrigation() {
+void Acionna::operation_pump_valves_irrigation() {
 
 }
-void ACIONNA::update_RTC() {
+void Acionna::update_RTC() {
 	dt.setUnixTime(device_clock.get_time());
 }
-void ACIONNA::update_objects() {
+void Acionna::update_objects() {
 	pump1_.update();
 	pipe1_.update();
 
-	#ifdef CONFIG_WELL_SUPPORT
-	well1_.update();
-	#endif
+	// #ifdef CONFIG_WELL_SUPPORT
+	// well1_.update();
+	// #endif
 
-	#ifdef CONFIG_VALVES_SUPPORT
+	// #ifdef CONFIG_VALVES_SUPPORT
 	valves1_.update();
-	#endif
+	// #endif
 }
-void ACIONNA::update_sensors()
+void Acionna::update_sensors()
 {
 	if(!timeout_sensors)
 	{
@@ -206,9 +211,9 @@ void ACIONNA::update_sensors()
 	else
 		timeout_sensors--;
 }
-void ACIONNA::update_stored_data() {
+void Acionna::update_stored_data() {
 }
-void ACIONNA::update_uptime()
+void Acionna::update_uptime()
 {
 	uptime_++;
 	time_day_sec_++;
@@ -225,7 +230,7 @@ void ACIONNA::update_uptime()
 	// ESP_LOGI(TAG_ACIONNA, "uptime: %d", device_clock.internal_time());
 	// ESP_LOGI(TAG_ACIONNA, "uptime: %ld", static_cast<long int>((esp_timer_get_time() / 1000000)));
 }
-void ACIONNA::update_all() {
+void Acionna::update_all() {
 	update_uptime();
 	update_RTC();
 	update_objects();
@@ -233,7 +238,7 @@ void ACIONNA::update_all() {
 
 	// update_sensors();		// test sensors
 }
-std::string ACIONNA::handle_message(uint8_t* command_str)
+std::string Acionna::handle_message(uint8_t* command_str)
 {
 	/*
 	$0X;				Verificar detalhes - Detalhes simples (tempo).
@@ -255,11 +260,11 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 			$03:m;		- Just show the speeding up time;
 			$03:t:400;	- Set 400 milliseconds to wait K3 go off before start K2;
 			$03:t;		- Just show the time switch;
-		$04;			- Verifica detalhes do nível de água no po�o e referência 10 bits;
-			$04:0;		- Interrompe o envio continuo das vari�veis de press�o e n�vel;
-			$04:1;		- Envia continuamente valores de press�o e n�vel;
+		$04;			- Verifica detalhes do nível de água no poço e referência 10 bits;
+			$04:0;		- Interrompe o envio continuo das variáveis de pressão e nível;
+			$04:1;		- Envia continuamente valores de pressão e nível;
 			$04:s:0900;	- Adiciona nova referência para os sensores de nível. Valor de 0 a 1023;
-		$05;			- Mostra os hor�rios que liga no modo $62;
+		$05;			- Mostra os horários que liga no modo $62;
 		$06;			- Tempo ligado e tempo desligado;
 		$07:x;			- ADC reference change.
 			$07:0;		- AREF
@@ -269,19 +274,17 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 	$1:h:HHMMSS;		- Ajustes do calendário;
 		$1:h:HHMMSS;	- Ajusta o horário do sistema;
 		$1:h:123040;	- E.g. ajusta a hora para 12:30:40
-		$1:d:DDMMAAAA;	- Ajusta a data do sistema no formato dia/mês/ano(4 d�gitos);
+		$1:d:DDMMAAAA;	- Ajusta a data do sistema no formato dia/mês/ano(4 dígitos);
 		$1:d:04091986;	- E.g. Altera a data para 04/09/1986;
 		$1:c;			- Shows the LSI current prescaler value;
 		$1:c:40123;		- Set new prescaler value;
 
 	$2:DevName;			- Change bluetooth name;
-		$2:Vassalo;		- Altera o nome do bluetooth para "Vassalo";
+		$2:n:
 
-	$4:x:				- Is this applied fo stm32f10xxx series only;
-		$4:r:07;		- Read address 0x07 * 2 of currently page;
-		$4:w:07:03;		- Write variable 3 on address 7 of currently page;
-		$4:f:64:03;		- fill page 64 with 3 value;
-		$4:e:64;		- erase page 64;
+		$21:i:30;		- lo;		- Altera o nome do bluetooth para "Vassalo";
+		$21:d:099		- pwm: change duty cicle [%];
+		$21:f:0001		- pwm: change frequency [Hz];
 
 	$3X;				- Acionamento do motor;
 		$30;			- desliga todos contatores;
@@ -292,6 +295,11 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 		$35;			- direto para partida Y;
 		$36;			- liga motor com partida Y delta;
 
+	$4:x:				- Is this applied fo stm32f10xxx series only;
+		$4:r:07;		- Read address 0x07 * 2 of currently page;
+		$4:w:07:03;		- Write variable 3 on address 7 of currently page;
+		$4:f:64:03;		- fill page 64 with 3 value;
+		$4:e:64;		- erase page 64;
 
 	$5:n:X; ou $5:hX:HHMM;
 		$5;				- mostra os horários que irá ligar;
@@ -360,6 +368,7 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 
 	// std::stringstream ss_buffer;
 	int opcode = -1;
+	int opcode_sub = -1;
 	int statusCommand = -1;
 	char _aux[3], _aux2[5];
 	char buffer[100] = "not handled\n";
@@ -640,12 +649,44 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 			} // $1:d:10082022;
 			break;
 		}
-		case 2: {
-			if((command_str[2] == '0') && (command_str[3] == ';'))
+		case 2: { // $2x:
+			_aux[0] = '0';
+			_aux[1] = command_str[2];		// '0' in uint8_t is 48. ASCII
+			_aux[2] = '\0';
+			opcode_sub = atoi(_aux);
+			ESP_LOGI(TAG_ACIONNA, "opcode 2: %d, handleMessage(), statusCommand: %d!", opcode, statusCommand);
+
+			switch (opcode_sub)
 			{
-				// signal.RSSI_show == states_flag::enable;
+				case 1: { // $21:f:0060;
+					if((command_str[3] == ':') && (command_str[4] == 'f') && (command_str[5] == ':') && (command_str[10] == ';'))
+					{
+						_aux2[0] = command_str[6];
+						_aux2[1] = command_str[7];
+						_aux2[2] = command_str[8];
+						_aux2[3] = command_str[9];		// '0' in uint8_t is 48. ASCII
+						_aux2[4] = '\0';
+						uint32_t pwm_led_frequency = (uint32_t) atoi(_aux2);
+						led_wifi_indicator.pwm_ledc_set_frequency(pwm_led_frequency);
+
+						sprintf(buffer, "pwm freq: %d", pwm_led_frequency);
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 'd') && (command_str[5] == ':') && (command_str[9] == ';')) {
+						_aux2[0] = '0';
+						_aux2[1] = command_str[6];
+						_aux2[2] = command_str[7];
+						_aux2[3] = command_str[8];		// '0' in uint8_t is 48. ASCII
+						_aux2[4] = '\0';
+						uint32_t pwm_led_duty = (uint32_t) atoi(_aux2);
+						led_wifi_indicator.pwm_ledc_set_duty(pwm_led_duty);
+
+						sprintf(buffer, "pwm duty: %d", pwm_led_duty);
+					}
+					break;
+				}
+				default:
+				break;
 			}
-			// show RSSI
 			break;
 		}
 		case 3: { //
@@ -1144,9 +1185,9 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 					break;
 				}
 				case 5: {
-					signal_ota_update = 1;
+					// Network stop	
+					fw_update_();
 					sprintf(buffer, "ota update\n");
-					break;
 					break;
 				}
 				case 6: {
@@ -1165,7 +1206,7 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 					break;
 				}
 				case 9: {
-					signal_restart = 1;
+					restart_();
 					sprintf(buffer,"Restarting...\n");
 					break;
 				}
@@ -1707,7 +1748,7 @@ std::string ACIONNA::handle_message(uint8_t* command_str)
 			// }
 		// }
 }
-void ACIONNA::operation_mode() {
+void Acionna::operation_mode() {
 	switch (state_mode)
 	{
 		case states_mode::system_off:
@@ -1732,23 +1773,82 @@ void ACIONNA::operation_mode() {
 			break;
 	}
 }
-void ACIONNA::run() {
-	// comm_Bluetooth();	// run into ws_setup.cpp
+void Acionna::run(void) {
+	msg_fetch_();		// fetch for a new command;
 
-	// handle_message();	// handle message now is called when receive message into ws_setup.cpp
+	msg_exec_();		// parse and execute the commmand;
+
+	msg_back_();		// send answer back to origin;
 
 	update_all();		// update variables and rtc
 
 	operation_mode();	// execution process
 }
-void ACIONNA::parser_1(uint8_t* payload_str, int payload_str_len, uint8_t *command_str, int& command_str_len)
+void Acionna::msg_fetch_(void) {
+
+	if(bt_data_flag) {
+		bt_data_flag = 0;
+		bt_ans_flag_ = states_flag::enable;
+
+		// uint8_t* command_str = new uint8_t[16];
+		// int command_str_len = 0;
+		// parser_(bt_data, bt_data_len, command_str, command_str_len);
+
+	}
+	
+	if(ws_server_data_flag) {
+		ws_server_data_flag = 0;
+		ws_server_ans_flag_ = states_flag::enable;
+
+		uint8_t* command_str = new uint8_t[16];
+		int command_str_len = 0;		
+		parser_(ws_server_data, ws_server_data_len, command_str, command_str_len);
+		command_str_len_ = command_str_len;
+		memcpy(command_str_, command_str, command_str_len);
+
+		delete[] command_str;
+	}
+
+	// if(ws_client_data_flag) {
+
+	// }
+}
+void Acionna::msg_exec_(void) {
+	if((bt_ans_flag_ == states_flag::enable) || (ws_server_ans_flag_ == states_flag::enable) || (ws_client_ans_flag_ == states_flag::enable))
+	{
+		msg_back_str_ = handle_message(command_str_);
+	}
+}
+void Acionna::msg_back_(void) {
+	if(bt_ans_flag_ == states_flag::enable)
+	{
+		bt_ans_flag_ = states_flag::disable;
+		// Send bt msg back;
+	}
+
+	if(ws_server_ans_flag_ == states_flag::enable)
+	{
+		ws_server_ans_flag_ = states_flag::disable;
+		// Send websocket msg back
+		ws_server_send(msg_back_str_);
+	}
+
+	if(ws_client_ans_flag_ == states_flag::enable)
+	{
+		ws_client_ans_flag_ = states_flag::disable;
+
+		// send ws client back
+	}
+
+}
+void Acionna::parser_(uint8_t* payload_str, int payload_str_len, uint8_t *command_str, int& command_str_len)
 {
 	states_flag flag_instruction_write = states_flag::disable;
 
 	int j = 0;												// aux counter;
 	for(int i=0; i<payload_str_len; i++)
 	{
-		if (payload_str[i] == '$')								// found beginer of frame instruction
+		if (payload_str[i] == '$')							// found beginer of frame instruction
 		{
 			j = 0;											// clear counter
 			flag_instruction_write = states_flag::enable;	// enable write
@@ -1766,8 +1866,20 @@ void ACIONNA::parser_1(uint8_t* payload_str, int payload_str_len, uint8_t *comma
 		}
 	}
 }
+void Acionna::restart_(void) {
+	// Network stop
+	wifi_sta_stop();
 
+	// Restart system
+	esp_restart();
+}
+void Acionna::fw_update_(void) {
+	// xTaskCreate(&ota_task, "ota_task0", 1024 * 8, NULL, 5, NULL);
 
+	// httpd_server_stop();
+
+	advanced_ota_start();
+}
 
 
 

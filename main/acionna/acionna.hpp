@@ -5,40 +5,28 @@
 #include <sstream>
 #include <string>
 
-#include "../../build/config/sdkconfig.h"
-
-#include "esp_timer.h"
-#include "esp_eeprom.hpp"
-
-#include "pump.hpp"
-#include "pipepvc.hpp"
-
 #include <i2c_master.h>
 #include "ds3231.hpp"
 #include "rtc_time.hpp"
-#include "helper.hpp"
 
+#include "wifi_setup.hpp"
+#include "bt_setup.hpp"
+#include "https_ota.hpp"
+
+#include "json/ArduinoJson-v6.19.4.h"
+
+#include "pump.hpp"
+#include "pipepvc.hpp"
 #ifdef CONFIG_WELL_SUPPORT
 #include "well.hpp"
 #endif
-
 #ifdef CONFIG_VALVES_SUPPORT
 #include "valves.hpp"
 #endif
 
-enum class states_period {
-	greenTime,
-	redTime
-};
-enum class states_mode {
-	system_off = 0,					// never turn and don't let any load turn on;
-	system_idle,					// idle means that never turn any load automaticaly. But can work manual with all updates and checks
-	water_pump_control_night,
-	irrigation_pump_valves,
-	valve_control
-};
+#include "helper.hpp"
 
-class ACIONNA {
+class Acionna {
 public:
 	// states_period state_period = states_period::redTime;
 	states_mode state_mode = states_mode::system_idle;
@@ -61,6 +49,10 @@ public:
 	uint8_t signal_ota_update = 0;
 	uint8_t signal_ota_info = 0;
 
+	Acionna() {
+		init();
+	}
+
 	// Initialize - should run once;
 	void init();
 
@@ -82,11 +74,10 @@ public:
 	std::string handle_message(uint8_t* command_str);
 	void operation_mode();
 
-	// OS system;
-	void run();
+	std::string msg_back_str_;
 
-	// communication member functions
-	void parser_1(uint8_t* payload_str, int payload_str_len, uint8_t* command_str, int& command_str_len);
+	// OS system;
+	void run(void);
 
 	Pipepvc pipe1_;
 	Pump pump1_;
@@ -115,10 +106,30 @@ private:
 	states_flag flag_check_time_match_ = states_flag::disable;
 	states_flag flag_time_match_ = states_flag::disable;			// flag when turn on time occurs;
 	
+	// Flags for communication purpose
+	states_flag ws_server_ans_flag_ = states_flag::disable;
+	states_flag bt_ans_flag_ = states_flag::disable;
+	states_flag ws_client_ans_flag_ = states_flag::disable;
+	
+	uint8_t command_str_[20];
+	uint8_t command_str_len_ = 0;
+
 	// Handle message process flags
 	// states_flag flag_enable_decode_ = states_flag::disable;
 
 	uint32_t uptime_ = 0;											// uptime in seconds
 	uint32_t time_day_sec_ = 0;
+
+	// communication member functions
+	void msg_fetch_(void);
+	void msg_exec_(void);
+	void msg_back_(void);
+
+	void parser_(uint8_t* payload_str, int payload_str_len, uint8_t* command_str, int& command_str_len);
+
+	void restart_(void);
+
+	void fw_update_(void);
+
 };
 #endif

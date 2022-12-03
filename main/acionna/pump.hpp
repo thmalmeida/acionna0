@@ -6,7 +6,8 @@
 #include <pinout.hpp>
 
 #include "helper.hpp"
-#include "hardware_defs.h"
+
+#include "time_operations.hpp"
 
 //GPIO_Basic ac_load_[]={
 //		GPIO_Basic{AC_LOAD1},
@@ -21,47 +22,6 @@
 //};
 //const std::size_t gpio_generic_count_ = sizeof(gpio_generic_) / sizeof(gpio_generic_[0]);
 static const char *TAG_PUMP = "PUMP";
-
-enum class states_motor {
-	off_idle = 0,
-	on_nominal_k1,
-	on_nominal_k2,
-	on_nominal_delta,
-	on_speeding_up,
-	off_k3_short_circuit,
-	off_thermal_activated,
-	undefined
-};
-
-enum class start_types {
-	direct_k1 = 1,		// Partida direta com um contator;
-	direct_k2,			// ativação do contator k2;
-	direct_k3,			// ativação do contator k3;
-	to_delta,			// Partida direta com dois contatores;
-	to_y,				// deslocamento para configuração Y;
-	y_delta_req			//  requisição de Partida estrela/triangulo (three phase)
-};
-enum class states_stop {
-	/*
-	 * Reasons to halt the motor.
-	 * 0x01 - command line request
-	 * 0x02 - thermal relay occurs;
-	 * 0x03 - high pressure
-	 * 0x04 - low level
-	 * 0x05 - low pressure for long time (broken pipe?)
-	 * 0x06 - time out
-	 * 0x07 - red time
-	 * */
-	command_line_user = 0,
-	timeout,
-	pressure_high,
-	thermal_relay,
-	contactor_not_on,
-	level_low,
-	pressure_low_long_time,
-	red_time,
-	system_lock
-};
 
 class Pump {
 public:
@@ -249,7 +209,7 @@ public:
 						}
 					}
 					ESP_LOGI(TAG_PUMP, "i: %d", i);
-					_delay_ms(time_switch_k_change);
+					delay_ms(time_switch_k_change);
 				}
 
 				if((state_k3() == states_switch::off) && (state_k3_pin() == states_switch::off)) {
@@ -321,7 +281,7 @@ public:
 						}
 					}
 					ESP_LOGI(TAG_PUMP, "i: %d", i);
-					_delay_ms(time_switch_k_change);
+					delay_ms(time_switch_k_change);
 				}
 
 				if((state_k2() == states_switch::off) && (state_k2_pin() == states_switch::off)) {
@@ -410,7 +370,7 @@ public:
 
 
 		// time_to_shutdown = time_to_shutdown_config;
-		//_delay_ms(750);
+		//delay_ms(750);
 //		check_pump_state();
 		// store turn off reason in some variable?
 	}

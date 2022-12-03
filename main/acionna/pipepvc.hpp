@@ -6,6 +6,8 @@
 #include <pinout.hpp>
 #include <cmath>
 
+#include "helper.hpp"
+
 class Pipepvc {
 public:
 	

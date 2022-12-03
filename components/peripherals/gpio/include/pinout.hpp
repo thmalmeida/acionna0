@@ -39,9 +39,9 @@
 #define VALVE_05            GPIO_NUM_14
 #define VALVE_06            GPIO_NUM_12
 #define VALVE_07            GPIO_NUM_13
-#define VALVE_08            GPIO_NUM_17
-#define VALVE_09            GPIO_NUM_16
-#define VALVE_10            GPIO_NUM_2
+#define VALVE_08            GPIO_NUM_15
+#define VALVE_09            GPIO_NUM_15
+#define VALVE_10            GPIO_NUM_16
 #define VALVE_11            GPIO_NUM_15
 
 #define HUMIDITY_SENSOR     GPIO_NUM_13 // with jump J19
