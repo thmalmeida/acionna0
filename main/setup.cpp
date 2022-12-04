@@ -1,6 +1,8 @@
 #include "setup.hpp"
+#include <stdio.h>
+// #include "protocol_examples_common.h"
 
-#include "protocol_examples_common.h"
+const char* TAG_SETUP = "SETUP";
 
 void machine_run(void *pvParameter)
 {

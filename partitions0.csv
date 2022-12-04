@@ -1,8 +1,14 @@
 # ESP-IDF Partition Table - ACIONNA0
-# Name,     Type,   SubType,    Offset,     Size,   Flags
-nvs,        data,   nvs,        0x009000,   16K,
-otadata,    data,   ota,        0x00D000,   8K,
-nvs_key,    data,   nvs_keys,   0x00F000,   4K,
-#factory,    app,    factory,    0x010000,   1444K,
-ota_0,      app,    ota_0,      0x010000,   1950K,
-ota_1,      app,    ota_1,      ,           1950K,
+# Name,		Type,	SubType,	Offset,		Size,	Flags
+nvs,		data,	nvs,	 	0x009000,	16K,
+nvs_key,	data,	nvs_keys,	0x00D000,	4K,
+otadata,	data,	ota,		0x00E000,	8K,
+#factory,	app,	factory,	0x010000,	1444K,
+ota_0,		app,	ota_0,		0x010000,	1984K,
+ota_1,		app,	ota_1,		0x200000,	1984K,
+storage0,	data,	nvs,		0x3F0000,	64K,	
+
+# 4MB = 4096kB
+# Each 4K bytes of size occupies 0x1000 offset sector
+# Partitions of type app have to be placed at offsets aligned to 0x10000 (64K).
+# Ref.: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/partition-tables.html

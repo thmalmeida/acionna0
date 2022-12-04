@@ -4,13 +4,14 @@ cmake_minimum_required(VERSION 3.5)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-set(PROJECT_VER "20221129-0830")
+set(PROJECT_VER "20221203-1200")
 
 set(EXTRA_COMPONENT_DIRS
 						components/agro_mesh/modules/clock
 						components/basic_defines
 						components/connections
 						components/crc
+						components/eeprom
 						components/helper
 						components/modules
 						components/ota
