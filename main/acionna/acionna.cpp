@@ -359,20 +359,13 @@ std::string Acionna::handle_message(uint8_t* command_str)
 		$97;			- Show RAM usage;
 		$98;			- Show reset reason;
 		$99;			- Soft reset system;
-	*/
-	// Tx - Transmitter - If exists new package for decode and execute, do this.
-			// if(flag_enable_decode_ == states_flag::enable)
-			// {
-			// 	flag_enable_decode_ = states_flag::disable;
-			// 	ESP_LOGI(TAG_ACIONNA, "entrou! enableDecode=:%d", flag_enable_decode_);
+*/
 
-	// std::stringstream ss_buffer;
 	int opcode = -1;
 	int opcode_sub = -1;
 	int statusCommand = -1;
 	char _aux[3], _aux2[5];
-	char buffer[100] = "not handled\n";
-	// char aux2[5];
+	char buffer[160] = "not handled\n";
 
 	// Getting the opcode (operation code)
 	_aux[0] = '0';
@@ -393,8 +386,7 @@ std::string Acionna::handle_message(uint8_t* command_str)
 			switch (statusCommand)
 			{
 				case 0:	{ // $00; Check basic parameters{
-					if(command_str[3]==';')
-					{
+					if(command_str[3]==';') {
 						// int a = dt.getHour();
 						// sprintf(buffer, "%d", dt.getHour());
 						sprintf(buffer, "%.2d:%.2d:%.2d %.2d/%.2d/%.4d up:%.2d:%.2d:%.2d d:%d, s:%d m:%d\n tday:%d", dt.getHour(),
@@ -411,21 +403,20 @@ std::string Acionna::handle_message(uint8_t* command_str)
 																						static_cast<int>(pump1_.state()),
 																						time_day_sec_
 																						);
-					} else if((command_str[3] == ':') && (command_str[5] == ';'))
-					{
+					} else if((command_str[3] == ':') && (command_str[5] == ';')) {
 						_aux[0] = '0';
 						_aux[1] = command_str[4];		// '0' in uint8_t is 48. ASCII
 						_aux[2] = '\0';
-						int statusCommand2 = atoi(_aux);
+						// int statusCommand2 = atoi(_aux);
 
-						if(statusCommand2)
-							signal_json_data_back = 1;
-						else
-							signal_json_data_back = 0;
+						// if(statusCommand2)
+							// signal_json_data_back = 1;
+						// else
+							// signal_json_data_back = 0;
 					}
 					break;
 				}
-				case 1: {
+				// case 1: {
 					// if(sInstr[2]==':' && sInstr[3]=='c')
 					// {
 					// 	if(sInstr[4] == ';')
@@ -442,9 +433,9 @@ std::string Acionna::handle_message(uint8_t* command_str)
 					// 		waitPowerOn_min_standBy = (uint8_t) atoi(aux);
 					// 	}
 					// }
-					
-					break;
-				}
+					// 
+					// break;
+				// }
 				case 2: { // $02:c; time motor 
 					if(command_str[3] == ';') {
 						sprintf(buffer, "on:%.2d:%.2d:%.2d off:%.2d:%.2d:%.2d, t2sd:%.2d:%.2d:%.2d t2sd_cnf:%.2d:%.2d:%.2d won:%.2d:%.2d won_cfg:%.2d:%.2d\n",
@@ -516,8 +507,7 @@ std::string Acionna::handle_message(uint8_t* command_str)
 																							static_cast<int>(pump1_.stops_history[2])
 																							);
 					} // $03;
-					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == ':') && (command_str[8] == ';'))
-					{
+					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == ':') && (command_str[8] == ';')) {
 						_aux[0] = command_str[6];
 						_aux[1] = command_str[7];		// '0' in uint8_t is 48. ASCII
 						_aux[2] = '\0';
@@ -528,8 +518,7 @@ std::string Acionna::handle_message(uint8_t* command_str)
 					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == ';')) {
 						sprintf(buffer, "press max: %d\n", pipe1_.pressure_max); 
 					}
-					else if((command_str[3] == ':') && (command_str[4] == 'm') && (command_str[5] == ':') && (command_str[7] == ';'))
-					{
+					else if((command_str[3] == ':') && (command_str[4] == 'm') && (command_str[5] == ':') && (command_str[7] == ';')) {
 						_aux[0] = '0';
 						_aux[1] = command_str[6];		// '0' in uint8_t is 48. ASCII
 						_aux[2] = '\0';
@@ -542,8 +531,7 @@ std::string Acionna::handle_message(uint8_t* command_str)
 					else if((command_str[3] == ':') && (command_str[4] == 'm') && (command_str[5] == ';')) {
 						sprintf(buffer, "time delta to y: %d s\n", pump1_.time_delta_to_y_switch_config);
 					}
-					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ':') && (command_str[9] == ';'))
-					{
+					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ':') && (command_str[9] == ';')) {
 						_aux2[0] = '0';
 						_aux2[1] = command_str[6];
 						_aux2[2] = command_str[7];		// '0' in uint8_t is 48. ASCII
@@ -557,8 +545,7 @@ std::string Acionna::handle_message(uint8_t* command_str)
 					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ';')) {
 						sprintf(buffer, "time_switch: %d\n", pump1_.time_switch_k_change);
 					}
-					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == ':') && (command_str[9] == ';'))
-					{
+					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == ':') && (command_str[9] == ';')) {
 						_aux2[0] = '0';
 						_aux2[1] = command_str[6];
 						_aux2[2] = command_str[7];		// '0' in uint8_t is 48. ASCII
@@ -569,22 +556,18 @@ std::string Acionna::handle_message(uint8_t* command_str)
 
 						sprintf(buffer, "set press max ref: %d\n", pipe1_.pressure_max);
 					} // 	$03:p:100;	- Set 100 psi the max pressure of sensor;
-					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == ';'))
-					{
+					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == ';')) {
 						sprintf(buffer, "sens press max ref: %d\n", pipe1_.pressure_max);
 					} // 	$03:p:100;	- Set 100 psi the max pressure of sensor;
 					break;
-
-
 		// 	$03:v:32;	- Set pressure for valve load turn on and fill reservoir;
 		// 	$03:p:150;	- Set sensor max pressure ref to change the scale [psi];
 		// 	$03:b:85;	- Set to 85% the pressure min bellow the current pressure to avoid pipe broken;
-		// 	
 				}
 				case 8: { // $08;
 					if(command_str[3]==';')
 					{
-						signal_request_sensors = 1;
+						// signal_request_sensors = 1;
 						// temp_sensor.requestTemperatures();
 						// if(dht0.read2())
 						// 	sprintf(buffer, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%%\n", dt.getHour(), dt.getMinute(), dt.getSecond(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
@@ -1145,31 +1128,31 @@ std::string Acionna::handle_message(uint8_t* command_str)
 				case 0: {
 					if(command_str[3] == ';')
 					{
-						signal_wifi_info = 1;
-						sprintf(buffer, "wifi info\n");
+						sys_wifi_info_(buffer);
 					} // $90;
-					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == ':') && (command_str[7] == ';'))
-					{
-						_aux[0] = '0';
-						_aux[1] = command_str[6];		// '0' in uint8_t is 48. ASCII
-						_aux[2] = '\0';
-						statusCommand = atoi(_aux);
-						if(statusCommand)
-						{
-							signal_send_async = 1;
-						}
-						else
-						{
-							signal_send_async = 0;
-						}
-					}
+					// else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == ':') && (command_str[7] == ';'))
+					// {
+					// 	_aux[0] = '0';
+					// 	_aux[1] = command_str[6];		// '0' in uint8_t is 48. ASCII
+					// 	_aux[2] = '\0';
+					// 	statusCommand = atoi(_aux);
+					// 	if(statusCommand)
+					// 	{
+					// 		signal_send_async = 1;
+					// 	}
+					// 	else
+					// 	{
+					// 		signal_send_async = 0;
+					// 	}
+					// }
 					break;
 				} // $90:s:1;
 				case 1: {
 					if(command_str[3] == ';')
 					{
-						signal_wifi_scan = 1;
-						sprintf(buffer, "wifi scan\n");
+						sys_wifi_scan_(buffer);
+						// signal_wifi_scan = 1;
+						// sprintf(buffer, "wifi scan\n");
 					} // $91;
 					break;
 				}
@@ -1186,28 +1169,26 @@ std::string Acionna::handle_message(uint8_t* command_str)
 				}
 				case 5: {
 					// Network stop	
-					fw_update_();
+					sys_fw_update_();
 					sprintf(buffer, "ota update\n");
 					break;
 				}
 				case 6: {
-					signal_ota_info = 1;
-					sprintf(buffer, "ota info\n");
+					sys_fw_info_(buffer);
+					// signal_ota_info = 1;
+					// sprintf(buffer, "ota info\n");
 					break;
 				}
 				case 7: {
-					signal_ram_usage = 1;
-					sprintf(buffer, "ram usage\n");
+					sys_ram_free_(buffer);
 					break;
 				}
 				case 8: {
-					signal_reset_reason = 1;
-					sprintf(buffer, "reset reason\n");
+					sys_reset_reason_(buffer);
 					break;
 				}
 				case 9: {
-					restart_();
-					sprintf(buffer,"Restarting...\n");
+					sys_restart_();
 					break;
 				}
 				default:
@@ -1224,529 +1205,6 @@ std::string Acionna::handle_message(uint8_t* command_str)
 
 	std::string str(buffer);
 	return str;
-
-// 
-		// 								eeprom.write(eeprom.pageSet, eeprom.addr_standBy_min, waitPowerOn_min_standBy);
-		// 								//eeprom_write_byte((uint8_t *)(addr_standBy_min), waitPowerOn_min_standBy);
-		// //								Serial.print("powerOn min:");
-		// //								Serial.println(powerOn_min_Standy);
-		// 							}
-		// 						}//$02:s:129;
-		// 						else if(sInstr[2] == ':' && sInstr[3] == 's' && sInstr[4] == ':' && sInstr[8] == ';')
-		// 						{
-		// 							aux2[0] = '0';
-		// 							aux2[1] = sInstr[5];
-		// 							aux2[2] = sInstr[6];
-		// 							aux2[3] = sInstr[7];
-		// 							aux2[4] = '\0';
-		// 							motorTimerE = (uint16_t) atoi(aux2);
-		// 							eeprom.write(eeprom.pageSet, eeprom.addr_motorTimerE, motorTimerE);
-		// //							uint8_t lbyteRef = 0, hbyteRef = 0;
-		// //							lbyteRef = motorTimerE;
-		// //							hbyteRef = (motorTimerE >> 8);
-		// //							eeprom_write_byte((uint8_t *)(addr_motorTimerE+1), hbyteRef);
-		// //							eeprom_write_byte((uint8_t *)(addr_motorTimerE), lbyteRef);
-		// 						}
-		// 						summary_Print(statusCommand);
-		// 					}
-		// 					break;
-		// 					// ------------------------------
-		// 					case 3:// $03:s:68;
-		// 						if(sInstr[2]==':' && sInstr[3] == 's' && sInstr[4] == ':' && sInstr[7] == ';')
-		// 						{
-		// 							aux[0] = sInstr[5];
-		// 							aux[1] = sInstr[6];
-		// 							aux[2] = '\0';
-		// 							PRessureRef = (uint8_t) atoi(aux);
-		// 							eeprom.write(eeprom.pageSet, eeprom.addr_PRessureRef, PRessureRef);
-		// 							//eeprom_write_byte((uint8_t *)(addr_PRessureRef), PRessureRef);
-		// 							sprintf(Serial.buffer,"PRessRef: %d", PRessureRef);
-		// 							Serial.println(Serial.buffer);
-		// 						}
-		// 						else if(sInstr[2]==':' && sInstr[3] == 'v' && sInstr[4] == ':' && sInstr[7] == ';')
-		// 						{
-		// 							aux[0] = sInstr[5];
-		// 							aux[1] = sInstr[6];
-		// 							aux[2] = '\0';
-		// 							PRessureRef_Valve = (uint8_t) atoi(aux);
-		// 							eeprom.write(eeprom.pageSet, eeprom.addr_PRessureRef_Valve, PRessureRef_Valve);
-		// 							//eeprom_write_byte((uint8_t *)(addr_PRessureRef_Valve), PRessureRef_Valve);
-		// 							sprintf(Serial.buffer,"PRessRef_Valve: %d", PRessureRef_Valve);
-		// 							Serial.println(Serial.buffer);
-		// 						}
-		// 						else if(sInstr[2]==':' && sInstr[3] == 'p' && sInstr[4] == ':' && sInstr[8] == ';')
-		// 						{// $03:p:150;
-		// 							aux2[0] = '0';
-		// 							aux2[1] = sInstr[5];
-		// 							aux2[2] = sInstr[6];
-		// 							aux2[3] = sInstr[7];
-		// 							aux2[4] = '\0';
-		// 							PRessureMax_Sensor = (uint8_t) atoi(aux2);
-		// 							eeprom.write(eeprom.pageSet, eeprom.addr_PRessureMax_Sensor, PRessureMax_Sensor);
-		// //							eeprom_write_byte((uint8_t *)(addr_PRessureMax_Sensor), PRessureMax_Sensor);
-		// 						}
-		// 						else if(sInstr[2]==':' && sInstr[3] == 'b' && sInstr[4] == ':' && sInstr[7] == ';')
-		// 						{
-		// 							aux[0] = sInstr[5];
-		// 							aux[1] = sInstr[6];
-		// 							aux[2] = '\0';
-		// 							PRessurePer = (uint8_t) atoi(aux);
-		// 							eeprom.write(eeprom.pageSet, eeprom.addr_PRessurePer, PRessurePer);
-		// 							//eeprom_write_byte((uint8_t *)(addr_PREssurePer), PRessurePer);
-		// 						}
-		// 						else
-		// 							summary_Print(statusCommand);
-		// 						break;
-		// 					// ------------------------------
-		// 					case 4: // $04:1;
-		// 						if(sInstr[2]==':' && sInstr[4]==';')
-		// 						{
-		// 							aux[0] = '0';
-		// 							aux[1] = sInstr[3];
-		// 							aux[2] = '\0';
-		// 							flag_debug = (uint8_t) atoi(aux);
-		// 						}//$04:s:0900;
-		// 						else if(sInstr[2]==':' && sInstr[3]=='s' && sInstr[4]==':' && sInstr[9]==';')
-		// 						{
-		// 							aux2[0] = sInstr[5];
-		// 							aux2[1] = sInstr[6];
-		// 							aux2[2] = sInstr[7];
-		// 							aux2[3] = sInstr[8];
-		// 							aux2[4] = '\0';
-
-		// 							levelRef_10bit = (uint16_t) atoi(aux2);
-
-		// //							uint8_t lbyteRef = 0, hbyteRef = 0;
-		// //							lbyteRef = levelRef_10bit;
-		// //							hbyteRef = (levelRef_10bit >> 8);
-
-		// 							eeprom.write(eeprom.pageSet, eeprom.addr_LevelRef, levelRef_10bit);
-
-		// 							//eeprom_write_byte((uint8_t *)(addr_LevelRef+1), hbyteRef);
-		// 							//eeprom_write_byte((uint8_t *)(addr_LevelRef), lbyteRef);
-		// 						}
-		// 						summary_Print(statusCommand);
-		// 						sprintf(Serial.buffer,"Ref: %d", levelRef_10bit);
-		// 						Serial.println(Serial.buffer);
-		// 						break;
-		// 					// ------------------------------
-		// 					case 7:
-		// 						if(sInstr[2]==':' && sInstr[4]==';')
-		// 						{
-		// 							aux[0] = '0';
-		// 							aux[1] = sInstr[3];
-		// 							aux[2] = '\0';
-		// 							uint8_t adcCommand = (uint8_t) atoi(aux);
-
-		// 							switch (adcCommand)
-		// 							{
-		// //								case 0:
-		// //									ADMUX &=  ~(1<<REFS1);		// AREF, Internal Vref turned off
-		// //									ADMUX &=  ~(1<<REFS0);
-		// //									Serial.println("AREF");
-		// //									break;
-		// //
-		// //								case 1:
-		// //									ADMUX &=  ~(1<<REFS1);		// AVCC with external capacitor at AREF pin
-		// //									ADMUX |=   (1<<REFS0);
-		// //									Serial.println("AVCC");
-		// //									break;
-		// //
-		// //								case 2:
-		// //									ADMUX |=   (1<<REFS1);		// Internal 1.1V Voltage Reference with external capacitor at AREF pin
-		// //									ADMUX |=   (1<<REFS0);
-		// //									Serial.println("1.1V");
-		// //									break;
-		// 							}
-		// 						}
-		// 						break;
-		// 					// ------------------------------
-		// 					case 9:
-		// 						Serial.println("Rebooting...");
-		// 						NVIC_SystemReset();
-		// 						//wdt_enable(WDTO_15MS);
-		// //						flag_reset = 1;
-		// 						break;
-
-		// 					default:
-		// 						summary_Print(statusCommand);
-		// 						break;
-		// 				}
-		// 			}
-		// 			break;
-		// // -----------------------------------------------------------------
-		// 			case 1: 	// Setup calendar
-		// 			{
-		// 				// Set-up clock -> $1:h:HHMMSS;
-		// 				if(sInstr[1]==':' && sInstr[2]=='h' && sInstr[3]==':' && sInstr[10]==';')
-		// 				{
-		// 					aux[0] = sInstr[4];
-		// 					aux[1] = sInstr[5];
-		// 					aux[2] = '\0';
-		// 					tm.Hour = (uint8_t) atoi(aux);
-
-		// 					aux[0] = sInstr[6];
-		// 					aux[1] = sInstr[7];
-		// 					aux[2] = '\0';
-		// 					tm.Minute = (uint8_t) atoi(aux);
-
-		// 					aux[0] = sInstr[8];
-		// 					aux[1] = sInstr[9];
-		// 					aux[2] = '\0';
-		// 					tm.Second = (uint8_t) atoi(aux);
-
-		// //					RTC.write(tm);
-		// 					rtc.write(tm);
-		// 					summary_Print(0);
-		// 				}
-		// 				// 	Set-up date -> $1:d:DDMMAAAA;
-		// 				else if(sInstr[1]==':' && sInstr[2]=='d' && sInstr[3]==':' && sInstr[12]==';')
-		// 				{
-		// 					// Getting the parameters
-		// 					aux[0] = sInstr[4];
-		// 					aux[1] = sInstr[5];
-		// 					aux[2] = '\0';
-		// 					tm.Day = (uint8_t) atoi(aux);
-
-		// 					aux[0] = sInstr[6];
-		// 					aux[1] = sInstr[7];
-		// 					aux[2] = '\0';
-		// 					tm.Month = (uint8_t) atoi(aux);
-
-		// 					char aux2[5];
-		// 					aux2[0] = sInstr[8];
-		// 					aux2[1] = sInstr[9];
-		// 					aux2[2] = sInstr[10];
-		// 					aux2[3] = sInstr[11];
-		// 					aux2[4] = '\0';
-		// 					tm.Year = (uint8_t) (atoi(aux2)-1970);
-
-		// //					RTC.write(tm);
-		// 					rtc.write(tm);
-
-		// 					summary_Print(0);
-
-		// 				}
-		// 				// Set-up date -> $1:d:DDMMAAAA;
-		// 				else if(sInstr[1]==':' && sInstr[2]=='c' && sInstr[3]==':' && sInstr[9]==';')
-		// 				{	// $1:c:40123;
-		// 					char aux3[6];
-		// 					aux3[0] = sInstr[4];
-		// 					aux3[1] = sInstr[5];
-		// 					aux3[2] = sInstr[6];
-		// 					aux3[3] = sInstr[7];
-		// 					aux3[4] = sInstr[8];
-		// 					aux3[5] = '\0';
-		// 					rtc.rtc_PRL = (uint32_t) atoi(aux3);
-
-		// 					rtc.setRTC_DIV(rtc.rtc_PRL);
-		// 					sprintf(Serial.buffer,"PRLw: %ld", rtc.rtc_PRL);
-		// 					Serial.println(Serial.buffer);
-
-		// 					eeprom.write(eeprom.pageSet, eeprom.addr_rtc_PRL, (uint16_t) rtc.rtc_PRL);
-
-		// 					sprintf(Serial.buffer,"PRLr: %ld", rtc.getRTC_DIV());
-		// 					Serial.println(Serial.buffer);
-		// 				}
-		// 				else if(sInstr[1]==':' && sInstr[2]=='c' && sInstr[3]==';')
-		// 				{
-		// 					sprintf(Serial.buffer,"PRLreg: %lu, PRLflash: %u", rtc.getRTC_DIV(), eeprom.read(eeprom.pageSet, eeprom.addr_rtc_PRL));
-		// 					Serial.println(Serial.buffer);
-		// 				}
-		// 				// $1:s:S;
-		// 				else if(sInstr[1]==':' && sInstr[2]=='s' && sInstr[3]==':' && sInstr[5]==';')
-		// 				{
-		// 					aux[0] = '0';
-		// 					aux[1] = sInstr[4];
-		// 					aux[2] = '\0';
-		// 					rtc.rtc_clkSource = (uint8_t) atoi(aux);
-
-		// 					eeprom.write(eeprom.pageSet, eeprom.addr_rtc_clkSource, rtc.rtc_clkSource);
-		// 					rtc.bkpDomainReset();
-		// 					rtc.begin_rtc(rtc.rtc_clkSource, rtc.rtc_PRL);
-
-		// 					sprintf(Serial.buffer,"rtcSource: %u", rtc.rtc_clkSource);
-		// 					Serial.println(Serial.buffer);
-		// 				}
-		// 				else if(sInstr[1]==':' && sInstr[2]=='s' && sInstr[3]==';')
-		// 				{
-		// 					eeprom.read(eeprom.pageSet, eeprom.addr_rtc_clkSource);
-
-		// 					summary_Print(0);
-		// 					sprintf(Serial.buffer,"rtcSource: %u", rtc.rtc_clkSource);
-		// 					Serial.println(Serial.buffer);
-		// 				}
-		// 			}
-		// 			break;
-		// // -----------------------------------------------------------------
-		// 			case 2:		// Setup Bluetooth device name
-		// 			{
-		// 				// Setup clock -> $2:BluetoothName;
-		// 				char aux_str[sInstr_SIZE], aux_str2[sInstr_SIZE+7];
-		// 				uint8_t k1=0;
-		// 				if(sInstr[1]==':')
-		// 				{
-		// 					// 3 because 2 and : count 2 characters and one more for '\0'
-		// 					while((k1<sInstr_SIZE-3) && sInstr[k1] != ';')
-		// 					{
-		// 						aux_str[k1] = sInstr[k1+2];
-		// 						k1++;
-		// //						Serial.println(k1);
-		// 					}
-
-		// 					aux_str[k1-2] = '\0';
-		// 					Serial.println("Disconnect!");
-		// //					wdt_reset();
-		// //					_delay_ms(3000);
-		// //					wdt_reset();
-		// //					_delay_ms(3000);
-		// //					wdt_reset();
-		// //					_delay_ms(3000);
-		// //					strcpy(aux_str2,"AT");
-		// //					Serial.print(aux_str2);
-		// 					//wdt_reset();
-		// 					_delay_ms(3000);
-		// 					strcpy(aux_str2,"AT+NAME");
-		// 					strcat(aux_str2,aux_str);
-		// 					Serial.print(aux_str2);
-		// 					//wdt_reset();
-		// 					_delay_ms(1000);
-		// 				}
-		// 			}
-		// 			break;
-		// // -----------------------------------------------------------------
-		// 			case 3:		// Set motor ON/OFF
-		// 			{
-		// 				uint8_t motorCommand;
-		// 				aux[0] = '0';
-		// 				aux[1] = sInstr[1];
-		// 				aux[2] = '\0';
-		// 				motorCommand = (uint8_t) atoi(aux);
-
-		// 				if (motorCommand && (!motorStatus))
-		// 				{
-		// 					motor_start();
-		// 					Serial.println("value");
-		// 				}
-		// 				else
-		// 				{
-		// 					motor_stop(0x06);
-		// 				}
-
-		// 				summary_Print(3);
-		// 			}
-		// 			break;
-		// // -----------------------------------------------------------------
-		// 			case 4: 	// FLASH store test, //$4:r:23; and $4:w:23:03;
-		// 			{
-		// 				if(sInstr[1]==':' && sInstr[2]=='r' && sInstr[3]==':' && sInstr[6]==';')
-		// 				{	// $4:r:05; read 05*2 address of page block
-		// 					// Getting the parameters
-		// 					aux[0] = sInstr[4];
-		// 					aux[1] = sInstr[5];
-		// 					aux[2] = '\0';
-		// 					uint8_t addrt = (uint8_t) atoi(aux);
-		// 					uint8_t var = eeprom.read(eeprom.pageSet, addrt);
-		// 					sprintf(Serial.buffer,"EE read: %d ", var);
-		// 					Serial.println(Serial.buffer);
-
-		// 					sprintf(Serial.buffer,"Page %d ", eeprom.pageSet);
-		// 					Serial.println(Serial.buffer);
-
-		// 					sprintf(Serial.buffer,"Address %X ", (unsigned int) eeprom.pageAddress(eeprom.pageSet));
-		// 					Serial.println(Serial.buffer);
-		// 				}
-		// 				if(sInstr[1]==':' && sInstr[2]=='w' && sInstr[3]==':' && sInstr[6]==':' && sInstr[9]==';')
-		// 				{	// $4:w:03:07;
-		// 					// Getting the parameters
-		// 					aux[0] = sInstr[4];
-		// 					aux[1] = sInstr[5];
-		// 					aux[2] = '\0';
-		// 					uint8_t addrt = (uint8_t) atoi(aux);
-
-		// 					aux[0] = sInstr[7];
-		// 					aux[1] = sInstr[8];
-		// 					aux[2] = '\0';
-		// 					uint8_t var = (uint8_t) atoi(aux);
-
-		// 					eeprom.write(eeprom.pageSet, addrt, var);
-		// 					sprintf(Serial.buffer,"EE write: %d ", var);
-		// 					Serial.println(Serial.buffer);
-
-		// 					var = eeprom.read(eeprom.pageSet, addrt);
-		// 					sprintf(Serial.buffer,"EE read2: %d ", var);
-		// 					Serial.println(Serial.buffer);
-
-		// 					sprintf(Serial.buffer,"Page %d ", eeprom.pageSet);
-		// 					Serial.println(Serial.buffer);
-
-		// 					sprintf(Serial.buffer,"Address %X ", (unsigned int) eeprom.pageAddress(eeprom.pageSet));
-		// 					Serial.println(Serial.buffer);
-		// 				}
-		// 				if(sInstr[1]==':' && sInstr[2]=='f' && sInstr[3]==':' && sInstr[6]==':' && sInstr[9]==';')
-		// 				{	// $4:f:64:07;	fill page 64 with 07 value;
-		// 					// Getting the parameters
-		// 					aux[0] = sInstr[4];
-		// 					aux[1] = sInstr[5];
-		// 					aux[2] = '\0';
-		// 					uint8_t page = (uint8_t) atoi(aux);
-
-		// 					aux[0] = sInstr[7];
-		// 					aux[1] = sInstr[8];
-		// 					aux[2] = '\0';
-		// 					uint8_t var = (uint8_t) atoi(aux);
-
-
-
-		// 					eeprom.writePage(page, (var << 8 | var));
-		// 					sprintf(Serial.buffer,"Filled page %d ", page);
-		// 					Serial.println(Serial.buffer);
-
-		// 					sprintf(Serial.buffer,"Address %X ", (unsigned int) eeprom.pageAddress(page));
-		// 					Serial.println(Serial.buffer);
-		// 				}
-		// 				if(sInstr[1]==':' && sInstr[2]=='e' && sInstr[3]==':' && sInstr[6]==';')
-		// 				{	// $4:e:64;	erase page 64
-		// 					// Getting the parameters
-		// 					aux[0] = sInstr[4];
-		// 					aux[1] = sInstr[5];
-		// 					aux[2] = '\0';
-		// 					uint8_t page = (uint8_t) atoi(aux);
-
-		// 					eeprom.erasePage(page);
-		// 					sprintf(Serial.buffer,":Page %d erased!", page);
-		// 					Serial.println(Serial.buffer);
-
-		// 					sprintf(Serial.buffer,"Address %X ", (unsigned int) eeprom.pageAddress(page));
-		// 					Serial.println(Serial.buffer);
-		// 				}
-		// 				break;
-		// 			}
-		// // -----------------------------------------------------------------
-		// 			case 5: 	// Command is $5:h1:2130;
-		// 			{
-		// 				if(sInstr[1]==':' && sInstr[2]=='h' && sInstr[4]==':' && sInstr[9]==';')
-		// 				{
-		// 					aux[0] = '0';
-		// 					aux[1] = sInstr[3];
-		// 					aux[2] = '\0';
-		// 					uint8_t indexV = (uint8_t) atoi(aux);
-
-		// 					aux[0] = sInstr[5];
-		// 					aux[1] = sInstr[6];
-		// 					aux[2] = '\0';
-		// 					HourOnTM[indexV-1] = (uint8_t) atoi(aux);
-		// 					eeprom.write(eeprom.pageSet, eeprom.addr_HourOnTM+indexV-1, HourOnTM[indexV-1]);
-		// 					//eeprom_write_byte(( uint8_t *)(addr_HourOnTM+indexV-1), HourOnTM[indexV-1]);
-
-		// 					aux[0] = sInstr[7];
-		// 					aux[1] = sInstr[8];
-		// 					aux[2] = '\0';
-		// 					MinOnTM[indexV-1] = (uint8_t) atoi(aux);
-		// 					eeprom.write(eeprom.pageSet, eeprom.addr_MinOnTM+indexV-1, MinOnTM[indexV-1]);
-		// //					eeprom_write_byte(( uint8_t *)(addr_MinOnTM+indexV-1), MinOnTM[indexV-1]);
-
-		// 					summary_Print(5);
-		// 				}
-		// 				else if(sInstr[1]==':' && sInstr[2]=='n' && sInstr[3]==':' && sInstr[5]==';')
-		// 				{
-		// 					aux[0] = '0';
-		// 					aux[1] = sInstr[4];
-		// 					aux[2] = '\0';
-
-		// 					nTM = (uint8_t) atoi(aux);
-		// 					eeprom.write(eeprom.pageSet, eeprom.addr_nTM, nTM);
-		// 					//eeprom_write_byte(( uint8_t *)(addr_nTM), nTM);
-
-		// 					summary_Print(5);
-		// 				}
-		// 				else if(sInstr[1]==';')
-		// 				{
-		// 					summary_Print(5);
-		// 				}
-		// 			}
-		// 			break;
-		// // ----------------------------------------------------------------
-		// 			case 6:		// Set working mode
-		// 			{
-		// 				aux[0] = '0';
-		// 				aux[1] = sInstr[1];
-		// 				aux[2] = '\0';
-		// 				stateMode = (uint8_t) atoi(aux);
-		// 				eeprom.write(eeprom.pageSet, eeprom.addr_stateMode, stateMode);
-		// //				//eeprom_write_byte(( uint8_t *)(addr_stateMode), stateMode);
-
-		// 				summary_Print(0);
-		// 			}
-		// 			break;
-		// // -----------------------------------------------------------------
-		// 			case 7:		// nRF24L01p test functions;
-		// 			{
-		// 				// $7:s:
-		// 				uint8_t state =9;
-		// 				if(sInstr[1]==':' && sInstr[2]=='s' && sInstr[3]==';')
-		// 				{
-		// 					radio.begin_nRF24L01p();
-		// 				}
-		// 				else if(sInstr[1]==':' && sInstr[2]=='g' && sInstr[3]==';')
-		// 				{
-		// 					state = radio.get_stateMode();
-		// 				}
-		// 				else if(sInstr[1]==':' && sInstr[2]=='t' && sInstr[3]==';')
-		// 				{
-		// 					state = radio.set_mode_tx(ENABLE);
-		// 				}
-		// 				else if(sInstr[1]==':' && sInstr[2]=='r' && sInstr[3]==';')
-		// 				{
-		// 					state = radio.set_mode_rx(ENABLE);
-		// 				}
-		// 				else if(sInstr[1]==':' && sInstr[2]=='b' && sInstr[3]==';')
-		// 				{
-		// 					state = radio.set_mode_standbyI();
-		// 				}
-		// 				else if(sInstr[1]==':' && sInstr[2]=='p' && sInstr[3]==';')
-		// 				{
-		// 					state = radio.set_mode_powerDown();
-		// 				}
-
-		// 				sprintf(Serial.buffer,"state: %u", state);
-		// 				Serial.println(Serial.buffer);
-
-		// //				radio.begin_nRF24L01p();
-		// //				radio.set_250kbps();
-		// //				if(sInstr[1]==':' && sInstr[2]=='h' && sInstr[4]==':' && sInstr[9]==';')
-		// //				{
-		// //					aux[0] = '0';
-		// //					aux[1] = sInstr[3];
-		// //					aux[2] = '\0';
-		// //					uint8_t indexV = (uint8_t) atoi(aux);
-		// //
-		// //					aux[0] = sInstr[5];
-		// //					aux[1] = sInstr[6];
-		// //					aux[2] = '\0';
-		// //					HourOnTM[indexV-1] = (uint8_t) atoi(aux);
-		// //					eeprom.write(eeprom.pageSet, eeprom.addr_HourOnTM+indexV-1, HourOnTM[indexV-1]);
-		// //					//eeprom_write_byte(( uint8_t *)(addr_HourOnTM+indexV-1), HourOnTM[indexV-1]);
-		// //
-		// //					aux[0] = sInstr[7];
-		// //					aux[1] = sInstr[8];
-		// //					aux[2] = '\0';
-		// //					MinOnTM[indexV-1] = (uint8_t) atoi(aux);
-		// //					eeprom.write(eeprom.pageSet, eeprom.addr_MinOnTM+indexV-1, MinOnTM[indexV-1]);
-		// ////					eeprom_write_byte(( uint8_t *)(addr_MinOnTM+indexV-1), MinOnTM[indexV-1]);
-		// //
-		// //					summary_Print(5);
-		// 			}
-		// 			break;
-		// // -----------------------------------------------------------------
-		// 			default:
-		// 				summary_Print(10);
-		// 				break;
-		// // -----------------------------------------------------------------
-		// 		}
-				// memset(sInstr_,0,sizeof(sInstr_));	// Clear all vector;
-			// }
-		// }
 }
 void Acionna::operation_mode() {
 	switch (state_mode)
@@ -1826,6 +1284,7 @@ void Acionna::msg_back_(void) {
 		// Send bt msg back;
 	}
 
+	// This is enable when receive some msg from websocket
 	if(ws_server_ans_flag_ == states_flag::enable)
 	{
 		ws_server_ans_flag_ = states_flag::disable;
@@ -1840,6 +1299,50 @@ void Acionna::msg_back_(void) {
 		// send ws client back
 	}
 
+	sys_fw_update_ans_async_();
+}
+void Acionna::msg_json_back_(void) {
+	// if(ws_server_client_state == conn_states::connected)
+	// {
+	// 	if(httpd_ws_get_fd_info(ws_server_sock0.hd, ws_server_sock0.fd) == HTTPD_WS_CLIENT_WEBSOCKET)
+	// 	{
+	// 		DynamicJsonDocument doc(1024);
+	// 		doc["id"] = IP_END;
+	// 		doc["p1"] = pipe1_.pressure_mca();
+	// 		doc["p2"] = pipe1_.pressure_mca();
+	// 		doc["ton"] = pump1_.time_on();
+	// 		doc["toff"] = pump1_.time_off();
+	// 		doc["k1"] = static_cast<int>(pump1_.state_k1());
+	// 		doc["k2"] = static_cast<int>(pump1_.state_k2());
+	// 		doc["k3"] = static_cast<int>(pump1_.state_k3());
+	// 		doc["rth"] = static_cast<int>(pump1_.state_Rth());
+
+	// 		serializeJson(doc, buffer);
+	// 		// preparing json data
+	// 		// sprintf(buffer, "{\"id\":%d, \"p\":%d, \"ton\":%u, \"toff\":%u, \"k1\":%d, \"k2\":%d, \"k3\":%d, \"rth\":%d}", 
+	// 		// 								IP_END,
+	// 		// 								pipe1_.pressure_mca(),
+	// 		// 								pump1_.time_on(),
+	// 		// 								pump1_.time_off(),
+	// 		// 								static_cast<int>(pump1_.state_k1()),
+	// 		// 								static_cast<int>(pump1_.state_k2()),
+	// 		// 								static_cast<int>(pump1_.state_k3()),
+	// 		// 								static_cast<int>(pump1_.state_Rth()));
+
+
+
+
+	// 		// if(ws_client_state == ws_client_states::connected)
+	// 		// {
+	// 		// 	ws_client_run(&buffer[0], strlen(buffer));
+	// 		// }
+	// 	}
+	// 	else
+	// 	{
+	// 		ws_server_client_state = conn_states::disconnected;
+	// 		// signal_json_data_back = 0;
+	// 	}
+	// }
 }
 void Acionna::parser_(uint8_t* payload_str, int payload_str_len, uint8_t *command_str, int& command_str_len)
 {
@@ -1866,30 +1369,229 @@ void Acionna::parser_(uint8_t* payload_str, int payload_str_len, uint8_t *comman
 		}
 	}
 }
-void Acionna::restart_(void) {
+void Acionna::sys_fw_info_(char* buffer_str) {
+	memset(buffer_str, 0, sizeof(*buffer_str));
+	char buffer_temp[70];
+	native_ota_info();
+
+	sprintf(buffer_str, "Bt-> L:%s, o:0x%08x, t:%d, s:%d\n",
+												OTA_update.configured_partition->label,
+												OTA_update.configured_partition->address,
+												static_cast<int>(OTA_update.configured_partition->type),
+												static_cast<int>(OTA_update.configured_partition->subtype));
+	
+	sprintf(buffer_temp, "Ru-> L:%s, o:0x%08x, t:%d, s:%d\n",
+													OTA_update.running_partition->label,
+													OTA_update.running_partition->address,
+													static_cast<int>(OTA_update.running_partition->type),
+													static_cast<int>(OTA_update.running_partition->subtype));
+	strcat(buffer_str, buffer_temp);
+
+	if(OTA_update.update_partition != NULL)
+	{
+		sprintf(buffer_temp, "Up-> L:%s, o:0x%08x, t:%d, s:%d\n",
+														OTA_update.update_partition->label,
+														OTA_update.update_partition->address,
+														static_cast<int>(OTA_update.update_partition->type),
+														static_cast<int>(OTA_update.update_partition->subtype));
+		strcat(buffer_str, buffer_temp);
+	}
+
+	sprintf(buffer_temp, "ota running state: %d\n", static_cast<int>(OTA_update.running_state));
+	strcat(buffer_str, buffer_temp);
+
+	sprintf(buffer_temp, "Ru-> ver.:%s, date:%s\n", OTA_update.running_app_info.version, OTA_update.running_app_info.date);
+	strcat(buffer_str, buffer_temp);
+
+	sprintf(buffer_temp, "n: %d, size:%d\n", OTA_update.num_ota_partitions, sizeof(OTA_update));
+	strcat(buffer_str, buffer_temp);
+}
+void Acionna::sys_fw_update_(void) {
+	// httpd_server_stop();
+
+	// advanced_ota_start();
+	native_ota_start();
+}
+void Acionna::sys_fw_update_ans_async_(void)
+{
+	if(ws_server_client_state == conn_states::connected)
+	{
+		if(OTA_update.OTA_http_client_state == OTA_http_client_states::connected) {
+			
+			char buffer_str[40] = {"OTA NEWONE!!"};
+
+			if(OTA_update.state == OTA_process_states::updating) {
+				sprintf(buffer_str, "%d %%", static_cast<int>(OTA_update.binary_file_length_write/(float)OTA_update.image_size*100.0));
+			}
+			else if(OTA_update.state == OTA_process_states::finish_update) {
+				OTA_update.state = OTA_process_states::idle;
+				// print info ota stuffs here!
+				sprintf(buffer_str, "%d %%. write %d bytes. Finish update!\n", static_cast<int>(OTA_update.binary_file_length_write/(float)OTA_update.image_size*100.0), OTA_update.binary_file_length_write);
+			}
+
+			std::string str(buffer_str);
+			ws_server_send(str);
+		}
+	}
+}
+void Acionna::sys_wifi_info_(char* buffer_str) {
+
+	wifi_ap_record_t wifi_info;
+	memset(buffer_str, 0, sizeof(*buffer_str));
+
+	if (esp_wifi_sta_get_ap_info(&wifi_info)== ESP_OK)
+	{
+		char *str0 = (char*) wifi_info.ssid;
+		sprintf(buffer_str, "SSID: %s, RSSI: %d\n", str0, static_cast<int>(wifi_info.rssi));
+	}
+
+	// httpd_ws_frame_t ws_pkt;
+	// memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+	// // ws_pkt.payload = reinterpret_cast<uint8_t*>(&buffer[0]);
+	// ws_pkt.payload = (uint8_t*)buffer;
+	// ws_pkt.len = strlen(buffer);
+	// ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+
+	// if(httpd_ws_get_fd_info(sock0.hd, sock0.fd) == HTTPD_WS_CLIENT_WEBSOCKET)
+	// {
+	// 	httpd_ws_send_frame_async(sock0.hd, sock0.fd, &ws_pkt);
+	// }
+	// else
+	// {
+	// 	acionna0.signal_send_async = 0;
+	// 	ESP_LOGI(TAG_WS, "SOCK0: connection closed");
+	// }
+}
+void Acionna::sys_wifi_scan_(char* buffer_str) {
+
+	uint16_t ap_count = 0;
+	uint16_t number = DEFAULT_SCAN_LIST_SIZE;
+	wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
+	wifi_ap_record_t *ap_info_ptr = &ap_info[0];
+
+	// char buffer_str[200];
+	char buffer_temp[40];
+
+	memset(ap_info, 0, sizeof(ap_info));
+	memset(buffer_str, 0, sizeof(*buffer_str));
+	memset(buffer_temp, 0, sizeof(buffer_temp));
+
+	wifi_scan2(number, ap_info_ptr, ap_count);
+	for(int i=0; (i<DEFAULT_SCAN_LIST_SIZE) && (i<ap_count); i++)
+	{
+		sprintf(buffer_temp, "Ch: %d, RSSI: %d, SSID: %s\n", ap_info[i].primary, ap_info[i].rssi, ap_info[i].ssid);
+		strcat(buffer_str, buffer_temp);;
+	}
+	// std::string str(buffer_str);
+	// ws_server_send(str);
+}
+void Acionna::sys_ram_free_(char* buffer_str) {
+
+	memset(buffer_str, 0, sizeof(*buffer_str));
+	sprintf(buffer_str, "RAM free:%d, min:%d\n", esp_get_free_internal_heap_size(), esp_get_minimum_free_heap_size());
+}
+void Acionna::sys_reset_reason_(char* buffer_str) {
+
+	memset(buffer_str, 0, sizeof(*buffer_str));
+	esp_reset_reason_t last_rst = esp_reset_reason();
+	switch (last_rst)
+	{
+		case ESP_RST_UNKNOWN:	// 0
+			sprintf(buffer_str, "%d: can not be determined\n", static_cast<int>(last_rst));
+			break;
+
+		case ESP_RST_POWERON:	// 1
+			sprintf(buffer_str, "%d: power-on\n", static_cast<int>(last_rst));
+			break;
+
+		case ESP_RST_EXT:		// 2
+			sprintf(buffer_str, "%d: ext pin\n", static_cast<int>(last_rst));
+			break;
+
+		case ESP_RST_SW:		// 3
+			sprintf(buffer_str, "%d: ext pin\n", static_cast<int>(last_rst));
+			break;
+
+		case ESP_RST_PANIC:		// 4
+			sprintf(buffer_str, "%d: panic\n", static_cast<int>(last_rst));
+			break;
+
+		case ESP_RST_INT_WDT:	// 5
+			sprintf(buffer_str, "%d: int wdt\n", static_cast<int>(last_rst));
+			break;
+
+		case ESP_RST_TASK_WDT:	// 6
+			sprintf(buffer_str, "%d: task wdt\n", static_cast<int>(last_rst));
+			break;
+
+		case ESP_RST_WDT:		// 7
+			sprintf(buffer_str, "%d: other wdt\n", static_cast<int>(last_rst));
+			break;
+
+		case ESP_RST_DEEPSLEEP:	// 8
+			sprintf(buffer_str, "%d: after exit deep sleep\n", static_cast<int>(last_rst));
+			break;
+
+		case ESP_RST_BROWNOUT:	// 9
+			sprintf(buffer_str, "%d: brownout rst\n", static_cast<int>(last_rst));
+			break;
+
+		case ESP_RST_SDIO:	// 10
+			sprintf(buffer_str, "%d: over SDIO\n", static_cast<int>(last_rst));
+			break;
+
+		default:
+			sprintf(buffer_str, "reset not found\n");
+			break;
+	}
+}
+void Acionna::sys_restart_(void) {
 	// Network stop
 	wifi_sta_stop();
 
 	// Restart system
 	esp_restart();
 }
-void Acionna::fw_update_(void) {
-	// xTaskCreate(&ota_task, "ota_task0", 1024 * 8, NULL, 5, NULL);
+void Acionna::sensor_dht(void) {
+	// ESP_LOGI(TAG_SENSORS, "signal_request_sensors:%d", acionna0.signal_request_sensors);
+	// acionna0.signal_request_sensors = 0;
 
-	// httpd_server_stop();
+	// char buffer[100] = "not changed!!\n";
+	// _delay_ms(2000);
+	// temp_sensor.requestTemperatures();
 
-	advanced_ota_start();
+	// if(dht0.read2())
+	// sprintf(buffer, "Tout:%.2f, Tin:%.1f, Humidity: %.1f%%\n", temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
+	// else
+	// sprintf(buffer, "Tout:%.2f, Tin:%.1f, Humidity: %.1f%% ER\n", temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
+	// _delay_ms(1000);
+
+
+	// if(dht0.read2())
+	// {
+	// ESP_LOGI(TAG_SENSORS, "Temp outside: %.2f, Temp inside: %.2f, Humidity: %.2f%%", temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
+	// // count_down = 10*60;
+	// }
+	// else
+	// {
+	// ESP_LOGI(TAG_DHT, "error reading");
+	// }
+	// }
+
+	// if(acionna0.signal_DS18B20)
+	// {
+	// if(temp_sensor_count)
+	// {
+	// temp_sensor.requestTemperatures();
+	// temp_sensor.getTempCByIndex(0);
+	// }
+	// }
+
+		// dht0.begin();
+	// temp_sensor.begin();
+	// temp_sensor_count = temp_sensor.getDeviceCount();
+	// ESP_LOGI(TAG_SENSORS, "Temp sensors count: %u", temp_sensor_count)
 }
-
-
-
-
-
-
-
-
-
-
 
 
 ////void acn_check_pressureUnstable()	// this starts to check quick variation of pressure from high to low after 2 minutes on

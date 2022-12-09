@@ -8,8 +8,7 @@
 
 ip_get_types ip_get_mode = ip_get_types::static_ip;
 ip_states ip_state = ip_states::ip_not_defined;
-wifi_states wifi_state = wifi_states::disconnected;
-// wifi_states wifi_state_old = wifi_states::disconnected;
+conn_states wifi_state = conn_states::disconnected;
 
 /* FreeRTOS event group to signal when we are connected*/
 // static EventGroupHandle_t s_wifi_event_group;
@@ -19,7 +18,6 @@ const char *TAG_IP = "IP stuffs";
 
 static int s_retry_num = 0;
 
-// // GPIO_Basic led0(LED_0);
 static pwm_ledc led_wifi(2, 1, 99, 1);
 
 
@@ -81,6 +79,9 @@ void wifi_sta_init(void)
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
 
 	ESP_ERROR_CHECK(esp_wifi_start() );
+
+	// disable any power save mode;
+    esp_wifi_set_ps(WIFI_PS_NONE);
 
 	ESP_LOGI(TAG_WIFI, "wifi_sta_init finished!");
 
@@ -149,7 +150,7 @@ void wifi_sta_stop(void)
 		httpd_server_stop();
 	}
 
-	if(wifi_state == wifi_states::connected)
+	if(wifi_state == conn_states::connected)
 	{
 		ESP_LOGI(TAG_WIFI, "Disconnecting from AP");
 		esp_wifi_disconnect();
@@ -329,7 +330,7 @@ void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_bas
 		}
 		else if(event_id == WIFI_EVENT_STA_CONNECTED)
 		{
-			wifi_state = wifi_states::connected;
+			wifi_state = conn_states::connected;
 			// led_wifi_indicator.pwm_ledc_set_duty(3);
 			led_wifi.pwm_ledc_set_duty(2);
 			ESP_LOGI(TAG_WIFI, "connected to ap SSID:%s password:%s", WIFI_SSID_STA, WIFI_PASS);
@@ -341,7 +342,7 @@ void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_bas
 		{
 			// if (s_retry_num < EXAMPLE_ESP_MAXIMUM_RETRY)
 			// {
-			wifi_state = wifi_states::disconnected;
+			wifi_state = conn_states::disconnected;
 			// led_wifi_indicator.pwm_ledc_set_duty(50);
 			led_wifi.pwm_ledc_set_duty(50);
 			ESP_LOGI(TAG_WIFI, "ESP32 station disconnected to AP");
@@ -384,22 +385,3 @@ void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_bas
 		}
 	}
 }
-// static void wifi_conn_led_indicator_pwm(void)
-// {
-// 	if(wifi_state_old != wifi_state)
-// 	{
-// 		wifi_state_old = wifi_state;
-// 		if(wifi_state == wifi_states::connected)
-// 		{
-// 			led_wifi_indicator.pwm_ledc_set_duty(3);
-// 		}
-// 		else if(wifi_state == wifi_states::disconnected)
-// 		{
-// 			led_wifi_indicator.pwm_ledc_set_duty(50);
-// 		}
-// 		else
-// 		{
-// 			led_wifi_indicator.pwm_ledc_set_duty(90);			
-// 		}
-// 	}
-// }

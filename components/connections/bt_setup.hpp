@@ -19,23 +19,20 @@
 #include "esp_gap_bt_api.h"
 #include "esp_spp_api.h"
 
+#include "basic_defines_conn.hpp"
+
 #define TAG_BT "BT_SPP"
 #define SPP_SERVER_NAME "SPP_SERVER"
 #define DEVICE_NAME "newOne"
 
 #define SPP_BT_DATA_LEN 128
 
-enum class bt_states {
-	disconnected = 0,
-	connected
-};
-
 // Bluetooth handle parameters
 extern uint32_t bt_sock0;					// pointer to connection socket
 extern uint8_t bt_data[SPP_BT_DATA_LEN];	// buffer received
 extern uint8_t bt_data_len;					// buffer length received
 extern uint8_t bt_data_flag;				// flag to advise new buffer
-extern bt_states bt_state;					// status connection
+extern conn_states bt_state;					// status connection
 
 void bt_init(void);
 void bt_event_handler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);

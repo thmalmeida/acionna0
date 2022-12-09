@@ -11,7 +11,7 @@
 
 #include "esp_websocket_client.h"
 
-#define CONFIG_WEBSOCKET_URI "ws://192.168.1.10"
+#define CONFIG_WEBSOCKET_URI "ws://192.168.1.8"
 #define CONFIG_WEBSOCKET_PORT 8999
 #define TAG_WS_CLIENT "WS_CLIENT"
 

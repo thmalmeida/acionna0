@@ -9,7 +9,7 @@ uint32_t bt_sock0 = 0;							// sock handle connection
 uint8_t bt_data[SPP_BT_DATA_LEN] = {0};			// buffer for data received
 uint8_t bt_data_len = 0;						// pkt sock length
 uint8_t bt_data_flag = 0;						// flag to advise new buffer
-bt_states bt_state = bt_states::disconnected;	// status connection
+conn_states bt_state = conn_states::disconnected;	// status connection
 
 void bt_init(void)
 {
@@ -63,7 +63,7 @@ void bt_event_handler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
 		}
 		case ESP_SPP_CLOSE_EVT: {		// when close connection
 			ESP_LOGI(TAG_BT, "ESP_SPP_CLOSE_EVT: Disconnected!");
-			bt_state = bt_states::disconnected;
+			bt_state = conn_states::disconnected;
 			break;
 		}
 		case ESP_SPP_START_EVT: {		// When SPP server started, the event comes
@@ -175,7 +175,7 @@ void bt_event_handler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
 			ESP_LOGI(TAG_BT, "ESP_SPP_SRV_OPEN_EVT: Connected!");
 
 			// Connection flags;
-			bt_state = bt_states::connected;
+			bt_state = conn_states::connected;
 			bt_sock0 = param->data_ind.handle;
 
 			if (param->cong.cong == 0)
@@ -254,22 +254,19 @@ void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
    return;
 }
 void bt_send_msg(char* msg, int length) {
-	if(bt_state == bt_states::connected)
+	if(bt_state == conn_states::connected)
 	{
 		// spp_pkt_data = reinterpret_cast<uint8_t*>(&msg_back[0]);
 		esp_spp_write(bt_sock0, length, reinterpret_cast<uint8_t*>(&msg));	// send data;
 	}
+
+	// uint8_t* spp_pkt_data;
+	// // *spp_pkt_data = &spp_data[0];
+	// spp_pkt_data = reinterpret_cast<uint8_t*>(&buffer[0]);
+	// // for(int i=0; i<strlen(buffer); i++)
+	// // {
+	// //     printf("%c", spp_pkt_data[i]);
+	// // }
+	// bt_sock0_len = strlen(buffer);
+	// esp_spp_write(bt_sock0, bt_sock0_len, spp_pkt_data);	// send data;
 }
-// void send_echo_task(void *pvParameters)
-// {
-// 	while(1)
-// 	{
-// 		if(bt_state == bt_states::connected)
-// 		{
-// 			ESP_LOGI(TAG_BT,"Joined!");
-// 			printf("bt_sock0:%d\n",bt_sock0);					// compare the handle connection between interruptions;
-// 			esp_spp_write(bt_sock0, bt_data_len, bt_data);	// send data;
-// 		}
-//     //    vTaskDelay(1000 / portTICK_PERIOD_MS);
-// 	}
-// }

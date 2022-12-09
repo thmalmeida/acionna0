@@ -3,20 +3,20 @@
 static const char *TAG_WS = "ws_server";
 
 // websocket ws_server handle parameters
-async_resp_arg ws_server_sock0;			// pointer to connection socket
-uint8_t ws_server_data[WS_DATA_LEN];	// buffer received
-uint8_t ws_server_data_len;				// buffer length received
-uint8_t ws_server_data_flag = 0;		// flag to advise new buffer
-// extern ws_states ws_state;				// status connection
+async_resp_arg ws_server_sock0;									// pointer to connection socket
+uint8_t ws_server_data[WS_DATA_LEN];							// buffer received
+uint8_t ws_server_data_len;										// buffer length received
+uint8_t ws_server_data_flag = 0;								// flag to advise new buffer
+conn_states ws_server_client_state = conn_states::disconnected;	// status connection
 
 const httpd_uri_t ws = {
-	"/ws",                 // uri
-	HTTP_GET,               // method
-	ws_event_handler,       // handler: esp_err_t (*handler)(httpd_req_t *r)
-	NULL,                   // user_ctx
-	true,                   // is_websocket
-	true,                   // handle_ws_control_frames
-	NULL                    // supported_subprotocol
+	"/ws",					// uri
+	HTTP_GET,				// method
+	ws_event_handler,		// handler: esp_err_t (*handler)(httpd_req_t *r)
+	NULL,					// user_ctx
+	true,					// is_websocket
+	true,					// handle_ws_control_frames
+	NULL					// supported_subprotocol
 };
 httpd_handle_t ws_server = NULL;   // Server instance global declaration
 httpd_config_t ws_server_config = {
@@ -36,7 +36,7 @@ httpd_config_t ws_server_config = {
 	NULL,                   // global_user_ctx_free_fn
 	NULL,                   // global_transport_ctx
 	NULL,                   // global_transport_ctx_free_fn
-	false,					// enable/disable linger
+	true,					// enable/disable linger
 	5,						// linger timeout in seconds
 	NULL,                   // open_fn
 	NULL,                   // close_fn
@@ -51,6 +51,8 @@ esp_err_t ws_event_handler(httpd_req_t *req)
 
 		ws_server_sock0.fd = httpd_req_to_sockfd(req);				// connection socket pointer
 		ws_server_sock0.hd = req->handle;
+
+		ws_server_client_state = conn_states::connected;
 
 		return ESP_OK;
 	}
@@ -92,6 +94,12 @@ esp_err_t ws_event_handler(httpd_req_t *req)
 		memcpy(ws_server_data, ws_pkt.payload, ws_pkt.len);
 		ws_server_data_len = ws_pkt.len;
 		ws_server_data_flag = 1;
+	}
+	else {
+		if((req->method == 0) && (ws_pkt.type == HTTPD_WS_TYPE_CLOSE))
+		{
+			ws_server_client_state = conn_states::disconnected;
+		}
 	}
 
 //	// Just for trigger for a specific message.

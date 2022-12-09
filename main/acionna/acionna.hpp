@@ -12,6 +12,7 @@
 #include "wifi_setup.hpp"
 #include "bt_setup.hpp"
 #include "https_ota.hpp"
+#include "native_ota.hpp"
 
 #include "json/ArduinoJson-v6.19.4.h"
 
@@ -37,17 +38,17 @@ public:
 	uint32_t time_to_shutdown[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};			// timer list to shutdown [s]
 	start_types auto_start_mode[9]; 									// auto turn start type select
 
-	uint8_t signal_restart = 0;
-	uint8_t signal_wifi_info = 0;
-	uint8_t signal_wifi_scan = 0;
-	uint8_t signal_send_async = 0;
-	uint8_t signal_request_sensors = 0;
-	uint8_t signal_ram_usage = 0;
-	uint8_t signal_reset_reason = 0;
-	uint8_t signal_json_data_back = 0;
-	uint8_t signal_json_data_server = 0;
-	uint8_t signal_ota_update = 0;
-	uint8_t signal_ota_info = 0;
+	// uint8_t signal_restart = 0;
+	// uint8_t signal_wifi_info = 0;
+	// uint8_t signal_wifi_scan = 0;
+	// uint8_t signal_send_async = 0;
+	// uint8_t signal_request_sensors = 0;
+	// uint8_t signal_ram_usage = 0;
+	// uint8_t signal_reset_reason = 0;
+	// uint8_t signal_json_data_back = 0;
+	// uint8_t signal_json_data_server = 0;
+	// uint8_t signal_ota_update = 0;
+	// uint8_t signal_ota_info = 0;
 
 	Acionna() {
 		init();
@@ -124,12 +125,17 @@ private:
 	void msg_fetch_(void);
 	void msg_exec_(void);
 	void msg_back_(void);
+	void msg_json_back_(void);
 
 	void parser_(uint8_t* payload_str, int payload_str_len, uint8_t* command_str, int& command_str_len);
-
-	void restart_(void);
-
-	void fw_update_(void);
-
+	void sys_fw_info_(char* buffer_str);
+	void sys_fw_update_(void);
+	void sys_fw_update_ans_async_(void);
+	void sys_wifi_info_(char* buffer_str);
+	void sys_wifi_scan_(char* buffer_str);
+	void sys_ram_free_(char* buffer_str);
+	void sys_reset_reason_(char* buffer_str);
+	void sys_restart_(void);
+	void sensor_dht(void);
 };
 #endif

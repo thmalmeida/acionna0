@@ -15,6 +15,8 @@
 
 #include "esp_http_server.h"    // Header for http_server websocket
 
+#include "basic_defines_conn.hpp"
+
 #define HTTPD_WS_SERVER_PORT 9000
 #define WS_DATA_LEN 128
 
@@ -28,7 +30,7 @@ extern async_resp_arg ws_server_sock0;		// pointer to connection socket
 extern uint8_t ws_server_data[WS_DATA_LEN];	// buffer received
 extern uint8_t ws_server_data_len;			// buffer length received
 extern uint8_t ws_server_data_flag;			// flag to advise new buffer
-
+extern conn_states ws_server_client_state;	// ws server client connection state
 extern httpd_handle_t ws_server;			// Server instance global declaration
 
 esp_err_t ws_event_handler(httpd_req_t* req);

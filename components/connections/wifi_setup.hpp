@@ -22,6 +22,8 @@
 
 #include "httpd_setup.hpp"
 
+#include "basic_defines_conn.hpp"
+
 #include "pwm_ledc.hpp"						// flash led to indicate wifi connection state
 
 #define WIFI_SSID_STA	"0yd017"			// CONFIG_ESP_WIFI_SSID
@@ -32,7 +34,7 @@
 
 // #define WIFI_SSID_AP    "0yd018"
 
-#define DEFAULT_SCAN_LIST_SIZE      10
+#define DEFAULT_SCAN_LIST_SIZE      7
 /* The event group allows multiple bits for each event, but we only care about two events:
  * - we are connected to the AP with an IP
  * - we failed to connect after the maximum amount of retries */
@@ -49,13 +51,8 @@ enum class ip_states {
 	ip_defined
 };
 
-enum class wifi_states {
-	disconnected = 0,
-	connected
-};
-
 extern ip_states ip_state;
-extern wifi_states wifi_state;
+extern conn_states wifi_state;
 
 void wifi_sta_init(void);
 void wifi_sta_stop(void);
