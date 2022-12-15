@@ -19,10 +19,6 @@
 
 #include "https_ota.hpp"
 
-// #include "nvs.h"
-// #include "nvs_flash.h"
-// #include "protocol_examples_common.h"
-
 #if CONFIG_BOOTLOADER_APP_ANTI_ROLLBACK
 #include "esp_efuse.h"
 #endif
@@ -115,10 +111,10 @@ void advanced_ota_example_task(void *pvParameter)
 
     esp_err_t ota_finish_err = ESP_OK;
     esp_http_client_config_t config = {
-        .url = CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL,
+        .url = CONFIG_FIRMWARE_UPGRADE_URL,
         .cert_pem = (char *)server_cert_pem_start,
         // .event_handler = _http_event_handler,
-        .timeout_ms = CONFIG_EXAMPLE_OTA_RECV_TIMEOUT,
+        .timeout_ms = CONFIG_OTA_RECV_TIMEOUT,
         .keep_alive_enable = true,
     };
 

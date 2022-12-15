@@ -11,8 +11,7 @@ uint8_t bt_data_len = 0;						// pkt sock length
 uint8_t bt_data_flag = 0;						// flag to advise new buffer
 conn_states bt_state = conn_states::disconnected;	// status connection
 
-void bt_init(void)
-{
+void bt_init(void) {
 	ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_BLE));
 
 	esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
@@ -39,8 +38,7 @@ void bt_init(void)
 	// esp_bt_pin_code_t pin_code;
 	// esp_bt_gap_set_pin(pin_type, 0, pin_code);
 }
-void bt_event_handler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
-{
+void bt_event_handler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
 	switch (event)
 	{
 		case ESP_SPP_INIT_EVT: {		// When SPP is inited, the event comes
@@ -199,8 +197,7 @@ void bt_event_handler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
 		break;
 	}
 }
-void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
-{
+void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
    switch (event) {
    case ESP_BT_GAP_AUTH_CMPL_EVT:{
        if (param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS) {
@@ -253,11 +250,11 @@ void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
    }
    return;
 }
-void bt_send_msg(char* msg, int length) {
+void bt_send(std::string msg) {
 	if(bt_state == conn_states::connected)
 	{
-		// spp_pkt_data = reinterpret_cast<uint8_t*>(&msg_back[0]);
-		esp_spp_write(bt_sock0, length, reinterpret_cast<uint8_t*>(&msg));	// send data;
+		// bt_data = reinterpret_cast<uint8_t*>(&msg[0]);
+		esp_spp_write(bt_sock0, msg.length(), reinterpret_cast<uint8_t*>(&msg[0]));	// send data;
 	}
 
 	// uint8_t* spp_pkt_data;

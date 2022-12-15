@@ -9,8 +9,10 @@
 #include "ds3231.hpp"
 #include "rtc_time.hpp"
 
-#include "wifi_setup.hpp"
+#ifdef CONFIG_BT_ENABLE
 #include "bt_setup.hpp"
+#endif
+#include "wifi_setup.hpp"
 #include "https_ota.hpp"
 #include "native_ota.hpp"
 
@@ -45,7 +47,7 @@ public:
 	// uint8_t signal_request_sensors = 0;
 	// uint8_t signal_ram_usage = 0;
 	// uint8_t signal_reset_reason = 0;
-	// uint8_t signal_json_data_back = 0;
+
 	// uint8_t signal_json_data_server = 0;
 	// uint8_t signal_ota_update = 0;
 	// uint8_t signal_ota_info = 0;
@@ -106,6 +108,7 @@ private:
 	states_flag flag_start_request_ = states_flag::disable;			// flag request to start motor;
 	states_flag flag_check_time_match_ = states_flag::disable;
 	states_flag flag_time_match_ = states_flag::disable;			// flag when turn on time occurs;
+	states_flag flag_json_data_back = states_flag::disable;			// Continuously send data back. ws server mode.
 	
 	// Flags for communication purpose
 	states_flag ws_server_ans_flag_ = states_flag::disable;
@@ -113,7 +116,7 @@ private:
 	states_flag ws_client_ans_flag_ = states_flag::disable;
 	
 	uint8_t command_str_[20];
-	uint8_t command_str_len_ = 0;
+	// uint8_t command_str_len_ = 0;
 
 	// Handle message process flags
 	// states_flag flag_enable_decode_ = states_flag::disable;
@@ -128,9 +131,16 @@ private:
 	void msg_json_back_(void);
 
 	void parser_(uint8_t* payload_str, int payload_str_len, uint8_t* command_str, int& command_str_len);
-	void sys_fw_info_(char* buffer_str);
+
+	void sys_fw_change_boot_(void);
+	void sys_fw_info_app_(char* buffer_str);
+	void sys_fw_info_partitions_(char* buffer_str);
+	void sys_fw_info_sha256_(char* buffer_str);
+	void sys_fw_mark_valid_(void);
+	void sys_fw_mark_invalid_(void);
 	void sys_fw_update_(void);
 	void sys_fw_update_ans_async_(void);
+
 	void sys_wifi_info_(char* buffer_str);
 	void sys_wifi_scan_(char* buffer_str);
 	void sys_ram_free_(char* buffer_str);

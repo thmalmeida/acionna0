@@ -23,7 +23,7 @@
 
 #define TAG_BT "BT_SPP"
 #define SPP_SERVER_NAME "SPP_SERVER"
-#define DEVICE_NAME "newOne"
+#define DEVICE_NAME CONFIG_BT_NAME
 
 #define SPP_BT_DATA_LEN 128
 
@@ -37,7 +37,7 @@ extern conn_states bt_state;					// status connection
 void bt_init(void);
 void bt_event_handler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
 void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param);
-void bt_send_msg(char* msg, int length);
+void bt_send(std::string msg);
 // void send_echo_task(void *pvParameters);
 
 #endif

@@ -18,7 +18,7 @@
 #include "basic_defines_conn.hpp"
 
 #define HTTPD_WS_SERVER_PORT 9000
-#define WS_DATA_LEN 128
+#define WS_DATA_LEN 400
 
 struct async_resp_arg {
 	httpd_handle_t hd;

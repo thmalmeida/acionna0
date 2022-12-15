@@ -3,7 +3,6 @@
 nvs,		data,	nvs,	 	0x009000,	16K,
 nvs_key,	data,	nvs_keys,	0x00D000,	4K,
 otadata,	data,	ota,		0x00E000,	8K,
-#factory,	app,	factory,	0x010000,	1444K,
 ota_0,		app,	ota_0,		0x010000,	1984K,
 ota_1,		app,	ota_1,		0x200000,	1984K,
 storage0,	data,	nvs,		0x3F0000,	64K,	
@@ -12,3 +11,21 @@ storage0,	data,	nvs,		0x3F0000,	64K,
 # Each 4K bytes of size occupies 0x1000 offset sector
 # Partitions of type app have to be placed at offsets aligned to 0x10000 (64K).
 # Ref.: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/partition-tables.html
+
+# Minimum NVS Partition Size needed is 0x3000 bytes.
+# Ref.: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_partition_gen.html
+
+# The OTA data partition is two flash sectors (0x2000 bytes) in size
+# Ref.: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/ota.html
+
+# ESP-IDF Partition Table - ACIONNA0
+# Name,		Type,	SubType,	Offset,		Size,	Flags
+#nvs,		data,	nvs,	 	0x009000,	12K,
+#nvs_key,	data,	nvs_keys,	0x00C000,	4K,
+#phy_init,	data,   phy,		0x00D000,	4K,
+#otadata,	data,	ota,		0x00E000,	8K,
+#ota_0,		app,	ota_0,		0x010000,	1984K,
+#ota_1,		app,	ota_1,		0x200000,	1984K,
+#storage0,	data,	nvs,		0x3F0000,	64K,	
+
+#factory,	app,	factory,	0x010000,	1444K,

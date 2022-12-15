@@ -14,9 +14,8 @@
 #include "esp_http_client.h"
 #include "esp_https_ota.h"
 
-#define CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL "http://192.168.1.8/acionna/acionna0.bin"
-#define CONFIG_EXAMPLE_OTA_RECV_TIMEOUT 3000
-
+#define FIRMWARE_UPGRADE_URL CONFIG_FIRMWARE_UPGRADE_URL    // "http://192.168.1.8/acionna/acionna0.bin"
+#define OTA_RECV_TIMEOUT CONFIG_OTA_RECV_TIMEOUT            // 3000
 
 esp_err_t _http_event_handler(esp_http_client_event_t *evt);
 // esp_err_t validate_image_header(esp_app_desc_t *new_app_info);

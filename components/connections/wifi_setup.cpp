@@ -71,7 +71,7 @@ void wifi_sta_init(void)
 	memcpy(wifi_config.sta.password, WIFI_PASS, strlen(WIFI_PASS));
 	// strcpy(wifi_config.ap.ssid, (uint8_t const*)(EXAMPLE_ESP_WIFI_SSID));
 	// strcpy(wifi_config.ap.password, (uint8_t const*)(EXAMPLE_ESP_WIFI_PASS));
-	wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK; 	// or ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD
+	wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA_WPA2_PSK; 	// or ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD
 	// wifi_config.sta.pmf_cfg.capable = true;
 	// wifi_config.sta.pmf_cfg.required = false;
 
@@ -81,7 +81,9 @@ void wifi_sta_init(void)
 	ESP_ERROR_CHECK(esp_wifi_start() );
 
 	// disable any power save mode;
+	#ifndef CONFIG_BT_ENABLE
     esp_wifi_set_ps(WIFI_PS_NONE);
+	#endif
 
 	ESP_LOGI(TAG_WIFI, "wifi_sta_init finished!");
 
@@ -169,6 +171,10 @@ void wifi_get_info(void)
 	wifi_ap_record_t ap;
 	esp_wifi_sta_get_ap_info(&ap);
 	printf("%d\n", ap.rssi);
+}
+void wifi_get_mac(void) {
+	uint8_t wifi_mac[6];
+	esp_read_mac(wifi_mac, ESP_MAC_WIFI_STA);
 }
 void print_auth_mode(int authmode)
 {
@@ -347,6 +353,13 @@ void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_bas
 			led_wifi.pwm_ledc_set_duty(50);
 			ESP_LOGI(TAG_WIFI, "ESP32 station disconnected to AP");
 
+			if((s_retry_num%10) == 0)
+			{
+				ESP_LOGI(TAG_WIFI, "WiFi scan start\n");
+				wifi_scan();
+			}
+
+		
 			esp_wifi_connect();
 			s_retry_num++;
 			ESP_LOGI(TAG_WIFI, "connect retry: %d", s_retry_num);

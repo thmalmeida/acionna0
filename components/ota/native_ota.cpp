@@ -1,6 +1,6 @@
 #include "native_ota.hpp"
 
-static const char *TAG_OTA = "native_ota_example";
+static const char *TAG_OTA = "OTA";
 /*an ota data write buffer ready to write to the flash*/
 static char ota_write_data[BUFFSIZE + 1] = { 0 };
 extern const uint8_t server_cert_pem_start[] asm("_binary_ca_cert_pem_start");
@@ -58,7 +58,7 @@ static void __attribute__((noreturn)) task_fatal_error(void)
         ;
     }
 }
-static void print_sha256 (const uint8_t *image_hash, const char *label)
+static void print_sha256(const uint8_t *image_hash, const char *label)
 {
     char hash_print[HASH_LEN * 2 + 1];
     hash_print[HASH_LEN * 2] = 0;
@@ -67,23 +67,14 @@ static void print_sha256 (const uint8_t *image_hash, const char *label)
     }
     ESP_LOGI(TAG_OTA, "%s: %s", label, hash_print);
 }
-static void infinite_loop(void)
-{
-    int i = 0;
-    ESP_LOGI(TAG_OTA, "When a new firmware is available on the server, press the reset button to download it");
-    while(1) {
-        ESP_LOGI(TAG_OTA, "Waiting for a new firmware ... %d", ++i);
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
-    }
-}
 static void ota_task(void *pvParameter)
 {
-	native_ota_info();
+	ota_info();
 
     esp_http_client_config_t config = {
-        .url = CONFIG_FIRMWARE_UPGRADE_URL,
+        .url = FIRMWARE_UPGRADE_URL,
         .cert_pem = (char *)server_cert_pem_start,
-		.timeout_ms = CONFIG_OTA_RECV_TIMEOUT,
+		.timeout_ms = OTA_RECV_TIMEOUT,
 		.event_handler = _http_event_handler,
         .keep_alive_enable = true,
     };
@@ -174,14 +165,14 @@ static void ota_task(void *pvParameter)
                             ESP_LOGW(TAG_OTA, "Previously, there was an attempt to launch the firmware with %s version, but it failed.", invalid_app_info.version);
                             ESP_LOGW(TAG_OTA, "The firmware has been rolled back to the previous version.");
                             http_cleanup(client);
-                            infinite_loop();
+                            // infinite_loop();
                         }
                     }
 #ifndef CONFIG_SKIP_VERSION_CHECK
                     if (memcmp(OTA_update.update_app_info.version, OTA_update.running_app_info.version, sizeof(OTA_update.update_app_info.version)) == 0) {
                         ESP_LOGW(TAG_OTA, "Current running version is the same as a new. We will not continue the update.");
                         http_cleanup(client);
-                        infinite_loop();
+                        // infinite_loop();
                     }
 #endif
                     image_header_was_checked = true;
@@ -212,7 +203,7 @@ static void ota_task(void *pvParameter)
             OTA_update.binary_file_length_write += data_read;
 			
             // ESP_LOGI(TAG_OTA, "Written image length %d", OTA_update.binary_file_length_write);
-			ESP_LOGI(TAG_OTA, "%d %%", static_cast<int>(OTA_update.binary_file_length_write/(float)OTA_update.image_size*100.0));
+			ESP_LOGI(TAG_OTA, "%.1f %%", static_cast<float>(OTA_update.binary_file_length_write/(float)OTA_update.image_size*100.0));
         } else if (data_read == 0) {
            /*
             * As esp_http_client_read never returns negative error code, we rely on
@@ -246,7 +237,6 @@ static void ota_task(void *pvParameter)
         http_cleanup(client);
         task_fatal_error();
     }
-	OTA_update.state = OTA_process_states::finish_update;
 
     err = esp_ota_set_boot_partition(OTA_update.update_partition);
     if (err != ESP_OK) {
@@ -255,17 +245,17 @@ static void ota_task(void *pvParameter)
         task_fatal_error();
     }
 
+    // Change state to finish update successfully
+	OTA_update.state = OTA_process_states::finish_update;
+
+    // Refresh update_app_info for reading purposes
+    esp_ota_get_partition_description(OTA_update.update_partition, &OTA_update.update_app_info);
+
     // esp_restart();
     // return;
 
 	ESP_LOGI(TAG_OTA, "http client cleanup function\n");	
     http_cleanup(client);
-
-	// ESP_LOGI(TAG_OTA, "http client close connection\n");
-    // esp_http_client_close(client);
-
-	// ESP_LOGI(TAG_OTA, "http client cleanup connection\n");
-    // esp_http_client_cleanup(client);
 
     ESP_LOGI(TAG_OTA, "Prepare to restart system!");
     (void)vTaskDelete(NULL);
@@ -276,55 +266,30 @@ static void ota_task(void *pvParameter)
     }
 }
 
-void native_ota_info(void) {
+void ota_conv_img_sha256(const uint8_t *image_hash, char *image_hash_str) {
+	// char hash_print[HASH_LEN*2+1];
+	// char hash_print_temp[3];
 
-	if((OTA_update.configured_partition == NULL) || (OTA_update.configured_partition == NULL)) { 
-		OTA_update.configured_partition = esp_ota_get_boot_partition();
-		OTA_update.running_partition = esp_ota_get_running_partition();
-
-		if(esp_ota_get_partition_description(OTA_update.running_partition, &OTA_update.running_app_info) != ESP_OK)
-		{
-			ESP_LOGI(TAG_OTA, "Error getting running app info\n");
-		}
-
-		OTA_update.num_ota_partitions = esp_ota_get_app_partition_count();
-	}
-
-	esp_err_t err;
-	err = esp_ota_get_state_partition(OTA_update.running_partition, &OTA_update.running_state);
-	if(err != ESP_OK)
-	{
-		ESP_LOGI(TAG_OTA, "error get ota state\n");
-	}
-
-    // const esp_partition_t *update_partition = NULL;
-    // const esp_partition_t *configured = esp_ota_get_boot_partition();
-    // const esp_partition_t *running = esp_ota_get_running_partition();
-
-    if (OTA_update.configured_partition != OTA_update.running_partition) {
-        ESP_LOGI(TAG_OTA, "Configured OTA boot partition at offset 0x%08x, but running from offset 0x%08x",
-                 OTA_update.configured_partition->address, OTA_update.running_partition->address);
-        ESP_LOGI(TAG_OTA, "(This can happen if either the OTA boot data or preferred boot image become corrupted somehow.)");
+	image_hash_str[HASH_LEN*2] = 0;
+	for (int i = 0; i < HASH_LEN; ++i) {
+		sprintf(&image_hash_str[i * 2], "%02x", image_hash[i]);
     }
-    ESP_LOGI(TAG_OTA, "Running partition type %d subtype %d (offset 0x%08x)", OTA_update.running_partition->type, OTA_update.running_partition->subtype, OTA_update.running_partition->address);
 
-
-		// if (ota_state == ESP_OTA_IMG_PENDING_VERIFY) {
-			// // run diagnostic function ...
-			// bool diagnostic_is_ok = diagnostic();
-			// if (diagnostic_is_ok) {
-			//     ESP_LOGI(TAG_OTA, "Diagnostics completed successfully! Continuing execution ...");
-			//     esp_ota_mark_app_valid_cancel_rollback();
-			// } else {
-			//     ESP_LOGE(TAG_OTA, "Diagnostics failed! Start rollback to the previous version ...");
-			//     esp_ota_mark_app_invalid_rollback_and_reboot();
-			// }
-		// }
+	// ESP_LOGI(TAG_OTA, "sha256 start\n");
+	// // sprintf(hash_print, "%02x", image_hash[0]);
+	// for(int i=1; i<HASH_LEN; i++) {
+	// 	sprintf(hash_print_temp, "%02x", image_hash[i]);
+	// 	strcat(hash_print, hash_print_temp);
+	// 	ESP_LOGI(TAG_OTA, "%02x", image_hash[i]);
 	// }
+	// ESP_LOGI(TAG_OTA, "sha256 memcpy\n");
+    // memcpy(image_hash_str, hash_print, sizeof(hash_print));
+	// strcpy(image_hash_str, hash_print);
+    // strcat(image_hash_str, "\n");
 }
-void native_ota_start(void) {
+void ota_partitions_sha256sum(void) {
 
-	uint8_t sha_256[HASH_LEN] = { 0 };
+   	uint8_t sha_256[HASH_LEN] = { 0 };
 	esp_partition_t partition;
 
 	// get sha256 digest for the partition table
@@ -345,19 +310,80 @@ void native_ota_start(void) {
 	esp_partition_get_sha256(esp_ota_get_running_partition(), sha_256);
 	print_sha256(sha_256, "SHA-256 for current firmware: ");
 
-	// Initialize NVS.
-	// esp_err_t err = nvs_flash_init();
-	// if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-	//     // OTA app partition table has a smaller NVS partition size than the non-OTA
-	//     // partition table. This size mismatch may cause NVS initialization to fail.
-	//     // If this happens, we erase NVS partition and initialize NVS again.
-	//     ESP_ERROR_CHECK(nvs_flash_erase());
-	//     err = nvs_flash_init();
+	// esp_ota_get_app_elf_sha256(&sha_256[0], sizeof(sha_256));
+	// print_sha256(sha_256, "SHA-256 get elf firmware: ");
+}
+void ota_mark_valid(void) {
+    esp_ota_mark_app_valid_cancel_rollback();
+}
+void ota_mark_invalid(void) {
+    esp_ota_mark_app_invalid_rollback_and_reboot();
+}
+void ota_info(void) {
+
+	if((OTA_update.configured_partition == NULL) || (OTA_update.running_partition == NULL)) { 
+		OTA_update.configured_partition = esp_ota_get_boot_partition();
+		OTA_update.running_partition = esp_ota_get_running_partition();
+
+		if(esp_ota_get_partition_description(OTA_update.running_partition, &OTA_update.running_app_info) != ESP_OK)
+		{
+			ESP_LOGI(TAG_OTA, "Error getting running app info\n");
+		}
+
+		OTA_update.num_ota_partitions = esp_ota_get_app_partition_count();
+
+		esp_partition_get_sha256(OTA_update.running_partition, OTA_update.running_partition_sha_256);
+	}
+
+	esp_err_t err;
+	err = esp_ota_get_state_partition(OTA_update.running_partition, &OTA_update.running_state);
+	if(err != ESP_OK)
+	{
+		ESP_LOGI(TAG_OTA, "error get ota state\n");
+	}
+    // if (OTA_update.configured_partition != OTA_update.running_partition) {
+    //     ESP_LOGI(TAG_OTA, "Configured OTA boot partition at offset 0x%08x, but running from offset 0x%08x",
+    //              OTA_update.configured_partition->address, OTA_update.running_partition->address);
+    //     ESP_LOGI(TAG_OTA, "(This can happen if either the OTA boot data or preferred boot image become corrupted somehow.)");
+    // }
+    // ESP_LOGI(TAG_OTA, "Running partition type %d subtype %d (offset 0x%08x)", OTA_update.running_partition->type, OTA_update.running_partition->subtype, OTA_update.running_partition->address);
+
+
+		// if (ota_state == ESP_OTA_IMG_PENDING_VERIFY) {
+			// // run diagnostic function ...
+			// bool diagnostic_is_ok = diagnostic();
+			// if (diagnostic_is_ok) {
+			//     ESP_LOGI(TAG_OTA, "Diagnostics completed successfully! Continuing execution ...");
+			//     esp_ota_mark_app_valid_cancel_rollback();
+			// } else {
+			//     ESP_LOGE(TAG_OTA, "Diagnostics failed! Start rollback to the previous version ...");
+			//     esp_ota_mark_app_invalid_rollback_and_reboot();
+			// }
+		// }
 	// }
-	// ESP_ERROR_CHECK( err );
-	xTaskCreate(&ota_task, "ota_task", 8192, NULL, 5, NULL);
+}
+void ota_change_boot_partition(void) {
+	
+	esp_partition_t* next_partition = NULL;
+	if(esp_ota_get_next_update_partition(next_partition) == ESP_OK)
+	{
+		ESP_LOGI(TAG_OTA, "next partition: %s\n", next_partition->label);
+		esp_ota_set_boot_partition(next_partition);
+	}
+}
+void ota_start(void) {
+    xTaskCreate(&ota_task, "ota_task", 8192, NULL, 5, NULL);
 }
 
+// static void infinite_loop(void)
+// {
+//     int i = 0;
+//     ESP_LOGI(TAG_OTA, "When a new firmware is available on the server, press the reset button to download it");
+//     while(1) {
+//         ESP_LOGI(TAG_OTA, "Waiting for a new firmware ... %d", ++i);
+//         vTaskDelay(2000 / portTICK_PERIOD_MS);
+//     }
+// }
 // static bool diagnostic(void)
 // {
 //     gpio_config_t io_conf;

@@ -1,0 +1,28 @@
+menu "OTA configuration"
+
+	config FIRMWARE_UPGRADE_URL
+		string "Firmware upgrade URL"
+		default "http://192.168.1.8:80/acionna/acionna0.bin"
+		help
+			Full link of firmware upgrade image
+
+	config OTA_RECV_TIMEOUT
+		int "OTA timeout [ms]"
+		default 5000
+		help
+			OTA timeout if not find the url link.
+			Maximum time for reception.
+
+	config SKIP_COMMON_NAME_CHECK
+		bool "Skip server certificate CN fieldcheck"
+		default n
+		help
+			This allows you to skip the validation of OTA server certificate CN field.
+
+	config SKIP_VERSION_CHECK
+		bool "Skip firmware version check"
+		default n
+		help
+			This allows you to skip the firmware version check.
+
+endmenu

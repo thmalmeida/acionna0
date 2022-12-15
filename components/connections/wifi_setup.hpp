@@ -26,12 +26,11 @@
 
 #include "pwm_ledc.hpp"						// flash led to indicate wifi connection state
 
-#define WIFI_SSID_STA	"0yd017"			// CONFIG_ESP_WIFI_SSID
-#define WIFI_PASS		"praticamente"	    //CONFIG_ESP_WIFI_PASSWORD
-#define IP_END          30                  // local ip end: 192.168.1.IP_END
+#define WIFI_SSID_STA	CONFIG_WIFI_SSID
+#define WIFI_PASS		CONFIG_WIFI_PASSWORD
+#define IP_END			CONFIG_IP_END			// local ip end: 192.168.1.IP_END
 
 // #define WIFI_MAX_RETRY	600				    // CONFIG_ESP_MAXIMUM_RETRY
-
 // #define WIFI_SSID_AP    "0yd018"
 
 #define DEFAULT_SCAN_LIST_SIZE      7
@@ -57,6 +56,7 @@ extern conn_states wifi_state;
 void wifi_sta_init(void);
 void wifi_sta_stop(void);
 void wifi_get_info(void);
+void wifi_get_mac(void);
 void print_auth_mode(int authmode);
 void print_cipher_type(int pairwise_cipher, int group_cipher);
 void wifi_scan();

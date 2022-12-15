@@ -1,0 +1,27 @@
+menu "Connections configuration"
+
+    config BT_NAME 
+        string "Bluetooth Name"
+        default "bt_00"
+        help
+			Bluetooth label name to connect
+
+	config WIFI_SSID
+		string "WiFi SSID"
+		default "0yd017"
+			help
+				SSID (network name) to connect to.
+
+	config WIFI_PASSWORD
+		string "WiFi Password"
+		default "praticamente"
+		help
+			WiFi password (WPA or WPA2) for the example to use.
+			Can be left blank if the network has no security set.
+
+	config IP_END
+		int "WiFi ip end"
+		default "30"
+		help
+			when static ip choose define ip end on lan network
+endmenu

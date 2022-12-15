@@ -102,6 +102,11 @@ esp_err_t ws_event_handler(httpd_req_t *req)
 		}
 	}
 
+	if(httpd_ws_get_fd_info(ws_server_sock0.hd, ws_server_sock0.fd) != HTTPD_WS_CLIENT_WEBSOCKET) {
+		ESP_LOGI(TAG_WS, "Disconnected by get_fd_info()\n");
+		ws_server_client_state = conn_states::disconnected;
+	}
+
 //	// Just for trigger for a specific message.
 	// if (ws_pkt.type == HTTPD_WS_TYPE_TEXT && strcmp((char*)ws_pkt.payload,"Trigger async") == 0) {
 	// 	free(buf);
@@ -206,21 +211,3 @@ void ws_server_send(std::string data)
 
 	httpd_ws_send_frame_async(ws_server_sock0.hd, ws_server_sock0.fd, &ws_pkt);
 }
-// void esp_restart_async(void*)
-// {
-// 	// vTaskDelay(2000 / portTICK_PERIOD_MS);
-// 	esp_restart();
-// }
-// void esp_shutdown_r_now(void)
-// {
-// 	httpd_server_stop();
-	
-// 	if(wifi_state == state_conn::connected)
-// 	{
-// 		ESP_ERROR_CHECK(esp_wifi_disconnect());
-// 		ESP_ERROR_CHECK(esp_wifi_stop());
-// 	}
-
-// 	ESP_LOGI(TAG_WS, "Shutdown peripherals successfully. Restarting...");
-// 	xTaskCreate(&esp_restart_async, "esp_restart_task", 1024, NULL, 5, NULL);
-// }
