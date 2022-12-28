@@ -1,8 +1,38 @@
 #include "setup.hpp"
-#include <stdio.h>
-// #include "protocol_examples_common.h"
 
 const char* TAG_SETUP = "SETUP";
+
+// static I2C_Master i2c(I2C_NUM_1, I2C_SCL, I2C_SDA, I2C_NORMAL_SPEED_HZ, 1);
+// aht10 sensor0(&i2c);
+// bmp180 sensor1(&i2c);
+// void test_sensors(void *pvParameter) {
+// 	// Hello answer test
+// 	// if(sensor0.probe()) {
+// 	// 	ESP_LOGI(TAG_SETUP, "AHT10 answer OK!");
+// 	// }
+// 	// else {
+// 	// 	while(!sensor0.probe())
+// 	// 	{
+// 	// 		ESP_LOGI(TAG_SETUP, "Trying to probe");
+// 	// 		vTaskDelay(2000 / portTICK_PERIOD_MS);
+// 	// 	}
+// 	// }
+// 	// sensor0.init(2);
+// 	int count = 0;
+// 	while(1) {
+// 		// ESP_LOGI(sensor0.get_status_bit(7, true);
+// 		sensor0.trig_meas();
+// 		ESP_LOGI(TAG_SETUP, "Count: %d, Humidity: %.2f %%, Temperature: %.2f C", count++, sensor0.get_humidity(), sensor0.get_temperature());
+// 		// sensor0.print_raw_data();
+// 		// sensor0.get_status_bit(3, true);
+// 		// sensor0.print_status_bits();
+// 		// if(((count % 3) == 0) && (!sensor0.get_status_bit(6, false)))  {
+// 		// 	ESP_LOGI(TAG_SETUP, "AHT init again!!!");
+// 		// 	sensor0.init(2);
+// 		// }
+// 		vTaskDelay(10000 / portTICK_PERIOD_MS);
+// 	}
+// }
 
 void machine_run(void *pvParameter)
 {
@@ -17,31 +47,15 @@ void machine_run(void *pvParameter)
 	Acionna acionna0;
 
 	// ws client initialize
-	// ws_client_start();
+	ws_client_start();
 
 	while(1)
 	{
 		acionna0.run();
-			// if(wifi_state == state_conn::connected)
-			// {
-			// 	if(httpd_ws_get_fd_info(sock0.hd, sock0.fd) == HTTPD_WS_CLIENT_WEBSOCKET)
-			// 	{
-			// 		httpd_ws_frame_t ws_pkt;
-			// 		memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-			// 		ws_pkt.payload = reinterpret_cast<uint8_t*>(&buffer[0]);
-			// 		// ws_pkt.payload = (uint8_t*)buffer;
-			// 		ws_pkt.len = strlen(buffer);
-			// 		ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-
-			// 		httpd_ws_send_frame_async(sock0.hd, sock0.fd, &ws_pkt);
-			// 	}
-			// };
 
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 }
-
-
 
 
 

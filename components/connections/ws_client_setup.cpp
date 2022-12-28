@@ -1,26 +1,27 @@
 // -- Websocket client part ----------------------
 #include "ws_client_setup.hpp"
 
-ws_client_states ws_client_state = ws_client_states::disconnected;
+esp_websocket_client_handle_t client;
 
-static esp_websocket_client_config_t websocket_cfg = {};
-static esp_websocket_client_handle_t client;
-static int i_ws;
+uint8_t ws_client_data[BUFFER_LEN];
+uint16_t ws_client_data_len = 0;
+uint8_t ws_client_data_flag = 0;
+conn_states ws_client_state = conn_states::disconnected;
+// int i_ws;
 
-static void ws_client_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
-{
+void ws_client_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {
 	esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
 
 	switch (event_id)
 	{
 		case WEBSOCKET_EVENT_CONNECTED:
 			ESP_LOGI(TAG_WS_CLIENT, "WEBSOCKET_EVENT_CONNECTED");
-			ws_client_state = ws_client_states::connected;
+			ws_client_state = conn_states::connected;
 			break;
 		
 		case WEBSOCKET_EVENT_DISCONNECTED:
 			ESP_LOGI(TAG_WS_CLIENT, "WEBSOCKET_EVENT_DISCONNECTED");
-			ws_client_state = ws_client_states::disconnected;
+			ws_client_state = conn_states::disconnected;
 			break;
 		
 		case WEBSOCKET_EVENT_DATA:
@@ -41,31 +42,36 @@ static void ws_client_event_handler(void *handler_args, esp_event_base_t base, i
 			break;
 	}
 }
-static void ws_client_start(void)
+void ws_client_start(void)
 {
-	websocket_cfg.uri = CONFIG_WEBSOCKET_URI;
-	websocket_cfg.port = CONFIG_WEBSOCKET_PORT;
-
+	esp_websocket_client_config_t websocket_cfg = {};
+	websocket_cfg.uri = CONFIG_WS_CLIENT_URI;
+	websocket_cfg.port = CONFIG_WS_CLIENT_PORT;
+	websocket_cfg.ping_interval_sec = 8;
+	
+	// websocket handle point create;
 	client = esp_websocket_client_init(&websocket_cfg);
+
+	// Resgister event function to loop
 	esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY, ws_client_event_handler, (void *)client);
 
-	esp_websocket_client_start(client);
+	if(esp_websocket_client_start(client) != ESP_OK)
+	{
+		ESP_LOGI(TAG_WS_CLIENT, "Error starting websocket client");
+	}
 }
-static void ws_client_stop(void)
+void ws_client_stop(void)
 {
 	if (esp_websocket_client_is_connected(client)) {
 		esp_websocket_client_close(client, portMAX_DELAY);
-		ESP_LOGI(TAG_WS_CLIENT, "Websocket Stopped");
-		esp_websocket_client_destroy(client);
+		
+		if(esp_websocket_client_destroy(client) == ESP_OK)
+			ESP_LOGI(TAG_WS_CLIENT, "Websocket Stopped");
 	}
 }
-static void ws_client_run(char* data, int len)
+void ws_client_send(std::string data)
 {
-	// char data[32];
 	if (esp_websocket_client_is_connected(client)) {
-		// int len = sprintf(data, "hello %04d", i_ws++);
-		// ESP_LOGI(TAG_WS_CLIENT, "Sending %s", data);
-		esp_websocket_client_send_text(client, data, len, portMAX_DELAY);
+		esp_websocket_client_send_text(client, reinterpret_cast<char*>(&data), data.length(), portMAX_DELAY);
 	}
 }
-// ------------------------

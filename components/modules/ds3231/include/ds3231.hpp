@@ -37,7 +37,7 @@
  */
 
 #include "datetime.h"
-#include "i2c_master.h"
+#include "i2c_master.hpp"
 
 //Frequency of Square Wave output
 typedef enum DS3231SQWrate{

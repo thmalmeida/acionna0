@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string>
 
-#include <i2c_master.h>
+#include <i2c_master.hpp>
 #include "ds3231.hpp"
 #include "rtc_time.hpp"
 
@@ -26,6 +26,10 @@
 #ifdef CONFIG_VALVES_SUPPORT
 #include "valves.hpp"
 #endif
+
+// Sensors
+#include "bmp180.hpp"
+#include "aht10.hpp"
 
 #include "helper.hpp"
 

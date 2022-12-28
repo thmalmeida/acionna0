@@ -11,13 +11,14 @@
 
 #include "esp_websocket_client.h"
 
-#define CONFIG_WEBSOCKET_URI "ws://192.168.1.8"
-#define CONFIG_WEBSOCKET_PORT 8999
+#include "basic_defines_conn.hpp"
+
+
 #define TAG_WS_CLIENT "WS_CLIENT"
 
-enum class ws_client_states {
-	disconnected = 0,
-	connected
-};
 
+void ws_client_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
+void ws_client_start(void);
+void ws_client_stop(void);
+void ws_client_send(std::string data);
 #endif

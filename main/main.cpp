@@ -16,4 +16,5 @@ extern "C" void app_main(void)
 	ESP_ERROR_CHECK( err );
 
 	xTaskCreate(&machine_run, "machine_run0", 1024 * 8, NULL, 5, NULL);
+	// xTaskCreate(&test_sensors, "test_sensors0", 1024 * 8, NULL, 5, NULL);
 }

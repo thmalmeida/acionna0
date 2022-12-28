@@ -4,7 +4,7 @@ static const char *TAG_WS = "ws_server";
 
 // websocket ws_server handle parameters
 async_resp_arg ws_server_sock0;									// pointer to connection socket
-uint8_t ws_server_data[WS_DATA_LEN];							// buffer received
+uint8_t ws_server_data[BUFFER_LEN];							// buffer received
 uint8_t ws_server_data_len;										// buffer length received
 uint8_t ws_server_data_flag = 0;								// flag to advise new buffer
 conn_states ws_server_client_state = conn_states::disconnected;	// status connection
@@ -12,7 +12,7 @@ conn_states ws_server_client_state = conn_states::disconnected;	// status connec
 const httpd_uri_t ws = {
 	"/ws",					// uri
 	HTTP_GET,				// method
-	ws_event_handler,		// handler: esp_err_t (*handler)(httpd_req_t *r)
+	ws_server_event_handler,// handler: esp_err_t (*handler)(httpd_req_t *r)
 	NULL,					// user_ctx
 	true,					// is_websocket
 	true,					// handle_ws_control_frames
@@ -23,13 +23,13 @@ httpd_config_t ws_server_config = {
 	tskIDLE_PRIORITY+5,     // task_priority
 	4096,                   // stack_size
 	tskNO_AFFINITY,			// core_id
-	HTTPD_WS_SERVER_PORT,	// server_port
+	CONFIG_WS_SERVER_PORT,	// server_port
 	32768,                  // ctrl_port
 	4,                      // max_open_sockets
 	8,                      // max_uri_handlers
 	8,                      // max_resp_headers
 	5,                      //backlog_conn
-	true,                  // lru_purge_enable
+	true,                 	// lru_purge_enable
 	5,                      // recv_wait_timeout
 	5,                      // send_wait_timeout
 	NULL,                   // global_user_ctx
@@ -43,7 +43,7 @@ httpd_config_t ws_server_config = {
 	NULL                    // uri_match_fn
 };
 
-esp_err_t ws_event_handler(httpd_req_t *req)
+esp_err_t ws_server_event_handler(httpd_req_t *req)
 {
 	if (req->method == HTTP_GET) {
 		ESP_LOGI(TAG_WS, "Handshake done, the new connection was opened");
@@ -173,7 +173,6 @@ void httpd_server_start(void)
 
 	// httpd_handle_t* ws_server = (httpd_handle_t*) arg;
 	// httpd_handle_t ws_server = NULL; // moved to global
-	ESP_LOGI(TAG_WS, "ws_server cast to arg");
 	if (ws_server == NULL)
 	{
 		// *ws_server = start_webserver();

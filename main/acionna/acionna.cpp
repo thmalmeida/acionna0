@@ -2,7 +2,7 @@
 
 static const char *TAG_ACIONNA = "Acionna0";
 
-static I2C_Master i2c(I2C_NUM_0, I2C_SCL, I2C_SDA, I2C_FAST_SPEED_HZ);
+static I2C_Master i2c(I2C_NUM_0, I2C_SCL, I2C_SDA, I2C_FAST_SPEED_HZ, 0);
 static DS3231 rtc{&i2c};
 static Agro::RTC_Time device_clock;
 static DateTime dt;
@@ -18,10 +18,10 @@ void Acionna::init() {
 	ESP_LOGI(TAG_ACIONNA, "initialization");
 
 	//
-	i2c.init();
+	// i2c.init();
 
 	// Clock time init
-	dt.setDate(2022, 8, 3);
+	dt.setDate(2022, 12, 20);
 	dt.setTime(0, 0, 0, ND);
 	device_clock.set_time(dt.getUnixTime());
 	time_day_sec_ = dt.getHour()*3600 + dt.getMinute()*60 + dt.getSecond();
@@ -1302,6 +1302,7 @@ void Acionna::msg_back_(void) {
 		ws_client_ans_flag_ = states_flag::disable;
 
 		// send ws client back
+		ws_client_send(msg_back_str_);
 	}
 
 	sys_fw_update_ans_async_();

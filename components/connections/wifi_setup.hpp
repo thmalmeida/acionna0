@@ -21,6 +21,7 @@
 #include "lwip/netdb.h"
 
 #include "httpd_setup.hpp"
+#include "ws_client_setup.hpp"
 
 #include "basic_defines_conn.hpp"
 

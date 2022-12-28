@@ -24,4 +24,23 @@ menu "Connections configuration"
 		default "30"
 		help
 			when static ip choose define ip end on lan network
+
+	config WS_SERVER_PORT
+		int "Websocket local server port connection"
+		default "9000"
+		help
+			websocket server port
+
+	config WS_CLIENT_URI
+		string "websocket server URI"
+		default "ws://192.168.1.10"
+		help
+			websocket server URI point
+
+	config WS_CLIENT_PORT
+		int "Websocket remote server port connection"
+		default "8999"
+		help
+			websocket server port to connect
+
 endmenu
