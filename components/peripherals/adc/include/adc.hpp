@@ -15,7 +15,6 @@
 #define DEFAULT_VREF    1110        //Use adc2_vref_to_gpio() to obtain a better estimate
 #define NO_OF_SAMPLES   16          //Multisampling
 
-
 #define TIMES              256
 #define GET_UNIT(x)        ((x>>3) & 0x1)
 
