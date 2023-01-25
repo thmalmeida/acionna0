@@ -5,6 +5,7 @@
 #include <gpio.hpp>
 #include <pinout.hpp>
 
+#include "esp_log.h"
 #include "helper.hpp"
 
 static const char *TAG_VALVES = "VALVES";

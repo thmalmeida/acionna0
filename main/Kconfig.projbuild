@@ -17,4 +17,10 @@ menu "Acionna Configuration"
         default 0
         help
             must see into Bluetooth component configuration too
+
+    config SENSOR_PRESSURE_CHANNEL
+        int "Pressure sensor channel"
+        default 4
+        help
+            ADC channel for pressure sensor
 endmenu

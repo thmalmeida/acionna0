@@ -14,6 +14,8 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 
+#include "esp_app_format.h"
+
 #include "errno.h"
 
 #define FIRMWARE_UPGRADE_URL CONFIG_FIRMWARE_UPGRADE_URL    // "http://192.168.1.8/acionna/acionna0.bin"

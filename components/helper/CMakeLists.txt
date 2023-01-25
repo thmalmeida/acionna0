@@ -1,9 +1,10 @@
-idf_component_register(SRCS restart_async.c 
-							number.cpp 
-							time_operations.cpp 
-							my_string.cpp 
-							convert_char_type.c
+idf_component_register(SRCS convert_char_type.c
 							datetime.cpp
+							delay.cpp
+							my_string.cpp 
+							number.cpp
+							restart_async.c
+							time_operations.cpp 
                        INCLUDE_DIRS include
-                       REQUIRES basic_defines)
+                       REQUIRES esp_rom basic_defines)
                        

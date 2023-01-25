@@ -8,6 +8,7 @@
 #include <i2c_master.hpp>
 #include "ds3231.hpp"
 #include "rtc_time.hpp"
+#include "time_operations.hpp"
 
 #ifdef CONFIG_BT_ENABLE
 #include "bt_setup.hpp"
@@ -51,7 +52,6 @@ public:
 	// uint8_t signal_request_sensors = 0;
 	// uint8_t signal_ram_usage = 0;
 	// uint8_t signal_reset_reason = 0;
-
 	// uint8_t signal_json_data_server = 0;
 	// uint8_t signal_ota_update = 0;
 	// uint8_t signal_ota_info = 0;

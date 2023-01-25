@@ -250,6 +250,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			$03:s;		- show max pressure configured;
 			$03:v:32;	- Set pressure for valve load turn on and fill reservoir;
 			$03:p:150;	- Set sensor max pressure ref to change the scale [psi];
+			$03:p;		- Show sensor max pressure [psi];
 			$03:b:85;	- Set to 85% the pressure min bellow the current pressure to avoid pipe broken;
 			$03:m:3;	- Set 3 seconds while K1 and K3 are ON into delta tri start;
 			$03:m;		- Just show the speeding up time;
@@ -392,7 +393,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';') {
 						// int a = dt.getHour();
 						// sprintf(buffer, "%d", dt.getHour());
-						sprintf(buffer, "%.2d:%.2d:%.2d %.2d/%.2d/%.4d up:%.2d:%.2d:%.2d d:%d, s:%d m:%d tday:%d\n", dt.getHour(),
+						sprintf(buffer, "%.2d:%.2d:%.2d %.2d/%.2d/%.4d up:%.2d:%.2d:%.2d d:%d, s:%d m:%d tday:%lu\n", dt.getHour(),
 																						dt.getMinute(),
 																						dt.getSecond(),
 																						dt.getDay(),
@@ -519,10 +520,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						pipe1_.pressure_max = atoi(_aux);
 
 						sprintf(buffer, "set press max: %d\n", pipe1_.pressure_max); 
-					} // 	$03:s:72;	- Set max pressure ref for pipe [m.c.a.];
+					} // $03:s:72;	- Set max pressure ref for pipe [m.c.a.];
 					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == ';')) {
 						sprintf(buffer, "press max: %d\n", pipe1_.pressure_max); 
-					}
+					} // $03:s;
 					else if((command_str[3] == ':') && (command_str[4] == 'm') && (command_str[5] == ':') && (command_str[7] == ';')) {
 						_aux[0] = '0';
 						_aux[1] = command_str[6];		// '0' in uint8_t is 48. ASCII
@@ -535,7 +536,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					} // $03:m:3;	- Set 3 seconds while K1 and K3 are ON into delta tri start;
 					else if((command_str[3] == ':') && (command_str[4] == 'm') && (command_str[5] == ';')) {
 						sprintf(buffer, "time delta to y: %d s\n", pump1_.time_delta_to_y_switch_config);
-					}
+					} // $03:m;
 					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ':') && (command_str[9] == ';')) {
 						_aux2[0] = '0';
 						_aux2[1] = command_str[6];
@@ -546,10 +547,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						pump1_.time_switch_k_change = atoi(_aux2);
 
 						sprintf(buffer, "set time_switch: %d\n", pump1_.time_switch_k_change);
-					} // 	$03:t:900;	- Set 500 milliseconds to wait K3 go off before start K2;
+					} // $03:t:900;	- Set 500 milliseconds to wait K3 go off before start K2;
 					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ';')) {
 						sprintf(buffer, "time_switch: %d\n", pump1_.time_switch_k_change);
-					}
+					} // $03:t; - show time K3 wait to turn on;
 					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == ':') && (command_str[9] == ';')) {
 						_aux2[0] = '0';
 						_aux2[1] = command_str[6];
@@ -557,17 +558,17 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux2[3] = command_str[8];		// '0' in uint8_t is 48. ASCII
 						_aux2[4] = '\0';
 
-						pipe1_.pressure_max = atoi(_aux2);
+						pipe1_.sensor_pressure_ref = atoi(_aux2);
 
-						sprintf(buffer, "set press max ref: %d\n", pipe1_.pressure_max);
+						sprintf(buffer, "set press max ref: %d\n", pipe1_.sensor_pressure_ref);
 					} // 	$03:p:100;	- Set 100 psi the max pressure of sensor;
 					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == ';')) {
-						sprintf(buffer, "sens press max ref: %d\n", pipe1_.pressure_max);
-					} // 	$03:p:100;	- Set 100 psi the max pressure of sensor;
+						sprintf(buffer, "sens press max ref: %d\n", pipe1_.sensor_pressure_ref);
+					} // 	$03:p;	- Show max pressure of sensor;
 					break;
-		// 	$03:v:32;	- Set pressure for valve load turn on and fill reservoir;
-		// 	$03:p:150;	- Set sensor max pressure ref to change the scale [psi];
-		// 	$03:b:85;	- Set to 85% the pressure min bellow the current pressure to avoid pipe broken;
+				// 	$03:v:32;	- Set pressure for valve load turn on and fill reservoir;
+				// 	$03:p:150;	- Set sensor max pressure ref to change the scale [psi];
+				// 	$03:b:85;	- Set to 85% the pressure min bellow the current pressure to avoid pipe broken;
 				}
 				case 8: { // $08;
 					if(command_str[3]==';')
@@ -651,7 +652,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						uint32_t pwm_led_frequency = (uint32_t) atoi(_aux2);
 						led_wifi_indicator.pwm_ledc_set_frequency(pwm_led_frequency);
 
-						sprintf(buffer, "pwm freq: %d", pwm_led_frequency);
+						sprintf(buffer, "pwm freq: %lu", pwm_led_frequency);
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'd') && (command_str[5] == ':') && (command_str[9] == ';')) {
 					// $21:d:098; - set led duty cycle to 98 %;
@@ -663,7 +664,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						uint32_t pwm_led_duty = (uint32_t) atoi(_aux2);
 						led_wifi_indicator.pwm_ledc_set_duty(pwm_led_duty);
 
-						sprintf(buffer, "pwm duty: %d", pwm_led_duty);
+						sprintf(buffer, "pwm duty: %lu", pwm_led_duty);
 					}
 					break;
 				}
@@ -785,7 +786,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 						time_match_list[index] = time_temp;
 
-						sprintf(buffer, "set h%d %.2d:%.2d, t:%d\n", index+1, (int)timesec_to_hour(time_match_list[index]), (int)timesec_to_min(time_match_list[index]), time_match_list[index]);
+						sprintf(buffer, "set h%u %.2u:%.2u, t:%lu\n", index+1, timesec_to_hour(time_match_list[index]), timesec_to_min(time_match_list[index]), time_match_list[index]);
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'n') && (command_str[5] == ':') && (command_str[7] == ';')) {
 						// set $50:n:4; set n to turn 4 times;
@@ -1263,7 +1264,7 @@ void Acionna::msg_fetch_(void) {
 		delete[] command_str;
 	}
 
-	// if(ws_client_data_flag) {
+	// if(ws_client_data_flag_) {
 
 	// }
 }
@@ -1279,6 +1280,7 @@ void Acionna::msg_exec_(void) {
 }
 void Acionna::msg_back_(void) {
 
+	// bluetooth
 	#ifdef CONFIG_BT_ENABLE
 	if(bt_ans_flag_ == states_flag::enable)
 	{
@@ -1289,7 +1291,7 @@ void Acionna::msg_back_(void) {
 	}
 	#endif
 
-	// This is enable when receive some msg from websocket
+	// websocket server
 	if(ws_server_ans_flag_ == states_flag::enable)
 	{
 		ws_server_ans_flag_ = states_flag::disable;
@@ -1297,6 +1299,7 @@ void Acionna::msg_back_(void) {
 		ws_server_send(msg_back_str_);
 	}
 
+	// websocket client answer to server
 	if(ws_client_ans_flag_ == states_flag::enable)
 	{
 		ws_client_ans_flag_ = states_flag::disable;
@@ -1378,7 +1381,7 @@ void Acionna::sys_fw_info_app_(char* buffer_str) {
 	strcat(buffer_str, buffer_temp);
 	sprintf(buffer_temp, "Time:%s\n", OTA_update.running_app_info.time);
 	strcat(buffer_str, buffer_temp);
-	sprintf(buffer_temp, "Sec Ver:%d\n", OTA_update.running_app_info.secure_version);
+	sprintf(buffer_temp, "Sec Ver:%lu\n", OTA_update.running_app_info.secure_version);
 	strcat(buffer_str, buffer_temp);
 
 	// print info ota stuffs here!
@@ -1394,7 +1397,7 @@ void Acionna::sys_fw_info_app_(char* buffer_str) {
 		strcat(buffer_str, buffer_temp);
 		sprintf(buffer_temp, "Time:%s\n", OTA_update.update_app_info.time);
 		strcat(buffer_str, buffer_temp);
-		sprintf(buffer_temp, "Sec Ver: %d\n", OTA_update.update_app_info.secure_version);
+		sprintf(buffer_temp, "Sec Ver: %lu\n", OTA_update.update_app_info.secure_version);
 		strcat(buffer_str, buffer_temp);
 	}
 }
@@ -1403,13 +1406,13 @@ void Acionna::sys_fw_info_partitions_(char* buffer_str) {
 	char buffer_temp[70];
 	ota_info();
 
-	sprintf(buffer_str, "Bt-> L:%s, o:0x%08x, t:%d, s:%d\n",
+	sprintf(buffer_str, "Bt-> L:%s, o:0x%08lx, t:%d, s:%d\n",
 												OTA_update.configured_partition->label,
 												OTA_update.configured_partition->address,
 												static_cast<int>(OTA_update.configured_partition->type),
 												static_cast<int>(OTA_update.configured_partition->subtype));
 	
-	sprintf(buffer_temp, "Ru-> L:%s, o:0x%08x, t:%d, s:%d\n",
+	sprintf(buffer_temp, "Ru-> L:%s, o:0x%08lx, t:%d, s:%d\n",
 													OTA_update.running_partition->label,
 													OTA_update.running_partition->address,
 													static_cast<int>(OTA_update.running_partition->type),
@@ -1418,7 +1421,7 @@ void Acionna::sys_fw_info_partitions_(char* buffer_str) {
 
 	if(OTA_update.update_partition != NULL)
 	{
-		sprintf(buffer_temp, "Up-> L:%s, o:0x%02x, t:%d, s:%d\n",
+		sprintf(buffer_temp, "Up-> L:%s, o:0x%04lx, t:%d, s:%d\n",
 														OTA_update.update_partition->label,
 														OTA_update.update_partition->address,
 														static_cast<int>(OTA_update.update_partition->type),
@@ -1495,7 +1498,7 @@ void Acionna::sys_fw_update_ans_async_(void)
 			strcat(buffer_str, buffer_temp);
 			sprintf(buffer_temp, "Time: %s\n", OTA_update.update_app_info.time);
 			strcat(buffer_str, buffer_temp);
-			sprintf(buffer_temp, "Sec. Ver.: %d\n", OTA_update.update_app_info.secure_version);
+			sprintf(buffer_temp, "Sec. Ver.: %lu\n", OTA_update.update_app_info.secure_version);
 			strcat(buffer_str, buffer_temp);
 
 			// char image_hash_temp[32];
@@ -1573,7 +1576,7 @@ void Acionna::sys_wifi_scan_(char* buffer_str) {
 void Acionna::sys_ram_free_(char* buffer_str) {
 
 	memset(buffer_str, 0, sizeof(*buffer_str));
-	sprintf(buffer_str, "RAM free:%d, min:%d\n", esp_get_free_internal_heap_size(), esp_get_minimum_free_heap_size());
+	sprintf(buffer_str, "RAM free:%lu, min:%lu\n", esp_get_free_internal_heap_size(), esp_get_minimum_free_heap_size());
 }
 void Acionna::sys_reset_reason_(char* buffer_str) {
 

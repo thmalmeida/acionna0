@@ -2,37 +2,37 @@
 
 const char* TAG_SETUP = "SETUP";
 
-// static I2C_Master i2c(I2C_NUM_1, I2C_SCL, I2C_SDA, I2C_NORMAL_SPEED_HZ, 1);
-// aht10 sensor0(&i2c);
+static I2C_Master i2c(I2C_NUM_1, I2C_SCL, I2C_SDA, I2C_NORMAL_SPEED_HZ, 1);
+aht10 sensor0(&i2c);
 // bmp180 sensor1(&i2c);
-// void test_sensors(void *pvParameter) {
-// 	// Hello answer test
-// 	// if(sensor0.probe()) {
-// 	// 	ESP_LOGI(TAG_SETUP, "AHT10 answer OK!");
-// 	// }
-// 	// else {
-// 	// 	while(!sensor0.probe())
-// 	// 	{
-// 	// 		ESP_LOGI(TAG_SETUP, "Trying to probe");
-// 	// 		vTaskDelay(2000 / portTICK_PERIOD_MS);
-// 	// 	}
-// 	// }
-// 	// sensor0.init(2);
-// 	int count = 0;
-// 	while(1) {
-// 		// ESP_LOGI(sensor0.get_status_bit(7, true);
-// 		sensor0.trig_meas();
-// 		ESP_LOGI(TAG_SETUP, "Count: %d, Humidity: %.2f %%, Temperature: %.2f C", count++, sensor0.get_humidity(), sensor0.get_temperature());
-// 		// sensor0.print_raw_data();
-// 		// sensor0.get_status_bit(3, true);
-// 		// sensor0.print_status_bits();
-// 		// if(((count % 3) == 0) && (!sensor0.get_status_bit(6, false)))  {
-// 		// 	ESP_LOGI(TAG_SETUP, "AHT init again!!!");
-// 		// 	sensor0.init(2);
-// 		// }
-// 		vTaskDelay(10000 / portTICK_PERIOD_MS);
-// 	}
-// }
+void test_sensors(void *pvParameter) {
+	// Hello answer test
+	// if(sensor0.probe()) {
+	// 	ESP_LOGI(TAG_SETUP, "AHT10 answer OK!");
+	// }
+	// else {
+	// 	while(!sensor0.probe())
+	// 	{
+	// 		ESP_LOGI(TAG_SETUP, "Trying to probe");
+	// 		vTaskDelay(2000 / portTICK_PERIOD_MS);
+	// 	}
+	// }
+	// sensor0.init(2);
+	int count = 0;
+	while(1) {
+		// ESP_LOGI(sensor0.get_status_bit(7, true);
+		sensor0.trig_meas();
+		ESP_LOGI(TAG_SETUP, "Count: %d, Humidity: %.2f %%, Temperature: %.2f C", count++, sensor0.get_humidity(), sensor0.get_temperature());
+		// sensor0.print_raw_data();
+		// sensor0.get_status_bit(3, true);
+		// sensor0.print_status_bits();
+		// if(((count % 3) == 0) && (!sensor0.get_status_bit(6, false)))  {
+		// 	ESP_LOGI(TAG_SETUP, "AHT init again!!!");
+		// 	sensor0.init(2);
+		// }
+		vTaskDelay(10000 / portTICK_PERIOD_MS);
+	}
+}
 
 void machine_run(void *pvParameter)
 {
@@ -47,7 +47,7 @@ void machine_run(void *pvParameter)
 	Acionna acionna0;
 
 	// ws client initialize
-	ws_client_start();
+	// ws_client_start();
 
 	while(1)
 	{

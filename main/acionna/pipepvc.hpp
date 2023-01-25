@@ -1,7 +1,7 @@
 #ifndef PIPEPVC_HPP
 #define PIPEPVC_HPP
 
-#include <adc.hpp>
+#include <adc2.hpp>
 #include <gpio.hpp>
 #include <pinout.hpp>
 #include <cmath>
@@ -13,8 +13,8 @@ public:
 	
 	int pressure_max = 70;				// max supported pressure by pipe [m.c.a];
 	int pressure_min = 30;				// min threshold pressure for indicate some problem;
-	int sensor_pressure_ref = 150;		// sensor max pressure [psi];
-	uint16_t sensor_data_dig = 0;		// readed value from ADC peripheral;
+	int sensor_pressure_ref = 100;		// sensor max pressure [psi];
+	int sensor_data_dig = 0;		// readed value from ADC peripheral;
 	int channel_adc = 4;				// ADC channel;
 	
 	int pressure_mca_previous = 0;		// for low press dectection algoritm;
@@ -30,7 +30,7 @@ public:
 //	uint8_t flag_PressureUnstable = 1;
 //	uint8_t flag_PressureDown = 0;		// flag for pressure down occurrence;
 
-	Pipepvc() : adc_{4} {}
+	Pipepvc() : adc_(4) {}
 	void update()
 	{
 		sensor_data_dig = adc_.read();
@@ -58,7 +58,8 @@ public:
 	}
 
 private:
-	ADC_Basic adc_;
+	// ADC_Basic adc_;
+	ADC_driver adc_;
 	int pressure_mca_ = 0;					// converted value [m.c.a.];
 	int pressure_psi_ = 0;					// converted value [psi];
 
@@ -114,10 +115,10 @@ private:
 	P_mca = P_psi*0.703089
 
 	 */
-	void convert_pressure(uint16_t data_12bits)
+	void convert_pressure(int data_12bits)
 	{
 		const float K_psi_mca = 0.703089;
-		float sensor_press_max = 150.0;
+		float sensor_press_max = static_cast<float>(sensor_pressure_ref);
 		const float d_max = 3878.0;	// 4500 mV
 		const float d_min = 124.0; 	// 502 mV
 		pressure_psi_ = static_cast<int>(sensor_press_max*(data_12bits - d_min)/(d_max-d_min));

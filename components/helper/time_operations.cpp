@@ -94,11 +94,3 @@ uint32_t daytime_to_timesec(uint8_t hour, uint8_t min, uint8_t sec)
 {
 	return (hour*60*60 + min*60 + sec);
 }
-void delay_ms(uint32_t milliseconds)
-{
-	sys_delay_ms(milliseconds);
-}
-void delay_us(uint32_t microseconds)
-{
-	ets_delay_us(microseconds);
-}

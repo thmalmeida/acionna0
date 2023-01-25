@@ -12,35 +12,48 @@ OTA_struct OTA_update;
 
 esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 {
-    switch (evt->event_id) {
-    case HTTP_EVENT_ERROR:
-        ESP_LOGI(TAG_OTA, "HTTP_EVENT_ERROR");
-        break;
-    case HTTP_EVENT_ON_CONNECTED:
-        ESP_LOGI(TAG_OTA, "HTTP_EVENT_ON_CONNECTED");
-		OTA_update.OTA_http_client_state = OTA_http_client_states::connected;
-        break;
-    case HTTP_EVENT_HEADER_SENT:
-        ESP_LOGI(TAG_OTA, "HTTP_EVENT_HEADER_SENT");
-        break;
-    case HTTP_EVENT_ON_HEADER:
-        ESP_LOGI(TAG_OTA, "HTTP_EVENT_ON_HEADER, key=%s, value=%s", evt->header_key, evt->header_value);
-		if(strcmp(evt->header_key, "Content-Length") == 0)
-		{
-			OTA_update.image_size = static_cast<uint32_t>(atoi(evt->header_value));
-			// ESP_LOGI(TAG_OTA, "Image size: %d", OTA_update.image_size);
-		}
-        break;
-    case HTTP_EVENT_ON_DATA:
-        // ESP_LOGI(TAG_OTA, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
-        break;
-    case HTTP_EVENT_ON_FINISH:
-        ESP_LOGI(TAG_OTA, "HTTP_EVENT_ON_FINISH");
-        break;
-    case HTTP_EVENT_DISCONNECTED:
-        ESP_LOGI(TAG_OTA, "HTTP_EVENT_DISCONNECTED");
-		OTA_update.OTA_http_client_state = OTA_http_client_states::disconnected;
-        break;
+	switch (evt->event_id) {
+		case HTTP_EVENT_ERROR:
+			ESP_LOGI(TAG_OTA, "HTTP_EVENT_ERROR");
+			break;
+	
+		case HTTP_EVENT_ON_CONNECTED:
+			ESP_LOGI(TAG_OTA, "HTTP_EVENT_ON_CONNECTED");
+			OTA_update.OTA_http_client_state = OTA_http_client_states::connected;
+			break;
+
+		case HTTP_EVENT_HEADER_SENT:
+			ESP_LOGI(TAG_OTA, "HTTP_EVENT_HEADER_SENT");
+			break;
+		
+		case HTTP_EVENT_ON_HEADER:
+			ESP_LOGI(TAG_OTA, "HTTP_EVENT_ON_HEADER, key=%s, value=%s", evt->header_key, evt->header_value);
+			if(strcmp(evt->header_key, "Content-Length") == 0)
+			{
+				OTA_update.image_size = static_cast<uint32_t>(atoi(evt->header_value));
+				// ESP_LOGI(TAG_OTA, "Image size: %d", OTA_update.image_size);
+			}
+			break;
+
+		case HTTP_EVENT_ON_DATA:
+			// ESP_LOGI(TAG_OTA, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
+			break;
+
+		case HTTP_EVENT_ON_FINISH:
+			ESP_LOGI(TAG_OTA, "HTTP_EVENT_ON_FINISH");
+			break;
+
+		case HTTP_EVENT_DISCONNECTED:
+			ESP_LOGI(TAG_OTA, "HTTP_EVENT_DISCONNECTED");
+			OTA_update.OTA_http_client_state = OTA_http_client_states::disconnected;
+			break;
+
+		case HTTP_EVENT_REDIRECT:
+			ESP_LOGI(TAG_OTA, "HTTP_EVENT_REDIRECT");
+			break;
+
+		default:
+			break;
     }
     return ESP_OK;
 }
@@ -115,7 +128,7 @@ static void ota_task(void *pvParameter)
 
      OTA_update.update_partition = esp_ota_get_next_update_partition(NULL);
     assert(OTA_update.update_partition != NULL);
-    ESP_LOGI(TAG_OTA, "Writing to partition subtype %d at offset 0x%x", OTA_update.update_partition->subtype, OTA_update.update_partition->address);
+    ESP_LOGI(TAG_OTA, "Writing to partition subtype %u at offset 0x%08lx", OTA_update.update_partition->subtype, OTA_update.update_partition->address);
 
     OTA_update.binary_file_length_write = 0;
     /*deal with all receive packet*/
@@ -143,8 +156,8 @@ static void ota_task(void *pvParameter)
                     ESP_LOGI(TAG_OTA, "New firmware project name: %s", OTA_update.update_app_info.project_name);
 
                     memcpy(&new_app_size, &ota_write_data[sizeof(esp_image_header_t)], sizeof(esp_image_segment_header_t));
-                    ESP_LOGI(TAG_OTA, "New firmware load addr: %d", new_app_size.load_addr);
-                    ESP_LOGI(TAG_OTA, "New firmware length: %d", new_app_size.data_len);
+                    ESP_LOGI(TAG_OTA, "New firmware load addr: 0x08%lx", new_app_size.load_addr);
+                    ESP_LOGI(TAG_OTA, "New firmware length: %lu", new_app_size.data_len);
 
                     // memcpy(&new_app_header, &ota_write_data[0], sizeof(esp_image_header_t));
                     // ESP_LOGI(TAG_OTA, "New firmware min chip rev: %d", new_app_header.min_chip_rev);

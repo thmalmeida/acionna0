@@ -76,7 +76,7 @@ void bt_event_handler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
 		}
 		case ESP_SPP_DATA_IND_EVT: {	// When SPP connection received data, the event comes, only for ESP_SPP_MODE_CB
 			// #if (SPP_SHOW_MODE == SPP_SHOW_DATA)
-			ESP_LOGI(TAG_BT, "ESP_SPP_DATA_IND_EVT len=%d handle=%d", param->data_ind.len, param->data_ind.handle);
+			ESP_LOGI(TAG_BT, "ESP_SPP_DATA_IND_EVT len=%u handle=%lu", param->data_ind.len, param->data_ind.handle);
 			//printf("Data: %c",param->data_ind);
 
 			// Print buffer in hex format
@@ -161,7 +161,7 @@ void bt_event_handler(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
 //			ESP_LOGI(TAG_BT, "ESP_SPP_WRITE_EVT"); acceptor code line only;
 
 			// initiator code copy
-			ESP_LOGI(TAG_BT, "ESP_SPP_WRITE_EVT len=%d cong=%d handle=%d", param->write.len , param->write.cong, param->write.handle);
+			ESP_LOGI(TAG_BT, "ESP_SPP_WRITE_EVT len=%d cong=%d handle=%lu", param->write.len , param->write.cong, param->write.handle);
 			esp_log_buffer_hex("write:",bt_data,SPP_BT_DATA_LEN);
 //			if (param->write.cong == 0)
 //			{
@@ -228,11 +228,11 @@ void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
 
 #if (CONFIG_BT_SSP_ENABLED == true)
    case ESP_BT_GAP_CFM_REQ_EVT:
-       ESP_LOGI(TAG_BT, "ESP_BT_GAP_CFM_REQ_EVT Please compare the numeric value: %d", param->cfm_req.num_val);
+       ESP_LOGI(TAG_BT, "ESP_BT_GAP_CFM_REQ_EVT Please compare the numeric value: %lu", param->cfm_req.num_val);
        esp_bt_gap_ssp_confirm_reply(param->cfm_req.bda, true);
        break;
    case ESP_BT_GAP_KEY_NOTIF_EVT:
-       ESP_LOGI(TAG_BT, "ESP_BT_GAP_KEY_NOTIF_EVT passkey:%d", param->key_notif.passkey);
+       ESP_LOGI(TAG_BT, "ESP_BT_GAP_KEY_NOTIF_EVT passkey:%lu", param->key_notif.passkey);
        break;
    case ESP_BT_GAP_KEY_REQ_EVT:
        ESP_LOGI(TAG_BT, "ESP_BT_GAP_KEY_REQ_EVT Please enter passkey!");

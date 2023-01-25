@@ -1,8 +1,0 @@
-# ESP-IDF Partition Table - ACIONNA0
-# Name,     Type,   SubType,    Offset,     Size,   Flags
-nvs,        data,   nvs,        0x009000,   16K,
-otadata,    data,   ota,        0x00D000,   8K,
-nvs_key,    data,   nvs_keys,   0x00F000,   4K,
-#factory,   app,    factory,    0x010000,   1444K,
-ota_0,      app,    ota_0,      0x010000,   1950K,
-ota_1,      app,    ota_1,      ,           1950K,
