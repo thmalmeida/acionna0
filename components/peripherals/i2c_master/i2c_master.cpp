@@ -5,12 +5,6 @@
 
 static const char *TAG_I2C = "I2C";
 
-#ifdef CONFIG_I2C_COMMAND_WAIT
-#define I2C_COMMAND_WAIT_MS	CONFIG_I2C_COMMAND_WAIT
-#else
-#define I2C_COMMAND_WAIT_MS	500
-#endif /* CONFIG_I2C_COMMAND_WAIT */
-
 I2C_Master::I2C_Master(int port, int scl, int sda, uint32_t freq, bool pull_up /* = false */) : i2c_master_port_(port) {
 	// Configuration
 	i2c_config_t conf = {};
@@ -50,6 +44,7 @@ int I2C_Master::write(uint8_t slave_addr, uint8_t reg, uint8_t* data, size_t len
 	i2c_cmd_link_delete(cmd_handle);
 
 	if (ret != ESP_OK) {
+		ESP_LOGI(TAG_I2C, "read: error on write: %s", esp_err_to_name(ret));
 		return I2C_ERR_WRITE;
 	}
 
@@ -62,7 +57,7 @@ int I2C_Master::write(uint8_t slave_addr, uint8_t reg, bool ack_check /* = true 
 	uint8_t data;
 	return write(slave_addr, reg, &data, 0, ack_check);
 }
-int I2C_Master::write2(uint8_t slave_addr, uint8_t *data, uint8_t data_len) {
+int I2C_Master::write(uint8_t slave_addr, uint8_t *data, uint8_t data_len) {
 	
 	esp_err_t ret = i2c_master_write_to_device(static_cast<i2c_port_t>(i2c_master_port_), slave_addr, data, data_len, I2C_COMMAND_WAIT_MS / portTICK_PERIOD_MS);
 
@@ -99,7 +94,7 @@ int I2C_Master::read(uint8_t slave_addr, uint8_t reg, uint8_t* data, size_t len,
 	i2c_cmd_link_delete(cmd_handle);
 
 	if (ret != ESP_OK) {
-		// ESP_LOGI(TAG_I2C, "read: error on write: %s", esp_err_to_name(ret));
+		ESP_LOGI(TAG_I2C, "read: error on write: %s", esp_err_to_name(ret));
 		return I2C_ERR_WRITE;
 	}
 
@@ -125,6 +120,17 @@ int I2C_Master::read(uint8_t slave_addr, uint8_t reg, uint8_t* data, size_t len,
 int I2C_Master::read(uint8_t slave_addr, uint8_t reg, uint8_t* data, bool ack_check /* = true */) {
 	return read(slave_addr, reg, data, 1, ack_check);
 }
+int I2C_Master::read(uint8_t slave_address, const uint8_t *write_buffer, size_t write_buffer_len, uint8_t *read_buffer, size_t read_buffer_len) {
+
+	esp_err_t ret = i2c_master_write_read_device(static_cast<i2c_port_t>(i2c_master_port_), slave_address, write_buffer, write_buffer_len, read_buffer, read_buffer_len, I2C_COMMAND_WAIT_MS / portTICK_PERIOD_MS);
+
+	if(ret != ESP_OK) {
+		ESP_LOGI(TAG_I2C, "read2: error on read: %s", esp_err_to_name(ret));
+		return I2C_ERR_READ;
+	}
+
+	return I2C_ERR_OK;
+}
 int I2C_Master::read_only(uint8_t slave_addr, uint8_t* data, size_t data_len, bool ack_check) {
 
 	// Read only: read start	
@@ -146,32 +152,23 @@ int I2C_Master::read_only(uint8_t slave_addr, uint8_t* data, size_t data_len, bo
 
 	return I2C_ERR_OK;
 }
-int I2C_Master::read2(uint8_t slave_address, const uint8_t *write_buffer, size_t write_buffer_len, uint8_t *read_buffer, size_t read_buffer_len) {
-
-	esp_err_t ret = i2c_master_write_read_device(static_cast<i2c_port_t>(i2c_master_port_), slave_address, write_buffer, write_buffer_len, read_buffer, read_buffer_len, I2C_COMMAND_WAIT_MS / portTICK_PERIOD_MS);
-
-	if(ret != ESP_OK) {
-		ESP_LOGI(TAG_I2C, "read2: error on read: %s", esp_err_to_name(ret));
-		return I2C_ERR_READ;
-	}
-
-	return I2C_ERR_OK;
-}
 bool I2C_Master::probe(uint8_t addr) noexcept
 {
 	uint8_t data;
+	ESP_LOGI(TAG_I2C, "probe addr: 0x%02x\n", addr);
 	if(read(addr, 0x00, &data) > 0)
 		return true;
 	return false;
 }
-uint8_t I2C_Master::probe_addr(uint8_t addr_init /* = 0 */){
+uint8_t I2C_Master::probe_find(uint8_t addr_start /* = 0 */){
 	uint8_t data;
-	for(uint8_t i = addr_init; i < 127; i++){
-		if(read(i, 0x00, &data) > 0){
-			// return i;
-			ESP_LOGI(TAG_I2C, "addr: 0x%02x\n", i);
+	for(uint8_t i = addr_start; i < 127; i++) {
+		ESP_LOGI(TAG_I2C, "addr: 0x%02x", i);
+		if(read(i, 0x00, &data) > 0) {
+			return i;
 		}
-		delay_ms(10);
+		delay_ms(20);
 	}
+	ESP_LOGI(TAG_I2C, "nothing found!");
 	return 0xFF;
 }

@@ -38,13 +38,15 @@ enum class start_types {
 enum class states_stop {
 	/*
 	 * Reasons to halt the motor.
-	 * 0x01 - command line request
-	 * 0x02 - thermal relay occurs;
-	 * 0x03 - high pressure
-	 * 0x04 - low level
-	 * 0x05 - low pressure for long time (broken pipe?)
-	 * 0x06 - time out
+	 * 0x00 - command line request
+	 * 0x01 - time out
+	 * 0x02 - high pressure
+	 * 0x03 - thermal relay occurs;
+	 * 0x04 - contactor not on
+	 * 0x05 - low level
+	 * 0x06 - low pressure(broken pipe?)
 	 * 0x07 - red time
+	 * 0x08 - system lock??
 	 * */
 	command_line_user = 0,
 	timeout,
@@ -52,7 +54,7 @@ enum class states_stop {
 	thermal_relay,
 	contactor_not_on,
 	level_low,
-	pressure_low_long_time,
+	pressure_low,
 	red_time,
 	system_lock
 };

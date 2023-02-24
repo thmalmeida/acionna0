@@ -7,6 +7,10 @@ static DS3231 rtc{&i2c};
 static Agro::RTC_Time device_clock;
 static DateTime dt;
 
+static ADC_driver adc0;
+static Pipepvc pipe1_(&adc0, 4, 150);
+static Pipepvc pipe2_(&adc0, 7, 100);
+
 int timeout_sensors;
 int timeout_sensors_cfg = 600;
 
@@ -14,319 +18,102 @@ int timeout_sensors_cfg = 600;
 static pwm_ledc led_wifi_indicator(2, 1, 0, 1);
 
 
-void Acionna::init() {
-	ESP_LOGI(TAG_ACIONNA, "initialization");
-
-	//
-	// i2c.init();
-
-	// Clock time init
-	dt.setDate(2022, 12, 20);
-	dt.setTime(0, 0, 0, ND);
-	device_clock.set_time(dt.getUnixTime());
-	time_day_sec_ = dt.getHour()*3600 + dt.getMinute()*60 + dt.getSecond();
-
-	// Network connection init
-	#if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
-		device_clock.init(rtc);
-	#endif /* CONFIG_DEVICE_CLOCK_DS3231_SUPPORT */
-
-	// Sensors init
-	// temp_sensor.begin();
-	// gpio_iomux_out(GPIO_NUM_13, 2, false);
-	// dht0.read2();
-	// std::uint8_t temp_sensor_count = temp_sensor.getDeviceCount();
-
-	// ESP_LOGI(TAG_ACIONNA, "Temp sensors count: %u", temp_sensor_count);
-
-
-//		I2C_Master i2c(I2C_NUM_0, I2C_SCL, I2C_SDA, I2C_FAST_SPEED_HZ);
-//
-//		#if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
-//		#include "agro/types.hpp"
-//		#include "ds3231.hpp"
-//
-//		DS3231 rtc{&i2c};
-//		extern Agro::RTC_Time device_clock;
-
-//		#endif /* CONFIG_DEVICE_CLOCK_DS3231_SUPPORT */
-
-	// restore parameters;
-	// update clock;
-}
 uint32_t Acionna::get_uptime() {
 	return uptime_;
 }
-void Acionna::operation_motorPeriodDecision() {
-}
-void Acionna::operation_system_off() {
-	if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
-	{
-		pump1_.stop(states_stop::system_lock);
-	}
-}
-void Acionna::operation_valve_control() {
-
-}
-void Acionna::operation_pump_control() {
-	/*
-	* Motor stop conditions
-	*
-	* Reasons to halt the motor.
-	* 0x01 - command line request
-	* 0x02 - thermal relay occurs;
-	* 0x03 - high pressure
-	* 0x04 - low level
-	* 0x05 - low pressure for long time (broken pipe?)
-	* 0x06 - time out
-	* 0x07 - red time
-	* */
-
-	// time matches occurred into check_time_match(), start motor
-	if(flag_check_time_match_ == states_flag::enable)
-	{
-		int index = 0;
-		for(int i=0; i<time_match_n; i++)
-		{
-			if(time_match_list[i] == time_day_sec_)
-			{
-				flag_time_match_ = states_flag::enable;
-				index = i;
-			}
-			// ESP_LOGI(TAG_ACIONNA, "TM FOR CHECK! tml:%d tds:%d", time_match_list[i], time_day_sec_);
-		}
-
-		if(flag_time_match_ == states_flag::enable)
-		{
-			flag_time_match_ = states_flag::disable;
-
-			// ESP_LOGI(TAG_ACIONNA, "FLAG TIME MATCH!");
-
-			if(pump1_.state() == states_motor::off_idle)
-			{
-				pump1_.start(auto_start_mode[index]);	// motor_start();
-				if(time_to_shutdown[index])
-				{
-					pump1_.time_to_shutdown = time_to_shutdown[index];
-				}
-			}
-		}
-	}
-
-	// check high pressure
-	if(flag_check_pressure_high_ == states_flag::enable)
-	{
-		if(pipe1_.pressure_mca() > pipe1_.pressure_max)
-			if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
-				pump1_.stop(states_stop::pressure_high);
-	}
-
-	// check low pressure
-	if(flag_check_pressure_low_ == states_flag::enable)
-	{
-		/*
-		* needs better implementation. Check after some time since motor starts;
-		*/
-//			if(pipe1_.pressure_mca < pipe1_.pressure_min)
-//			{
-//
-//			}
-		// Irrigation valves
-
-		// Well water pump fill reservoir
-		// if(pipe1_.broke_pipe_detect())
-		// {
-		// 	if((pump1_.state() == states_motor::on_nominal_k1) || (pupm1_.state() == states_motor::on_nominal_delta))
-		// 	{
-
-		// 	}
-		// }
-		// if(k2 only)
-
-	}
-
-	// check thermal relay
-	if(flag_check_thermal_relay_ == states_flag::enable)
-	{
-		if(pump1_.state_Rth() == states_switch::on)
-			if(pump1_.state() != states_motor::off_thermal_activated)
-				pump1_.stop(states_stop::thermal_relay);
-	}
-
-	// check low level
-	#ifdef CONFIG_WELL_SUPPORT
-	if(flag_check_low_level_ == states_flag::enable)
-	{
-		if(well1_.state_L1() == states_level::low)
-			if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
-				pump1_.stop(states_stop::level_low);;
-	}
-	#endif
-}
-void Acionna::operation_pump_valves_irrigation() {
-
-}
-void Acionna::update_RTC() {
-	dt.setUnixTime(device_clock.get_time());
-}
-void Acionna::update_objects() {
-	pump1_.update();
-	pipe1_.update();
-
-	// #ifdef CONFIG_WELL_SUPPORT
-	// well1_.update();
-	// #endif
-
-	// #ifdef CONFIG_VALVES_SUPPORT
-	valves1_.update();
-	// #endif
-}
-void Acionna::update_sensors()
-{
-	if(!timeout_sensors)
-	{
-		timeout_sensors = timeout_sensors_cfg;
-
-		// signal_request_sensors = 1;
-
-		// temp_sensor.requestTemperatures();
-		// if(dht0.read2())
-		// {
-		// 	ESP_LOGI(TAG_ACIONNA, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%%", dt.getHour(), dt.getMinute(), dt.getSecond(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
-		// }
-		// else
-		// {
-		// 	// for(int i=0; i<40; i++)
-		// 	// {
-		// 	// 	ESP_LOGI(TAG_DHT, "Cicle[%d] low: %d high: %d\n", i+1, dht0.cycles[i].expectLow, dht0.cycles[i].expectHigh);
-		// 	// }
-		// 	ESP_LOGI(TAG_DHT, "error reading");
-		// }
-		// vTaskDelay(10000 / portTICK_PERIOD_MS);
-	}
-	else
-		timeout_sensors--;
-}
-void Acionna::update_stored_data() {
-}
-void Acionna::update_uptime()
-{
-	uptime_++;
-	time_day_sec_++;
-
-	// compare time_day_sec with whole day seconds 24*60*60 = 86400
-	if(time_day_sec_ == 86400)
-	{
-		// time_day_sec_ ^= time_day_sec_;
-		time_day_sec_ = 0;
-	}
-	// or
-	// uptime = esp_timer_get_time();
-
-	// ESP_LOGI(TAG_ACIONNA, "uptime: %d", device_clock.internal_time());
-	// ESP_LOGI(TAG_ACIONNA, "uptime: %ld", static_cast<long int>((esp_timer_get_time() / 1000000)));
-}
-void Acionna::update_all() {
-	update_uptime();
-	update_RTC();
-	update_objects();
-	update_stored_data();
-
-	// update_sensors();		// test sensors
-}
 std::string Acionna::handle_message(uint8_t* command_str) {
 	/*
-	$0X;				Verificar detalhes - Detalhes simples (tempo).
-		$00;			- Detalhes simples (tempo).
-		$00:[0|1];		- Json send back 1, stop 0;
-		$01;			- Verifica histórico de quando ligou e desligou;
-		$02;			- Mostra tempo que falta para ligar;
-			$02:w;		- Zera o tempo;
-			$02:w:30;	- Ajusta novo tempo para 30 min;
-			$02:s:090;	- Tempo máximo ligado para 90 min. Para não utilizar, colocar zero;
-			$02:f:045;	- Força o contador de tempo ligado para 45 min;
-		$03;			- Verifica detalhes do motor, pressão e sensor termico;
-			$03:s:72;	- Set max pressure ref for pipe [m.c.a.];
-			$03:s;		- show max pressure configured;
-			$03:v:32;	- Set pressure for valve load turn on and fill reservoir;
-			$03:p:150;	- Set sensor max pressure ref to change the scale [psi];
-			$03:p;		- Show sensor max pressure [psi];
-			$03:b:85;	- Set to 85% the pressure min bellow the current pressure to avoid pipe broken;
-			$03:m:3;	- Set 3 seconds while K1 and K3 are ON into delta tri start;
-			$03:m;		- Just show the speeding up time;
-			$03:t:400;	- Set 400 milliseconds to wait K3 go off before start K2;
-			$03:t;		- Just show the time switch;
-		$04;			- Verifica detalhes do nível de água no poço e referência 10 bits;
-			$04:0;		- Interrompe o envio continuo das variáveis de pressão e nível;
-			$04:1;		- Envia continuamente valores de pressão e nível;
-			$04:s:0900;	- Adiciona nova referência para os sensores de nível. Valor de 0 a 1023;
-		$05;			- Mostra os horários que liga no modo $62;
-		$06;			- Tempo ligado e tempo desligado;
-		$07:x;			- ADC reference change.
-			$07:0;		- AREF
-			$07:1;		- AVCC with external cap at AREF pin
-			$07:2;		- Internal 1.1 Voltage reference.
+	$0X;					- Verificar detalhes - Detalhes simples (tempo).
+		$00;				- Detalhes simples (tempo).
+		$00:[0|1];			- Json send back 1, stop 0;
+		$01;				- Verifica histórico de quando ligou e desligou;
+		$02;				- Mostra tempo que falta para ligar;
+			$02:w;			- Zera o tempo;
+			$02:w:30;		- Ajusta novo tempo para 30 min;
+			$02:s:090;		- Tempo máximo ligado para 90 min. Para não utilizar, colocar zero;
+			$02:f:045;		- Força o contador de tempo ligado para 45 min;
+		$03;				- Verifica detalhes do motor, pressão e sensor termico;
+			$03:s[1|2]:72;	- Set max pressure ref for pipe [m.c.a.];
+			$03:s[1|2];		- show max pressure configured;
+			$03:p[1|2]:150;	- Set sensor max pressure ref to change the scale [psi];
+			$03:p[1|2];		- Show sensor max pressure [psi];
+			$03:v:32;		- Set pressure for valve load turn on and fill reservoir;
+			$03:b2;			- Show pipepvc intake air variables
+			$03:b:85;		- Set to 85% the pressure min bellow the current pressure to avoid pipe broken;
+			$03:m:3;		- Set 3 seconds while K1 and K3 are ON into delta tri start;
+			$03:m;			- Just show the speeding up time;
+			$03:t:400;		- Set 400 milliseconds to wait K3 go off before start K2;
+			$03:t;			- Just show the time switch;
+		$04;				- Verifica detalhes do nível de água no poço e referência 10 bits;
+			$04:0;			- Interrompe o envio continuo das variáveis de pressão e nível;
+			$04:1;			- Envia continuamente valores de pressão e nível;
+			$04:s:0900;		- Adiciona nova referência para os sensores de nível. Valor de 0 a 1023;
+		$05;				- Mostra os horários que liga no modo $62;
+		$06;				- Tempo ligado e tempo desligado;
+		$07;				- Show low pressure algorithm variables
+			$07:0;			- ADC reference change; AREF
+			$07:1;			- AVCC with external cap at AREF pin
+			$07:2;			- Internal 1.1 Voltage reference.
 
-	$10:h:HHMMSS;		- Ajustes do calendário;
-		$10:h:HHMMSS;	- Ajusta o horário do sistema;
-		$10:h:123040;	- E.g. ajusta a hora para 12:30:40
-		$10:d:DDMMAAAA;	- Ajusta a data do sistema no formato dia/mês/ano(4 dígitos);
-		$10:d:04091986;	- E.g. Altera a data para 04/09/1986;
-		$10:c;			- Shows the LSI current prescaler value;
+	$10:h:HHMMSS;			- Ajustes do calendário;
+		$10:h:HHMMSS;		- Ajusta o horário do sistema;
+		$10:h:123040;		- E.g. ajusta a hora para 12:30:40
+		$10:d:DDMMAAAA;		- Ajusta a data do sistema no formato dia/mês/ano(4 dígitos);
+		$10:d:04091986;		- E.g. Altera a data para 04/09/1986;
+		$10:c;				- Shows the LSI current prescaler value;
 		$10:c:40123;		- Set new prescaler value;
 
-	$2X;
-
-		$20:DevName;			- Change bluetooth name;
+	$2X;					(not implemented)
+		$20:DevName;		- Change bluetooth name;
 		$20:n:
-		$21:i:30;		- lo;		- Altera o nome do bluetooth para "Vassalo";
-		$21:d:099		- pwm: change duty cicle [%];
-		$21:f:0001		- pwm: change frequency [Hz];
+		$21:i:30;			- lo;		- Altera o nome do bluetooth para "Vassalo";
+		$21:d:099			- pwm: change duty cicle [%];
+		$21:f:0001			- pwm: change frequency [Hz];
 
-	$3X;				- Acionamento do motor;
-		$30;			- desliga todos contatores;
-		$31;			- ligar contator K1;
-		$32;			- ligar contator K2;
-		$33;			- ligar contator K3;
-		$34;			- direto para partida delta;
-		$35;			- direto para partida Y;
-		$36;			- liga motor com partida Y delta;
+	$3X;					- Acionamento do motor;
+		$30;				- desliga todos contatores;
+		$31;				- ligar contator K1;
+		$32;				- ligar contator K2;
+		$33;				- ligar contator K3;
+		$34;				- direto para partida delta;
+		$35;				- direto para partida Y;
+		$36;				- liga motor com partida Y delta;
 	
-	(not implemented)
-	$4:x:				- Is this applied fo stm32f10xxx series only;
-		$4:r:07;		- Read address 0x07 * 2 of currently page;
-		$4:w:07:03;		- Write variable 3 on address 7 of currently page;
-		$4:f:64:03;		- fill page 64 with 3 value;
-		$4:e:64;		- erase page 64;
+	$4:x:					(not implemented) - Is this applied fo stm32f10xxx series only;
+		$4:r:07;			- Read address 0x07 * 2 of currently page;
+		$4:w:07:03;			- Write variable 3 on address 7 of currently page;
+		$4:f:64:03;			- fill page 64 with 3 value;
+		$4:e:64;			- erase page 64;
 
 	$50:n:X; ou $50:hX:HHMM;
-		$50;				- mostra os horários que irá ligar;
+		$50;				- show all timers to turn on and info;
 		$50:0|1;			- desabilita|habilita auto turn (habilita time match flag);
-		$50:m:[1|3]		- tipo de partida automática: 1- k1; 3- y-Delta;
-		$50:n;			- mostra a quantidade de vezes que irá ligar;
+		$50:m:[1|3]			- tipo de partida automática: 1- k1; 3- y-Delta;
+		$50:n;				- mostra a quantidade de vezes que irá ligar;
 		$50:n:9;			- Configura para acionar 9 vezes. Necessário configurar 9 horários;
 		$50:n:1;			- Configura o sistema para acionar uma única vez;
 		$50:h1:2130;		- Configura o primeiro horário como 21:30 horas;
 		$50:h8:0437;		- Configura o oitavo horário como 04:37 horas;
+		$50:t1:120;			- configura o primeiro horário de partida com tempo de 120 min;
 
-	$6X;				- Modos de funcionamento;
-		$60; 			- Sistema Desligado não permite ligar;
-		$61;			- Sistema ocioso com permissão de acionamento manual (nunca ligará sozinho);
-		$62;			- Liga de modo automático nos determinados horários estipulados;
-		$63;			- Função para válvula do reservatório;
-		$64;			- Função para motobomba do reservatório;
+	$6X;					- Modos de funcionamento;
+		$60; 				- Sistema Desligado não permite ligar;
+		$61;				- Sistema ocioso com permissão de acionamento manual (nunca ligará sozinho);
+		$62;				- Liga de modo automático nos determinados horários estipulados;
+		$63;				- Função para válvula do reservatório;
+		$64;				- Função para motobomba do reservatório;
 
-	$7X					- Funções que habilitam ou desabilitam verificações de:
+	$7X						- Funções que habilitam ou desabilitam verificações de:
 		$70:rt;
-		$70:rt:[0|1];			- relé térmico;
+		$70:rt:[0|1];		- relé térmico;
 		$70:kt;
-		$70:kt:[0|1];			- todos contatores
+		$70:kt:[0|1];		- todos contatores
 		$70:k1;
-		$70:k1:[0|1];			- contator K1 (not implemented);
+		$70:k1:[0|1];		- contator K1 (not implemented);
 		$70:k2;
-		$70:k2:[0|1];			- contator K2 (not implemented);
+		$70:k2:[0|1];		- contator K2 (not implemented);
 		$70:k3;
-		$70:k3:[0|1];			- contator K3 (not implemented);
+		$70:k3:[0|1];		- contator K3 (not implemented);
 		$70:ph;
 		$70:ph:1|0;			- desligamento por alta pressão;
 		$70:pl;
@@ -334,36 +121,36 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$70:pv;
 		$70:pv:1|0;			- desligamento por pressão alta por válvula;
 
-	$8					- Funções de programação da irrigação;
-		$81;			- start valves sequence;
-		$80;			- stop valves sequence;
-		$8:[0|1];		- 0 sentido direto; 1 - sentido inverso na troca dos setores;
-		$8:01;			- mostra condições de configuração da válvula 01;
-		$8:01:[0|1];	- desaciona|aciona válvula 01;
-		$8:01:i;		- insere setor na programação;
-		$8:01:r;		- remove setor da programação;
-		$8:01:t:120;	- configura o tempo de irrigação [min];
-		$8:01:p:68;		- configura pressão nominal do setor [m.c.a.];
-		$8:01:t;		- mostra o tempo de irrigação do setor;
-		$8:01:p;		- mostra pressão nominal do setor
+	$8						- Funções de programação da irrigação;
+		$81;				- start valves sequence;
+		$80;				- stop valves sequence;
+		$8:[0|1];			- 0 sentido direto; 1 - sentido inverso na troca dos setores;
+		$8:01;				- mostra condições de configuração da válvula 01;
+		$8:01:[0|1];		- desaciona|aciona válvula 01;
+		$8:01:i;			- insere setor na programação;
+		$8:01:r;			- remove setor da programação;
+		$8:01:t:120;		- configura o tempo de irrigação [min];
+		$8:01:p:68;			- configura pressão nominal do setor [m.c.a.];
+		$8:01:t;			- mostra o tempo de irrigação do setor;
+		$8:01:p;			- mostra pressão nominal do setor
 
-	$9X;				- System administration
-		$90:[0-9];		- WiFi
-			$90:0;		- WiFi AP info;
-			$90:1;		- WiFi Scan;
-			$90:2;		- Show mac address;
-		$92;			- show firwmare version;
-		$95:[0-9];		- firmware ota;
-			$95:0;		- show ota partitions info;
-			$95:1;		- show ota app info
-			$95:2;		- print sha256;
-			$94:3:		- mark invalid;
-			$95:4;		- mark valid;
-			$95:8:[0-1]	- change boot partition;
-			$95:9;		- Start firmware update;
-		$97;			- Show RAM usage;
-		$98;			- Show reset reason;
-		$99;			- Soft reset system;
+	$9X;					- System administration
+		$90:[0-9];			- WiFi
+			$90:0;			- WiFi AP info;
+			$90:1;			- WiFi Scan;
+			$90:2;			- Show mac address;
+		$92;				- show firwmare version;
+		$95:[0-9];			- firmware ota;
+			$95:0;			- show ota partitions info;
+			$95:1;			- show ota app info
+			$95:2;			- print sha256;
+			$94:3:			- mark invalid;
+			$95:4;			- mark valid;
+			$95:8:[0-1]		- change boot partition;
+			$95:9;			- Start firmware update;
+		$97;				- Show RAM usage;
+		$98;				- Show reset reason;
+		$99;				- Soft reset system;
 */
 	int opcode0 = -1;
 	int opcode1 = -1;
@@ -422,9 +209,19 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					} // $00:[0|1]; 
 					break;
 				}
-				// case 1: {
-					// if(sInstr[2]==':' && sInstr[3]=='c')
-					// {
+				case 1: {
+					if(command_str[3] == ';') {
+						// $01; lasts time on values and reasons to shutdown
+						memset(buffer, 0, sizeof(buffer));
+						char buffer_temp[30];
+						for(int i=0; i<9; i++)
+						{
+							sprintf(buffer_temp, "s%d- %.2d:%.2d m:%d t:%d r:%u\n", i+1, (int)timesec_to_hour(time_match_on_lasts[i]), (int)timesec_to_min(time_match_on_lasts[i]), (int)start_mode_lasts[i], (int)timesec_to_min(pump1_.time_on_lasts[i]), static_cast<int>(pump1_.stops_history[i]));
+							strcat(buffer, buffer_temp);
+						}
+						strcat(buffer, "\n");
+					}
+					// if(sInstr[2]==':' && sInstr[3]=='c') {
 					// 	if(sInstr[4] == ';')
 					// 	{
 					// 		flag_waitPowerOn = 0;
@@ -439,9 +236,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					// 		waitPowerOn_min_standBy = (uint8_t) atoi(aux);
 					// 	}
 					// }
-					// 
-					// break;
-				// }
+
+					break;
+				}
 				case 2: { // $02:c; time motor 
 					if(command_str[3] == ';') {
 						sprintf(buffer, "on:%.2d:%.2d:%.2d off:%.2d:%.2d:%.2d, t2sd:%.2d:%.2d:%.2d t2sd_cnf:%.2d:%.2d:%.2d won:%.2d:%.2d won_cfg:%.2d:%.2d\n",
@@ -498,7 +295,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 				}
 				case 3: { // $03:_:__;
 					if(command_str[3]==';') { // $03;
-						sprintf(buffer, "m:%d k1:%d%d k2:%d%d k3:%d%d Rth:%d P:%d r:%d%d%d\n",
+						sprintf(buffer, "m:%d k1:%d%d k2:%d%d k3:%d%d Rth:%d P1:%d P2:%d r:%d%d%d\n",
 																							static_cast<int>(pump1_.state()),
 																							static_cast<int>(pump1_.state_k1_pin()),
 																							static_cast<int>(pump1_.state_k1()),
@@ -508,22 +305,34 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 																							static_cast<int>(pump1_.state_k3()),
 																							static_cast<int>(pump1_.state_Rth()),
 																							pipe1_.pressure_mca(),
+																							pipe2_.pressure_mca(),
 																							static_cast<int>(pump1_.stops_history[0]),
 																							static_cast<int>(pump1_.stops_history[1]),
 																							static_cast<int>(pump1_.stops_history[2])
 																							);
 					} // $03;
-					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == ':') && (command_str[8] == ';')) {
-						_aux[0] = command_str[6];
-						_aux[1] = command_str[7];		// '0' in uint8_t is 48. ASCII
+					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == '1') && (command_str[6] == ':') && (command_str[9] == ';')) {
+						_aux[0] = command_str[7];
+						_aux[1] = command_str[8];		// '0' in uint8_t is 48. ASCII
 						_aux[2] = '\0';
 						pipe1_.pressure_max = atoi(_aux);
 
-						sprintf(buffer, "set press max: %d\n", pipe1_.pressure_max); 
-					} // $03:s:72;	- Set max pressure ref for pipe [m.c.a.];
-					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == ';')) {
-						sprintf(buffer, "press max: %d\n", pipe1_.pressure_max); 
-					} // $03:s;
+						sprintf(buffer, "set press1 max: %d\n", pipe1_.pressure_max); 
+					} // $03:s1:72;	- Set max pressure ref for pipe [m.c.a.];
+					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == '2') && (command_str[6] == ':') && (command_str[9] == ';')) {
+						_aux[0] = command_str[7];
+						_aux[1] = command_str[8];		// '0' in uint8_t is 48. ASCII
+						_aux[2] = '\0';
+						pipe2_.pressure_max = atoi(_aux);
+
+						sprintf(buffer, "set press2 max: %d\n", pipe2_.pressure_max); 
+					} // $03:s2:72;	- Set max pressure ref for pipe [m.c.a.];
+					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == '1') && (command_str[6] == ';')) {
+						sprintf(buffer, "max press1:%d\n", pipe1_.pressure_max); 
+					} // $03:s1;
+					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == '2') && (command_str[6] == ';')) {
+						sprintf(buffer, "max press2:%d\n", pipe2_.pressure_max); 
+					} // $03:s2;
 					else if((command_str[3] == ':') && (command_str[4] == 'm') && (command_str[5] == ':') && (command_str[7] == ';')) {
 						_aux[0] = '0';
 						_aux[1] = command_str[6];		// '0' in uint8_t is 48. ASCII
@@ -551,24 +360,52 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ';')) {
 						sprintf(buffer, "time_switch: %d\n", pump1_.time_switch_k_change);
 					} // $03:t; - show time K3 wait to turn on;
-					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == ':') && (command_str[9] == ';')) {
+					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == '1') && (command_str[6] == ':') && (command_str[10] == ';')) {
 						_aux2[0] = '0';
-						_aux2[1] = command_str[6];
-						_aux2[2] = command_str[7];		// '0' in uint8_t is 48. ASCII
-						_aux2[3] = command_str[8];		// '0' in uint8_t is 48. ASCII
+						_aux2[1] = command_str[7];
+						_aux2[2] = command_str[8];		// '0' in uint8_t is 48. ASCII
+						_aux2[3] = command_str[9];		// '0' in uint8_t is 48. ASCII
 						_aux2[4] = '\0';
 
 						pipe1_.sensor_pressure_ref = atoi(_aux2);
 
-						sprintf(buffer, "set press max ref: %d\n", pipe1_.sensor_pressure_ref);
-					} // 	$03:p:100;	- Set 100 psi the max pressure of sensor;
-					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == ';')) {
-						sprintf(buffer, "sens press max ref: %d\n", pipe1_.sensor_pressure_ref);
-					} // 	$03:p;	- Show max pressure of sensor;
+						sprintf(buffer, "set press1 max ref: %d\n", pipe1_.sensor_pressure_ref);
+					} // 	$03:p1:100;	- Set 100 psi the max pressure of sensor;
+					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == '2') && (command_str[6] == ':') && (command_str[10] == ';')) {
+						_aux2[0] = '0';
+						_aux2[1] = command_str[7];
+						_aux2[2] = command_str[8];		// '0' in uint8_t is 48. ASCII
+						_aux2[3] = command_str[9];		// '0' in uint8_t is 48. ASCII
+						_aux2[4] = '\0';
+
+						pipe2_.sensor_pressure_ref = atoi(_aux2);
+
+						sprintf(buffer, "set press2 max ref: %d\n", pipe2_.sensor_pressure_ref);
+					} // 	$03:p2:100;	- Set 100 psi the max pressure of sensor;
+					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == '1') && (command_str[6] == ';')) {
+						sprintf(buffer, "press1 max ref: %d\n", pipe1_.sensor_pressure_ref);
+					} // 	$03:p1;	- Show max pressure of sensor;
+					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == '2') && (command_str[6] == ';')) {
+						sprintf(buffer, "press1 max ref: %d\n", pipe2_.sensor_pressure_ref);
+					} // 	$03:p1;	- Show max pressure of sensor;
+					else if((command_str[3] == ':') && (command_str[4] == 'b') && (command_str[5] == '2') && (command_str[6] == ';')) {
+						sprintf(buffer, "State:%d, count:%lu \n", pipe2_.air_intake_detect_state(), pipe2_.air_detect_count_increase);
+					} //	$03:b; - show intake air variables;
 					break;
 				// 	$03:v:32;	- Set pressure for valve load turn on and fill reservoir;
 				// 	$03:p:150;	- Set sensor max pressure ref to change the scale [psi];
 				// 	$03:b:85;	- Set to 85% the pressure min bellow the current pressure to avoid pipe broken;
+				}
+				case 7: { // $07; show low press check variables
+					if(command_str[3]==';') {
+						sprintf(buffer, "state: %d, c_inc:%d, t_inc:%d t_stable:%d\n",
+																					static_cast<int>(pipe2_.air_detect_state),
+																					static_cast<int>(pipe2_.air_detect_count_increase),
+																					static_cast<int>(pipe2_.air_detect_timer_increase),
+																					static_cast<int>(pipe2_.air_detect_timer_stable));
+					}
+
+					break;
 				}
 				case 8: { // $08;
 					if(command_str[3]==';')
@@ -689,6 +526,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k1);
+						make_start_history(start_types::direct_k1, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -697,6 +535,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k2);
+						make_start_history(start_types::direct_k2, time_day_sec_);
 						sprintf(buffer, "Motor: pump1_ start request");
 						// sprintf(buffer, "k1: %d, k2: %d, k3: %d\n", static_cast<int>(pump1_.state_k1()), static_cast<int>(pump1_.state_k2()), static_cast<int>(pump1_.state_k3()));
 					}
@@ -706,6 +545,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k3);
+						make_start_history(start_types::direct_k3, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -714,6 +554,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::to_delta);
+						make_start_history(start_types::to_delta, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -722,6 +563,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::to_y);
+						make_start_history(start_types::to_y, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -730,6 +572,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::y_delta_req);
+						make_start_history(start_types::y_delta_req, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -743,13 +586,14 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		case 5: { // $50:h1:0900;
 			switch(opcode1) {
 				case 0: {
-					if(command_str[3] == ';') {	// $50;
+					if(command_str[3] == ';') {
+						// $50; show all info and timers
 						memset(buffer, 0, sizeof(buffer));
 						sprintf(buffer,"tm flag:%d, n:%d, ", (int)flag_check_time_match_, time_match_n);
 						char buffer_temp[30];
 						for(int i=0; i<time_match_n; i++)
 						{
-							sprintf(buffer_temp, "h%d:%.2d:%.2d m:%d ", i+1, (int)timesec_to_hour(time_match_list[i]), (int)timesec_to_min(time_match_list[i]), (int)auto_start_mode[i]);
+							sprintf(buffer_temp, "h%d:%.2d:%.2d m:%d t:%d ", i+1, (int)timesec_to_hour(time_match[i]), (int)timesec_to_min(time_match[i]), (int)auto_start_mode[i], static_cast<int>(time_to_shutdown[i]/60));
 							strcat(buffer, buffer_temp);
 						}
 						strcat(buffer, "\n");
@@ -774,19 +618,21 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux[2] = '\0';
 						int index = atoi(_aux)-1;
 
+						// get the hours, transform to seconds;
 						_aux[0] = command_str[7];
 						_aux[1] = command_str[8];		// '0' in uint8_t is 48. ASCII
 						_aux[2] = '\0';
 						uint32_t time_temp = (static_cast<uint32_t>(atoi(_aux)))*3600;
 
+						// get the minutes, transform to seconds and sum it;
 						_aux[0] = command_str[9];
 						_aux[1] = command_str[10];		// '0' in uint8_t is 48. ASCII
 						_aux[2] = '\0';
 						time_temp += (static_cast<uint32_t>(atoi(_aux)))*60;
 
-						time_match_list[index] = time_temp;
+						time_match[index] = time_temp;
 
-						sprintf(buffer, "set h%u %.2u:%.2u, t:%lu\n", index+1, timesec_to_hour(time_match_list[index]), timesec_to_min(time_match_list[index]), time_match_list[index]);
+						sprintf(buffer, "set h%u %.2u:%.2u tm:%lu\n", index+1, timesec_to_hour(time_match[index]), timesec_to_min(time_match[index]), time_match[index]);
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'n') && (command_str[5] == ':') && (command_str[7] == ';')) {
 						// set $50:n:4; set n to turn 4 times;
@@ -828,6 +674,35 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 								auto_start_mode[index-1] = (start_types)status_set;
 								sprintf(buffer, "set auto start m: %d\n", (int)auto_start_mode[index-1]);
 							}
+						}
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[6] == ':') && (command_str[10] == ';')) {
+						// $50:t1:060;
+						_aux[0] = '0';
+						_aux[1] = command_str[5];
+						_aux[2] = '\0';
+						int index = atoi(_aux);
+						
+						_aux2[0] = '0';
+						_aux2[1] = command_str[7];
+						_aux2[2] = command_str[8];
+						_aux2[3] = command_str[9];		// '0' in uint8_t is 48. ASCII
+						_aux2[4] = '\0';
+
+						uint32_t time_temp = static_cast<uint32_t>(atoi(_aux2)*60.0);
+
+						if(!index)	// fill all elements with same value
+						{
+							for(int i=0; i<9; i++)
+							{
+								time_to_shutdown[i] = time_temp;
+							}
+							sprintf(buffer, "set all t:%d\n", static_cast<int>(time_temp));
+						}
+						else		// fill one element only
+						{
+							time_to_shutdown[index-1] = time_temp;
+							sprintf(buffer, "set t2sd[%d]: %d min\n", index, static_cast<int>(time_to_shutdown[index-1]/60.0));
 						}
 					}
 					break;
@@ -887,7 +762,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					}
 					else if ((command_str[3] == ':') && (command_str[4] == 'k') && (command_str[5] == 't') && (command_str[6] == ';')) {
 					// $70:kt;
-								sprintf(buffer, "check k: %d\n", (int)pump1_.flag_check_output_pin_only);
+								sprintf(buffer, "don't check k: %d\n", (int)pump1_.flag_check_output_pin_only);
 					}
 					else if ((command_str[3] == ':') && (command_str[4] == 'k') && (command_str[5] == 't') && (command_str[6] == ':') && (command_str[8] == ';')) {
 					// $70:kt:[0|1];
@@ -896,7 +771,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						else
 							pump1_.flag_check_output_pin_only = states_flag::disable;
 						
-						sprintf(buffer, "set check k1: %d\n", (int)pump1_.flag_check_output_pin_only);
+						sprintf(buffer, "set don't check k:%d\n", (int)pump1_.flag_check_output_pin_only);
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'k') && (command_str[5] == '1') && (command_str[6] == ';')) {
 					// $70:k1;
@@ -1198,41 +1073,60 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 	std::string str(buffer);
 	return str;
 }
-void Acionna::operation_mode() {
-	switch (state_mode)
-	{
-		case states_mode::system_off:
-			operation_system_off();
-			break;
+void Acionna::init() {
+	ESP_LOGI(TAG_ACIONNA, "initialization");
 
-		case states_mode::system_idle:
-			operation_pump_control();
-			break;
+	//
+	// i2c.init();
 
-		case states_mode::water_pump_control_night:
-			break;
+	// Clock time init
+	dt.setDate(2022, 12, 20);
+	dt.setTime(0, 0, 0, ND);
+	device_clock.set_time(dt.getUnixTime());
+	time_day_sec_ = dt.getHour()*3600 + dt.getMinute()*60 + dt.getSecond();
 
-		case states_mode::irrigation_pump_valves:
-			operation_pump_valves_irrigation();
-			break;
+	// Network connection init
+	#if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
+		device_clock.init(rtc);
+	#endif /* CONFIG_DEVICE_CLOCK_DS3231_SUPPORT */
 
-		case states_mode::valve_control:
-			break;
+	// Sensors init
+	// temp_sensor.begin();
+	// gpio_iomux_out(GPIO_NUM_13, 2, false);
+	// dht0.read2();
+	// std::uint8_t temp_sensor_count = temp_sensor.getDeviceCount();
 
-		default:
-			break;
-	}
+	// ESP_LOGI(TAG_ACIONNA, "Temp sensors count: %u", temp_sensor_count);
+
+
+//		I2C_Master i2c(I2C_NUM_0, I2C_SCL, I2C_SDA, I2C_FAST_SPEED_HZ);
+//
+//		#if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
+//		#include "agro/types.hpp"
+//		#include "ds3231.hpp"
+//
+//		DS3231 rtc{&i2c};
+//		extern Agro::RTC_Time device_clock;
+
+//		#endif /* CONFIG_DEVICE_CLOCK_DS3231_SUPPORT */
+
+	// restore parameters;
+	// update clock;
 }
-void Acionna::run(void) {
-	msg_fetch_();		// fetch for a new command;
+void Acionna::make_start_history(start_types _start_type, uint32_t time_now) {
+		// shift data to right at the end;
+		for(int i=(9-1);i>0;i--)
+		{
+			// minuteLog_OFF[i] = minuteLog_OFF[i-1];
+			// hourLog_OFF[i] = hourLog_OFF[i-1];
+			// dayLog_OFF[i] = dayLog_OFF[i-1];
+			// monthLog_OFF[i] = monthLog_OFF[i-1];
 
-	msg_exec_();		// parse and execute the commmand;
-
-	msg_back_();		// send answer back to origin;
-
-	update_all();		// update variables and rtc
-
-	operation_mode();	// execution process
+			time_match_on_lasts[i] = time_match_on_lasts[i-1];
+			start_mode_lasts[i] = start_mode_lasts[i-1];
+		}
+		time_match_on_lasts[0] = time_now;
+		start_mode_lasts[0] = _start_type;
 }
 void Acionna::msg_fetch_(void) {
 
@@ -1320,7 +1214,7 @@ void Acionna::msg_json_back_(void) {
 			DynamicJsonDocument doc(1024);
 			doc["id"] = IP_END;
 			doc["p1"] = pipe1_.pressure_mca();
-			doc["p2"] = pipe1_.pressure_mca();
+			doc["p2"] = pipe2_.pressure_mca();
 			doc["ton"] = pump1_.time_on();
 			doc["toff"] = pump1_.time_off();
 			doc["k1"] = static_cast<int>(pump1_.state_k1());
@@ -1338,6 +1232,128 @@ void Acionna::msg_json_back_(void) {
 			flag_json_data_back = states_flag::disable;
 		}
 	}
+}
+void Acionna::operation_mode() {
+	switch (state_mode)
+	{
+		case states_mode::system_off:
+			operation_system_off();
+			break;
+
+		case states_mode::system_idle:
+			operation_pump_control();
+			break;
+
+		case states_mode::water_pump_control_night:
+			break;
+
+		case states_mode::irrigation_pump_valves:
+			operation_pump_valves_irrigation();
+			break;
+
+		case states_mode::valve_control:
+			break;
+
+		default:
+			break;
+	}
+}
+void Acionna::operation_motorPeriodDecision() {
+}
+void Acionna::operation_pump_control() {
+	/*
+	* Motor stop conditions
+	*
+	* Reasons to halt the motor.
+	* 0x00 - command line request
+	* 0x01 - time out
+	* 0x02 - high pressure
+	* 0x03 - thermal relay occurs;
+	* 0x04 - contactor not on
+	* 0x05 - low level
+	* 0x06 - low pressure(broken pipe?)
+	* 0x07 - red time
+	* 0x08 - system lock??
+	*/
+
+	// time matches occurred into check_time_match(), start motor
+	if(flag_check_time_match_ == states_flag::enable)
+	{
+		int index = 0;
+		for(int i=0; i<time_match_n; i++)
+		{
+			if(time_match[i] == time_day_sec_)
+			{
+				flag_time_match_ = states_flag::enable;
+				index = i;
+			}
+			// ESP_LOGI(TAG_ACIONNA, "TM FOR CHECK! tml:%d tds:%d", time_match[i], time_day_sec_);
+		}
+
+		if(flag_time_match_ == states_flag::enable)
+		{
+			flag_time_match_ = states_flag::disable;
+
+			// ESP_LOGI(TAG_ACIONNA, "FLAG TIME MATCH!");
+			if(pump1_.state() == states_motor::off_idle)
+			{
+				pump1_.start(auto_start_mode[index]);
+				make_start_history(auto_start_mode[index], time_day_sec_);
+				// If exists time value registered, use it. Else, use default.
+				if(time_to_shutdown[index])
+				{
+					pump1_.time_to_shutdown = time_to_shutdown[index];
+				}
+			}
+		}
+	}
+
+	// check high pressure
+	if(flag_check_pressure_high_ == states_flag::enable)
+	{
+		if(pipe1_.pressure_mca() > pipe1_.pressure_max)
+			if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
+				pump1_.stop(states_stop::pressure_high);
+	}
+
+	// check low pressure
+	if(flag_check_pressure_low_ == states_flag::enable)
+	{
+		// set pump state and expected pressure
+		if(pipe2_.air_intake_detect(pump1_.state(), 60)) {
+			pump1_.stop(states_stop::pressure_low);
+		}
+	}
+
+	// check thermal relay
+	if(flag_check_thermal_relay_ == states_flag::enable)
+	{
+		if(pump1_.state_Rth() == states_switch::on)
+			if(pump1_.state() != states_motor::off_thermal_activated)
+				pump1_.stop(states_stop::thermal_relay);
+	}
+
+	// check low level
+	#ifdef CONFIG_WELL_SUPPORT
+	if(flag_check_low_level_ == states_flag::enable)
+	{
+		if(well1_.state_L1() == states_level::low)
+			if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
+				pump1_.stop(states_stop::level_low);;
+	}
+	#endif
+}
+void Acionna::operation_pump_valves_irrigation() {
+
+}
+void Acionna::operation_system_off() {
+	if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
+	{
+		pump1_.stop(states_stop::system_lock);
+	}
+}
+void Acionna::operation_valve_control() {
+
 }
 void Acionna::parser_(uint8_t* payload_str, int payload_str_len, uint8_t *command_str, int& command_str_len)
 {
@@ -1363,6 +1379,18 @@ void Acionna::parser_(uint8_t* payload_str, int payload_str_len, uint8_t *comman
 			}
 		}
 	}
+}
+void Acionna::run(void) {
+
+	msg_fetch_();		// fetch for a new command;
+
+	msg_exec_();		// parse and execute the commmand;
+
+	msg_back_();		// send answer back to origin;
+
+	update_all();		// update variables and rtc
+
+	operation_mode();	// execution process
 }
 void Acionna::sys_fw_change_boot_(void) {
 	ota_change_boot_partition();
@@ -1421,7 +1449,7 @@ void Acionna::sys_fw_info_partitions_(char* buffer_str) {
 
 	if(OTA_update.update_partition != NULL)
 	{
-		sprintf(buffer_temp, "Up-> L:%s, o:0x%04lx, t:%d, s:%d\n",
+		sprintf(buffer_temp, "Up-> L:%s, o:0x%08lx, t:%d, s:%d\n",
 														OTA_update.update_partition->label,
 														OTA_update.update_partition->address,
 														static_cast<int>(OTA_update.update_partition->type),
@@ -1522,57 +1550,6 @@ void Acionna::sys_fw_update_ans_async_(void)
 		}
 	}
 }
-void Acionna::sys_wifi_info_(char* buffer_str) {
-
-	wifi_ap_record_t wifi_info;
-	memset(buffer_str, 0, sizeof(*buffer_str));
-
-	if (esp_wifi_sta_get_ap_info(&wifi_info)== ESP_OK)
-	{
-		char *str0 = (char*) wifi_info.ssid;
-		sprintf(buffer_str, "SSID: %s, RSSI: %d\n", str0, static_cast<int>(wifi_info.rssi));
-	}
-
-	// httpd_ws_frame_t ws_pkt;
-	// memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-	// // ws_pkt.payload = reinterpret_cast<uint8_t*>(&buffer[0]);
-	// ws_pkt.payload = (uint8_t*)buffer;
-	// ws_pkt.len = strlen(buffer);
-	// ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-
-	// if(httpd_ws_get_fd_info(sock0.hd, sock0.fd) == HTTPD_WS_CLIENT_WEBSOCKET)
-	// {
-	// 	httpd_ws_send_frame_async(sock0.hd, sock0.fd, &ws_pkt);
-	// }
-	// else
-	// {
-	// 	acionna0.signal_send_async = 0;
-	// 	ESP_LOGI(TAG_WS, "SOCK0: connection closed");
-	// }
-}
-void Acionna::sys_wifi_scan_(char* buffer_str) {
-
-	uint16_t ap_count = 0;
-	uint16_t number = DEFAULT_SCAN_LIST_SIZE;
-	wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
-	wifi_ap_record_t *ap_info_ptr = &ap_info[0];
-
-	// char buffer_str[200];
-	char buffer_temp[40];
-
-	memset(ap_info, 0, sizeof(ap_info));
-	memset(buffer_str, 0, sizeof(*buffer_str));
-	memset(buffer_temp, 0, sizeof(buffer_temp));
-
-	wifi_scan2(number, ap_info_ptr, ap_count);
-	for(int i=0; (i<DEFAULT_SCAN_LIST_SIZE) && (i<ap_count); i++)
-	{
-		sprintf(buffer_temp, "Ch: %d, RSSI: %d, SSID: %s\n", ap_info[i].primary, ap_info[i].rssi, ap_info[i].ssid);
-		strcat(buffer_str, buffer_temp);;
-	}
-	// std::string str(buffer_str);
-	// ws_server_send(str);
-}
 void Acionna::sys_ram_free_(char* buffer_str) {
 
 	memset(buffer_str, 0, sizeof(*buffer_str));
@@ -1640,6 +1617,57 @@ void Acionna::sys_restart_(void) {
 	// Restart system
 	esp_restart();
 }
+void Acionna::sys_wifi_info_(char* buffer_str) {
+
+	wifi_ap_record_t wifi_info;
+	memset(buffer_str, 0, sizeof(*buffer_str));
+
+	if (esp_wifi_sta_get_ap_info(&wifi_info)== ESP_OK)
+	{
+		char *str0 = (char*) wifi_info.ssid;
+		sprintf(buffer_str, "SSID: %s, RSSI: %d\n", str0, static_cast<int>(wifi_info.rssi));
+	}
+
+	// httpd_ws_frame_t ws_pkt;
+	// memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+	// // ws_pkt.payload = reinterpret_cast<uint8_t*>(&buffer[0]);
+	// ws_pkt.payload = (uint8_t*)buffer;
+	// ws_pkt.len = strlen(buffer);
+	// ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+
+	// if(httpd_ws_get_fd_info(sock0.hd, sock0.fd) == HTTPD_WS_CLIENT_WEBSOCKET)
+	// {
+	// 	httpd_ws_send_frame_async(sock0.hd, sock0.fd, &ws_pkt);
+	// }
+	// else
+	// {
+	// 	acionna0.signal_send_async = 0;
+	// 	ESP_LOGI(TAG_WS, "SOCK0: connection closed");
+	// }
+}
+void Acionna::sys_wifi_scan_(char* buffer_str) {
+
+	uint16_t ap_count = 0;
+	uint16_t number = DEFAULT_SCAN_LIST_SIZE;
+	wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
+	wifi_ap_record_t *ap_info_ptr = &ap_info[0];
+
+	// char buffer_str[200];
+	char buffer_temp[40];
+
+	memset(ap_info, 0, sizeof(ap_info));
+	memset(buffer_str, 0, sizeof(*buffer_str));
+	memset(buffer_temp, 0, sizeof(buffer_temp));
+
+	wifi_scan2(number, ap_info_ptr, ap_count);
+	for(int i=0; (i<DEFAULT_SCAN_LIST_SIZE) && (i<ap_count); i++)
+	{
+		sprintf(buffer_temp, "Ch: %d, RSSI: %d, SSID: %s\n", ap_info[i].primary, ap_info[i].rssi, ap_info[i].ssid);
+		strcat(buffer_str, buffer_temp);;
+	}
+	// std::string str(buffer_str);
+	// ws_server_send(str);
+}
 void Acionna::sensor_dht(void) {
 
 
@@ -1682,6 +1710,84 @@ void Acionna::sensor_dht(void) {
 	// temp_sensor_count = temp_sensor.getDeviceCount();
 	// ESP_LOGI(TAG_SENSORS, "Temp sensors count: %u", temp_sensor_count)
 }
+void Acionna::update_all() {
+
+	update_uptime();
+	update_RTC();
+	update_objects();
+	update_stored_data();
+
+	// update_sensors();		// test sensors
+}
+void Acionna::update_RTC() {
+	dt.setUnixTime(device_clock.get_time());
+}
+void Acionna::update_objects() {
+
+	pump1_.update();
+
+	pipe1_.update();
+
+	pipe2_.update();
+
+	// #ifdef CONFIG_WELL_SUPPORT
+	// well1_.update();
+	// #endif
+
+	// #ifdef CONFIG_VALVES_SUPPORT
+	valves1_.update();
+	// #endif
+}
+void Acionna::update_sensors()
+{
+	// if(!timeout_sensors)
+	// {
+	// 	timeout_sensors = timeout_sensors_cfg;
+
+		// signal_request_sensors = 1;
+
+		// temp_sensor.requestTemperatures();
+		// if(dht0.read2())
+		// {
+		// 	ESP_LOGI(TAG_ACIONNA, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%%", dt.getHour(), dt.getMinute(), dt.getSecond(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
+		// }
+		// else
+		// {
+		// 	// for(int i=0; i<40; i++)
+		// 	// {
+		// 	// 	ESP_LOGI(TAG_DHT, "Cicle[%d] low: %d high: %d\n", i+1, dht0.cycles[i].expectLow, dht0.cycles[i].expectHigh);
+		// 	// }
+		// 	ESP_LOGI(TAG_DHT, "error reading");
+		// }
+		// vTaskDelay(10000 / portTICK_PERIOD_MS);
+	// }
+	// else
+	// 	timeout_sensors--;
+}
+void Acionna::update_stored_data() {
+}
+void Acionna::update_uptime()
+{
+	uptime_++;
+	time_day_sec_++;
+
+	// compare time_day_sec with whole day seconds 24*60*60 = 86400
+	if(time_day_sec_ == 86400)
+	{
+		// time_day_sec_ ^= time_day_sec_;
+		time_day_sec_ = 0;
+	}
+	// or
+	// uptime = esp_timer_get_time();
+
+	// ESP_LOGI(TAG_ACIONNA, "uptime: %d", device_clock.internal_time());
+	// ESP_LOGI(TAG_ACIONNA, "uptime: %ld", static_cast<long int>((esp_timer_get_time() / 1000000)));
+}
+
+
+
+
+
 
 
 ////void acn_check_pressureUnstable()	// this starts to check quick variation of pressure from high to low after 2 minutes on

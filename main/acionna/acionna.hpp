@@ -5,6 +5,8 @@
 #include <sstream>
 #include <string>
 
+#include <adc2.hpp>
+
 #include <i2c_master.hpp>
 #include "ds3231.hpp"
 #include "rtc_time.hpp"
@@ -40,10 +42,14 @@ public:
 	states_mode state_mode = states_mode::system_idle;
 
 	// group of variables to setup turn on starts
-	uint8_t time_match_n = 1;											// turn times range 1-9
-	uint32_t time_match_list[9] = {3600, 0, 0, 0, 0, 0, 0, 0, 0};	// time clock list [s]
-	uint32_t time_to_shutdown[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};			// timer list to shutdown [s]
-	start_types auto_start_mode[9]; 									// auto turn start type select
+	uint8_t time_match_n = 1;									// turn times range 1-9
+	uint32_t time_match[9] = {3600, 0, 0, 0, 0, 0, 0, 0, 0};	// time clock list [s] should convert to hours and minutes
+	uint32_t time_to_shutdown[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};	// time value to shutdown list [s]
+	start_types auto_start_mode[9]; 							// auto turn start type select
+
+	// For make history operation
+	uint32_t time_match_on_lasts[9] = {0};
+	start_types start_mode_lasts[9];
 
 	// uint8_t signal_restart = 0;
 	// uint8_t signal_wifi_info = 0;
@@ -56,7 +62,7 @@ public:
 	// uint8_t signal_ota_update = 0;
 	// uint8_t signal_ota_info = 0;
 
-	Acionna() {
+	Acionna() {	// : pipe1_(&adc, 4), pipe2_(&adc, 7) {
 		init();
 	}
 
@@ -83,12 +89,12 @@ public:
 
 	std::string msg_back_str_;
 
+	void make_start_history(start_types _start_type, uint32_t time_now);
+
 	// OS system;
 	void run(void);
 
-	Pipepvc pipe1_;
 	Pump pump1_;
-	// pipepvc pipe2_;
 
 private:
 	
@@ -113,7 +119,7 @@ private:
 	states_flag flag_check_time_match_ = states_flag::disable;
 	states_flag flag_time_match_ = states_flag::disable;			// flag when turn on time occurs;
 	states_flag flag_json_data_back = states_flag::disable;			// Continuously send data back. ws server mode.
-	
+
 	// Flags for communication purpose
 	states_flag ws_server_ans_flag_ = states_flag::disable;
 	states_flag bt_ans_flag_ = states_flag::disable;

@@ -3,13 +3,13 @@
 const char* TAG_BMP180 = "BMP180";
 
 void bmp180::probe(void) {
-	uint8_t slave_address = i2c_->probe_addr(0x00);
-	uint8_t data;
-	uint8_t reg_address = 0xD0;
+	bool alive = i2c_->probe(BMP180_ADDR);
+	// uint8_t data;
+	// uint8_t reg_address = 0xD0;
 	
-	i2c_->read(slave_address, reg_address, &data, true);
+	// i2c_->read(slave_address, reg_address, &data, true);
 
-	ESP_LOGI(TAG_BMP180, "Slave address: 0x%02x, data: 0x%02x\n", slave_address, data);
+	ESP_LOGI(TAG_BMP180, "BMP180 status: %d\n", alive);
 }
 void bmp180::init(void) {
 	probe();

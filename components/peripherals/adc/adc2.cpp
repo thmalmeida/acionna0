@@ -1,18 +1,21 @@
 #include "adc2.hpp"
 
-static TaskHandle_t s_task_handle;
 static const char *TAG_ADC = "ADC driver";
 
-static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
-{
-    BaseType_t mustYield = pdFALSE;
-    //Notify that ADC continuous driver has done enough number of conversions
-    vTaskNotifyGiveFromISR(s_task_handle, &mustYield);
+// static TaskHandle_t s_task_handle;
+// static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
+// {
+// 	BaseType_t mustYield = pdFALSE;
+// 	//Notify that ADC continuous driver has done enough number of conversions
+// 	vTaskNotifyGiveFromISR(s_task_handle, &mustYield);
 
-    return (mustYield == pdTRUE);
-}
+// 	return (mustYield == pdTRUE);
+// }
 
-ADC_driver::ADC_driver(int channel) : channel_{static_cast<adc_channel_t>(channel)} {
+// ADC_driver::ADC_driver(int channel) : channel_{static_cast<adc_channel_t>(channel)} {
+// 	init_driver_oneshot();
+// }
+ADC_driver::ADC_driver(void) {
 	init_driver_oneshot();
 }
 ADC_driver::~ADC_driver(void) {
@@ -22,15 +25,15 @@ void ADC_driver::init_driver_oneshot(void) {
 	// 1 - Resource Allocation (init)
 	// adc_oneshot_unit_handle_t adc1_handle_;
 	adc_oneshot_unit_init_cfg_t init_config1 = {
-	.unit_id = unit_,							// ADC select
-	.ulp_mode = ADC_ULP_MODE_DISABLE,
+		.unit_id = unit_,							// ADC select
+		.ulp_mode = ADC_ULP_MODE_DISABLE,
 	};
 
 	// 1.1 - install driver and ADC instance
 	ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config1, &adc1_handle_));
 
-    // Config channel to read
-	channel_config_oneshot();
+	// Config channel to read
+	// channel_config_oneshot();
 }
 void ADC_driver::set_channel(int channel) {
     channel_ = static_cast<adc_channel_t>(channel);
@@ -42,18 +45,18 @@ void ADC_driver::deinit_driver_oneshot(void) {
 		adc_calibration_deinit(adc1_cali_handle_);
 	}
 }
-void ADC_driver::channel_config_oneshot(void) {
-    // 2 - Unit configuration of ADC1
+void ADC_driver::channel_config_oneshot(int channel) {
+	// 2 - Unit configuration of ADC1
 	adc_oneshot_chan_cfg_t config = {
 		.atten = attenuation_,
-        .bitwidth = width_,
+		.bitwidth = width_,
 	};
-	ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle_, channel_, &config));
+	ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle_, static_cast<adc_channel_t>(channel), &config));
 }
-int ADC_driver::read(void) {
+int ADC_driver::read(int channel) {
 
 	int data_adc_raw;
-	ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle_, channel_, &data_adc_raw));
+	ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle_, static_cast<adc_channel_t>(channel), &data_adc_raw));
 	// ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ADC1_CHAN0, data_adc_raw);
 
 	// ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle_, ADC1_CHAN1, &adc_raw[0][1]));
@@ -132,6 +135,21 @@ void ADC_driver::calibrate(void) {
 		ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC1_CHAN1, voltage[0][1]);
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // void ADC_driver::init_continuous(void) {
 	

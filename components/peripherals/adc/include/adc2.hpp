@@ -23,9 +23,6 @@
 #define ADC1_CHAN0			ADC_CHANNEL_4
 #define ADC1_CHAN1			ADC_CHANNEL_7
 
-static int adc_raw[2][10];
-static int voltage[2][10];
-
 // Continuous macros
 #define READ_LEN   256
 
@@ -64,17 +61,20 @@ public:
 	//	static const uint8_t n_channels = 1;					// number of channels to scanning on DMA conversion
 	//	static const uint32_t n_points = 256;
 
+	int adc_raw[2][10];
+	int voltage[2][10];
+
 	bool do_calibration1 = false;
 	adc_digi_pattern_config_t a;
 
-	ADC_driver(int channel);
+	ADC_driver(void);
 	~ADC_driver(void);
 
 	void init_driver_oneshot(void);
 	void deinit_driver_oneshot(void);
-	void channel_config_oneshot(void);
+	void channel_config_oneshot(int channel);
 	void set_channel(int channel);
-	int read(void);
+	int read(int channel);
 
 	// void init_continuous(void);
 	// void read_stream(uint8_t *data, int len);

@@ -28,7 +28,7 @@ class Pump {
 public:
 	// Check flags
 	states_flag flag_check_output_pin_only = states_flag::disable;
-	states_flag flag_check_Rth = states_flag::disable;
+	// states_flag flag_check_Rth = states_flag::disable;
 	states_flag flag_check_timer = states_flag::enable;
 	states_flag flag_check_wait_power_on = states_flag::disable;
 	states_flag flag_check_k3_off = states_flag::disable;
@@ -47,8 +47,9 @@ public:
 	// unsigned int waitPowerOn_sec = 0;
 
 	// log system
-	static const int nLog_ = 7;						// history log size
+	static const int nLog_ = 9;						// history log size
 	states_stop stops_history[nLog_];
+	uint32_t time_on_lasts[nLog_] = {0};
 	// states_stop state_stop_reason = states_stop::command_line;
 	// uint8_t hourLog_ON[nLog], minuteLog_ON[nLog];
 	// uint8_t hourLog_OFF[nLog], minuteLog_OFF[nLog];
@@ -83,7 +84,7 @@ public:
 		update_state_();
 		update_time_();
 
-		check_Rth_();
+		// check_Rth_();
 
 		check_start_req_();
 	}
@@ -327,9 +328,9 @@ public:
 
 		return 0;	// ok!
 	}
-	void stop(states_stop _reason)
+	void stop(states_stop reason)
 	{
-		ESP_LOGI(TAG_PUMP, "stop motor called with reason: %u", static_cast<uint8_t>(_reason));
+		ESP_LOGI(TAG_PUMP, "stop motor called with reason: %u", static_cast<uint8_t>(reason));
 		drive_k_(1, 0);
 		drive_k_(2, 0);
 		drive_k_(3, 0);
@@ -349,8 +350,11 @@ public:
 			// monthLog_OFF[i] = monthLog_OFF[i-1];
 
 			stops_history[i] = stops_history[i-1];
+			time_on_lasts[i] = time_on_lasts[i-1];
 		}
-		stops_history[0] = _reason;
+		stops_history[0] = reason;
+		time_on_lasts[0] = time_on_;
+
 
 		// reasonV[1] = reasonV[0];
 		// reasonV[0] = reason;
@@ -441,11 +445,10 @@ private:
 			state_k3_ = state_k3_dev_;
 		}
 	}
-	void update_state_()
-	{
+	void update_state_() {
 		update_switches_();
 
-		if((state_Rth_ == states_switch::on) && (flag_check_Rth == states_flag::enable))
+		if((state_Rth_ == states_switch::on) && (state_motor_ != states_motor::off_thermal_activated))
 		{
 			ESP_LOGI(TAG_PUMP, "pump: off_thermal_activated");
 			state_motor_ = states_motor::off_thermal_activated;
@@ -466,11 +469,6 @@ private:
 					ESP_LOGI(TAG_PUMP, "pump: off_idle");
 				}
 			}
-			else if((state_k1_ == states_switch::on) && (state_k2_ == states_switch::off) && (state_k3_ == states_switch::on))
-			{	
-				state_motor_ = states_motor::on_speeding_up;
-				ESP_LOGI(TAG_PUMP, "pump: on_speeding_up");
-			}
 			else if((state_k1_ == states_switch::on) && (state_k2_ == states_switch::off) && (state_k3_ == states_switch::off))
 			{
 				ESP_LOGI(TAG_PUMP, "pump: on_nominal_k1");
@@ -480,6 +478,11 @@ private:
 			{
 				ESP_LOGI(TAG_PUMP, "pump: on_nominal_k2");
 				state_motor_ = states_motor::on_nominal_k2;
+			}
+			else if((state_k1_ == states_switch::on) && (state_k2_ == states_switch::off) && (state_k3_ == states_switch::on))
+			{	
+				state_motor_ = states_motor::on_speeding_up;
+				ESP_LOGI(TAG_PUMP, "pump: on_speeding_up");
 			}
 			else if((state_k1_ == states_switch::on) && (state_k2_ == states_switch::on) &&	(state_k3_ == states_switch::off))
 			{
@@ -530,18 +533,15 @@ private:
 			}
 		}
 	}
-	void check_Rth_()
-	{
-		if(flag_check_Rth == states_flag::enable)
-		{
-			if(state_Rth() == states_switch::on)
-			{
-				if((state_motor_ != states_motor::off_thermal_activated))
-				{
-					stop(states_stop::thermal_relay);
-				}
-			}
-		}
+	void check_Rth_() {
+		// if(flag_check_Rth == states_flag::enable)
+		// {
+		// 	if(state_Rth() == states_switch::on) {
+		// 		if((state_motor_ != states_motor::off_thermal_activated)) {
+		// 			stop(states_stop::thermal_relay);
+		// 		}
+		// 	}
+		// }
 	}
 	void check_timer_()
 	{

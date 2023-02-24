@@ -8,7 +8,7 @@ idf_component_register(SRCS main.cpp
 							acionna/valves.cpp
 							acionna/well.cpp
                     		INCLUDE_DIRS .
-							REQUIRES eeprom helper pwm i2c_master ds3231 clock connections adc ota bmp180 aht10)
+							REQUIRES eeprom helper pwm i2c_master ds3231 clock connections adc ota bmp180 aht10 pcy8575)
 
 
 # Ref.: https://github.com/espressif/esp-idf/blob/master/docs/en/api-guides/build-system.rst

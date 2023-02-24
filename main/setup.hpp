@@ -8,7 +8,9 @@
 #define __SETUP_HPP__
 
 #include "acionna/acionna.hpp"
+#include "pcy8575.hpp"
 
+void test_i2c_to_gpio(void *pvParameter);
 void test_sensors(void *pvParameter);
 void machine_run(void *pvParameter);
 

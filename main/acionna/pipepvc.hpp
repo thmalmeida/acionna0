@@ -8,16 +8,30 @@
 
 #include "helper.hpp"
 
+enum class air_detect_states {
+	pressure_low_idle = 0,
+	pressure_increasing,
+	pressure_stable,
+	pressure_slope
+};
+
 class Pipepvc {
 public:
 	
-	int pressure_max = 70;				// max supported pressure by pipe [m.c.a];
-	int pressure_min = 30;				// min threshold pressure for indicate some problem;
-	int sensor_pressure_ref = 100;		// sensor max pressure [psi];
-	int sensor_data_dig = 0;		// readed value from ADC peripheral;
-	int channel_adc = 4;				// ADC channel;
-	
-	int pressure_mca_previous = 0;		// for low press dectection algoritm;
+	int pressure_max = 70;							// max supported pressure by pipe [m.c.a];
+	int pressure_min = 30;							// min threshold pressure for indicate some problem;
+	int sensor_pressure_ref;						// sensor max pressure [psi];
+	int sensor_data_dig = 0;						// readed value from ADC peripheral;
+	int pressure_mca_fi = 0;
+
+	uint32_t air_detect_timer_increase = 0;
+	uint32_t air_detect_timer_increase_ref = 60;
+	uint32_t air_detect_count_increase = 0;
+	uint32_t air_detect_count_increase_ref = 10;
+	uint32_t air_detect_timer_stable = 0;
+	int pressure_mca_previous = 0;					// for low press dectection algoritm;
+	int pressure_mca_avg = 0;
+	air_detect_states air_detect_state = air_detect_states::pressure_low_idle;
 
 //	int PRessHold=0;					// max pressure converted on turned on period;
 //	uint8_t PRessureRef = 0;			// max threshold pressure;
@@ -30,41 +44,148 @@ public:
 //	uint8_t flag_PressureUnstable = 1;
 //	uint8_t flag_PressureDown = 0;		// flag for pressure down occurrence;
 
-	Pipepvc() : adc_(4) {}
-	void update()
-	{
-		sensor_data_dig = adc_.read();
-		convert_pressure(sensor_data_dig);
+	Pipepvc(ADC_driver *adc, int channel, int sensor_pressure_factory) : sensor_pressure_ref(sensor_pressure_factory), adc_(adc),  channel_(channel) {
+		adc_->channel_config_oneshot(channel_);
 	}
+
+	void update() {
+		update_pressure_();
+	}
+
 	int pressure_mca()
 	{
 		return pressure_mca_;
 	}
-	int air_intake_detect(int pump_state)
+
+	int air_intake_detect(states_motor state_motor, int pressure_expected)
 	{
-		if(pressure_mca_ > pressure_mca_previous)
+		switch (air_detect_state) 
 		{
-			// pressure_current = 
+			case air_detect_states::pressure_low_idle: {
+				// if((state_motor == states_motor::on_nominal_k1) || (state_motor == states_motor::on_nominal_k2) || (state_motor == states_motor::on_nominal_delta)) {
+				// if(state_motor == states_switch::on) {
+				if(state_motor == states_motor::on_nominal_k2) {
+					air_detect_state = air_detect_states::pressure_increasing;
+					air_detect_timer_increase = 0;
+					air_detect_timer_stable = 0;
+					pressure_mca_previous = pressure_mca_;
+					pressure_mca_avg = pressure_mca_;
+					pressure_mca_fi = pressure_mca_;
+				}
+
+				break;
+			}
+			case air_detect_states::pressure_increasing: {
+				if(state_motor == states_motor::on_nominal_k2) {
+					
+					// digital low pass filter
+					// pressure_mca_fi = beta*pressure_mca_ + pressure_mca_fi - beta*pressure_mca_fi;
+					// pressure_mca_avg = 
+					// Weight = beta*WeightTemp + Weight - beta*Weight;
+
+					air_detect_timer_increase++;
+
+					if(air_detect_timer_increase > 5) {
+						if(pressure_mca_ < 0.70*pressure_mca_previous) {
+							air_detect_state = air_detect_states::pressure_slope;
+							break;
+						}
+
+						if(!(pressure_mca_ - pressure_mca_avg))
+						{
+							air_detect_count_increase++;
+							if(air_detect_count_increase >= air_detect_count_increase_ref) {
+								air_detect_timer_stable = 0;
+								air_detect_state = air_detect_states::pressure_stable;
+							}
+							break;
+						}
+					}
+
+					if(air_detect_timer_increase >= air_detect_timer_increase_ref) {
+						// never achieve stability?
+					}
+
+					pressure_mca_previous = pressure_mca_;
+					
+					// Refresh pressure average
+					pressure_mca_avg++;
+					pressure_mca_avg += pressure_mca_;
+					pressure_mca_avg >>= 1;
+				}
+				else {
+					air_detect_state = air_detect_states::pressure_low_idle;
+				}
+				break;
+			}
+			case air_detect_states::pressure_stable: {
+				if(state_motor == states_motor::on_nominal_k2) {
+					air_detect_timer_stable++;
+
+					// if(pressure_mca_ < 0.75*pressure_mca_previous) {
+					if((pressure_mca_ < 0.70*pressure_mca_avg) || (pressure_mca_ < 5)) {
+
+						air_detect_state = air_detect_states::pressure_slope;
+						break;
+					}
+
+					pressure_mca_previous = pressure_mca_;
+
+					// Refresh pressure average
+					pressure_mca_avg++;
+					pressure_mca_avg += pressure_mca_;
+					pressure_mca_avg >>= 1;
+				}
+			break;
+			}
+			case air_detect_states::pressure_slope: {
+				air_detect_state = air_detect_states::pressure_low_idle;
+				return 1;
+				break;
+			}
+			default: {
+				air_detect_state = air_detect_states::pressure_low_idle;
+				break;
+			}
 		}
-		// if(pump_state)
+
+		return 0;
+	}
+
+	int air_intake_detect_state(void) {
+		return static_cast<int>(air_detect_state);
+	}
+
+		// if(state_motor == states_motor::on_nominal_k2 ) {
+		// 	// switch ()
+		// }
+
+		// if(pressure_mca_ > pressure_mca_previous)
+		// {
+		// 	// pressure_current = 
+		// }
+		// // if(pump_state)
 		// {
 			
 		// }
-		return 0;
-	}
 	int broke_pipe_detect(int pump_state)
 	{
 		return 0;
 	}
 
 private:
-	// ADC_Basic adc_;
-	ADC_driver adc_;
+	ADC_driver *adc_;
+	int channel_;
 	int pressure_mca_ = 0;					// converted value [m.c.a.];
 	int pressure_psi_ = 0;					// converted value [psi];
 
-	// Sensor functions
-	/*
+
+	void update_pressure_(void) {
+		sensor_data_dig = adc_->read(channel_);
+		convert_pressure(sensor_data_dig);
+	}
+
+	/* Sensor functions
 	  4.5 V___	    922___	1.2 MPa___	 12 Bar___	 120 m.c.a.___		  4096 ___       3.16 V___
 			|			|			|			|				|				|				|
 			|			|			|			|				|				|				|
