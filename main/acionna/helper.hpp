@@ -35,7 +35,7 @@ enum class start_types {
 	to_y,				// deslocamento para configuração Y;
 	y_delta_req			//  requisição de Partida estrela/triangulo (three phase)
 };
-enum class states_stop {
+enum class stop_types {
 	/*
 	 * Reasons to halt the motor.
 	 * 0x00 - command line request

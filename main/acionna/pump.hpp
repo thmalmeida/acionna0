@@ -42,20 +42,6 @@ public:
 	unsigned int time_delta_to_y_switch_ = 0;		// speeding up time from delta to Y start [s]
 	unsigned int time_delta_to_y_switch_config = 5;	// speeding up time from delta to Y start [s]
 
-	// unsigned int waitPowerOn_min_standBy = 0;	// when enabled (high) avoid load turn on;
-	// unsigned int waitPowerOn_min = 0;
-	// unsigned int waitPowerOn_sec = 0;
-
-	// log system
-	static const int nLog_ = 9;						// history log size
-	states_stop stops_history[nLog_];
-	uint32_t time_on_lasts[nLog_] = {0};
-	// states_stop state_stop_reason = states_stop::command_line;
-	// uint8_t hourLog_ON[nLog], minuteLog_ON[nLog];
-	// uint8_t hourLog_OFF[nLog], minuteLog_OFF[nLog];
-	// uint8_t dayLog_ON[nLog], monthLog_ON[nLog];
-	// uint8_t dayLog_OFF[nLog], monthLog_OFF[nLog];
-
 //	Pump() : drive_k1_{AC_LOAD1}, drive_k2_{AC_LOAD2}, drive_k3_{AC_LOAD3}{}
 	Pump() : ac_load_{{AC_LOAD1},{AC_LOAD2},{AC_LOAD3}},
 				gpio_generic_{{GPIO_GENERIC1},{GPIO_GENERIC2},{GPIO_GENERIC3},{GPIO_GENERIC4}}
@@ -138,7 +124,7 @@ public:
 					if(i == time_switch_k_change*1000)
 					{
 						ESP_LOGI(TAG_PUMP, "error on k1 change");
-						stop(states_stop::contactor_not_on);
+						stop(stop_types::contactor_not_on);
 						return 1;
 					}
 				}
@@ -159,7 +145,7 @@ public:
 					if(i == time_switch_k_change*1000)
 					{
 						ESP_LOGI(TAG_PUMP, "error on k2 change");
-						stop(states_stop::contactor_not_on);
+						stop(stop_types::contactor_not_on);
 						return 1;
 					}
 				}
@@ -180,7 +166,7 @@ public:
 					if(i == time_switch_k_change*1000)
 					{
 						ESP_LOGI(TAG_PUMP, "error on k3 change");
-						stop(states_stop::contactor_not_on);
+						stop(stop_types::contactor_not_on);
 						return 1;
 					}
 				}
@@ -328,9 +314,9 @@ public:
 
 		return 0;	// ok!
 	}
-	void stop(states_stop reason)
+	void stop(stop_types reason)
 	{
-		ESP_LOGI(TAG_PUMP, "stop motor called with reason: %u", static_cast<uint8_t>(reason));
+		// ESP_LOGI(TAG_PUMP, "stop motor called with reason: %u", static_cast<uint8_t>(reason));
 		drive_k_(1, 0);
 		drive_k_(2, 0);
 		drive_k_(3, 0);
@@ -340,44 +326,6 @@ public:
 		flag_check_wait_power_on = states_flag::enable;
 		flag_start_y_delta_ = states_flag::disable;
 		time_off_ = 0;
-
-		// shift data to right at the end;
-		for(int i=(nLog_-1);i>0;i--)
-		{
-			// minuteLog_OFF[i] = minuteLog_OFF[i-1];
-			// hourLog_OFF[i] = hourLog_OFF[i-1];
-			// dayLog_OFF[i] = dayLog_OFF[i-1];
-			// monthLog_OFF[i] = monthLog_OFF[i-1];
-
-			stops_history[i] = stops_history[i-1];
-			time_on_lasts[i] = time_on_lasts[i-1];
-		}
-		stops_history[0] = reason;
-		time_on_lasts[0] = time_on_;
-
-
-		// reasonV[1] = reasonV[0];
-		// reasonV[0] = reason;
-
-		// hourLog_OFF[0] = tm.Hour;
-		// minuteLog_OFF[0] = tm.Minute;
-
-		// dayLog_OFF[0] = tm.Day;
-		// monthLog_OFF[0] = tm.Month;
-
-		// timeOff_min = 0;
-		// timeOff_sec = 0;
-
-		// flag_waitPowerOn = 1;
-		// waitPowerOn_min = waitPowerOn_min_standBy;
-
-
-
-
-		// time_to_shutdown = time_to_shutdown_config;
-		//delay_ms(750);
-//		check_pump_state();
-		// store turn off reason in some variable?
 	}
 	uint32_t time_on()
 	{
@@ -460,7 +408,7 @@ private:
 				// turn pin down if contactor is not on when pin is high
 				if((state_k1_pin() == states_switch::on) || (state_k2_pin() == states_switch::on))
 				{
-					stop(states_stop::contactor_not_on);
+					stop(stop_types::contactor_not_on);
 				}
 
 				if(state_motor_ != states_motor::off_idle)
@@ -508,7 +456,7 @@ private:
 			{
 				if(!time_to_shutdown)
 				{
-					stop(states_stop::timeout);		// stop motor by timeout;
+					stop(stop_types::timeout);		// stop motor by timeout;
 					ESP_LOGI(TAG_PUMP, "timeout off");
 				}
 				else
@@ -538,7 +486,7 @@ private:
 		// {
 		// 	if(state_Rth() == states_switch::on) {
 		// 		if((state_motor_ != states_motor::off_thermal_activated)) {
-		// 			stop(states_stop::thermal_relay);
+		// 			stop(stop_types::thermal_relay);
 		// 		}
 		// 	}
 		// }
@@ -600,19 +548,3 @@ private:
 };
 
 #endif /* PUMP_H__ */
-
-
-	// states_switch read_k2_()
-	// {
-	// 	if(gpio_generic_[1].read())
-	// 		return states_switch::on;
-	// 	else
-	// 		return states_switch::off;
-	// }
-	// states_switch read_k3_()
-	// {
-	// 	if(gpio_generic_[2].read())
-	// 		return states_switch::on;
-	// 	else
-	// 		return states_switch::off;
-	// }

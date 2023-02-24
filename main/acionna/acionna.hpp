@@ -47,20 +47,13 @@ public:
 	uint32_t time_to_shutdown[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};	// time value to shutdown list [s]
 	start_types auto_start_mode[9]; 							// auto turn start type select
 
-	// For make history operation
-	uint32_t time_match_on_lasts[9] = {0};
-	start_types start_mode_lasts[9];
-
-	// uint8_t signal_restart = 0;
-	// uint8_t signal_wifi_info = 0;
-	// uint8_t signal_wifi_scan = 0;
-	// uint8_t signal_send_async = 0;
-	// uint8_t signal_request_sensors = 0;
-	// uint8_t signal_ram_usage = 0;
-	// uint8_t signal_reset_reason = 0;
-	// uint8_t signal_json_data_server = 0;
-	// uint8_t signal_ota_update = 0;
-	// uint8_t signal_ota_info = 0;
+	// For make log history operation - Can be ported to inside the pump class?
+	static const int n_log = 9;									// history log size
+	uint32_t time_match_on_lasts[n_log] = {0};
+	start_types start_mode_lasts[n_log];
+	
+	uint32_t time_on_lasts[n_log] = {0};
+	stop_types stops_lasts[n_log];
 
 	Acionna() {	// : pipe1_(&adc, 4), pipe2_(&adc, 7) {
 		init();
@@ -89,7 +82,8 @@ public:
 
 	std::string msg_back_str_;
 
-	void make_start_history(start_types _start_type, uint32_t time_now);
+	void make_history(start_types start_type, uint32_t time_now);
+	void make_history(stop_types stop_type, uint32_t time_on);
 
 	// OS system;
 	void run(void);

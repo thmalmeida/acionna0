@@ -216,7 +216,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						char buffer_temp[30];
 						for(int i=0; i<9; i++)
 						{
-							sprintf(buffer_temp, "s%d- %.2d:%.2d m:%d t:%d r:%u\n", i+1, (int)timesec_to_hour(time_match_on_lasts[i]), (int)timesec_to_min(time_match_on_lasts[i]), (int)start_mode_lasts[i], (int)timesec_to_min(pump1_.time_on_lasts[i]), static_cast<int>(pump1_.stops_history[i]));
+							sprintf(buffer_temp, "s%d- %.2d:%.2d m:%d t:%d r:%u\n", i+1, (int)timesec_to_hour(time_match_on_lasts[i]), (int)timesec_to_min(time_match_on_lasts[i]), (int)start_mode_lasts[i], (int)timesec_to_min(time_on_lasts[i]), static_cast<int>(stops_lasts[i]));
 							strcat(buffer, buffer_temp);
 						}
 						strcat(buffer, "\n");
@@ -306,9 +306,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 																							static_cast<int>(pump1_.state_Rth()),
 																							pipe1_.pressure_mca(),
 																							pipe2_.pressure_mca(),
-																							static_cast<int>(pump1_.stops_history[0]),
-																							static_cast<int>(pump1_.stops_history[1]),
-																							static_cast<int>(pump1_.stops_history[2])
+																							static_cast<int>(stops_lasts[0]),
+																							static_cast<int>(stops_lasts[1]),
+																							static_cast<int>(stops_lasts[2])
 																							);
 					} // $03;
 					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == '1') && (command_str[6] == ':') && (command_str[9] == ';')) {
@@ -516,8 +516,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 				case 0: {
 					if(command_str[3]==';')
 					{
-						// if(pump1_.state == states_motor::)
-						pump1_.stop(states_stop::command_line_user);
+						pump1_.stop(stop_types::command_line_user);
+						if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_k2) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
+							make_history(stop_types::command_line_user, pump1_.time_on());
+						}
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -526,7 +528,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k1);
-						make_start_history(start_types::direct_k1, time_day_sec_);
+						make_history(start_types::direct_k1, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -535,7 +537,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k2);
-						make_start_history(start_types::direct_k2, time_day_sec_);
+						make_history(start_types::direct_k2, time_day_sec_);
 						sprintf(buffer, "Motor: pump1_ start request");
 						// sprintf(buffer, "k1: %d, k2: %d, k3: %d\n", static_cast<int>(pump1_.state_k1()), static_cast<int>(pump1_.state_k2()), static_cast<int>(pump1_.state_k3()));
 					}
@@ -545,7 +547,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k3);
-						make_start_history(start_types::direct_k3, time_day_sec_);
+						make_history(start_types::direct_k3, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -554,7 +556,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::to_delta);
-						make_start_history(start_types::to_delta, time_day_sec_);
+						make_history(start_types::to_delta, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -563,7 +565,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::to_y);
-						make_start_history(start_types::to_y, time_day_sec_);
+						make_history(start_types::to_y, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -572,7 +574,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::y_delta_req);
-						make_start_history(start_types::y_delta_req, time_day_sec_);
+						make_history(start_types::y_delta_req, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -1113,9 +1115,9 @@ void Acionna::init() {
 	// restore parameters;
 	// update clock;
 }
-void Acionna::make_start_history(start_types _start_type, uint32_t time_now) {
-		// shift data to right at the end;
-		for(int i=(9-1);i>0;i--)
+void Acionna::make_history(start_types start_type, uint32_t time_now) {
+		// Start - shift data to right at the end;
+		for(int i=(n_log-1);i>0;i--)
 		{
 			// minuteLog_OFF[i] = minuteLog_OFF[i-1];
 			// hourLog_OFF[i] = hourLog_OFF[i-1];
@@ -1126,7 +1128,17 @@ void Acionna::make_start_history(start_types _start_type, uint32_t time_now) {
 			start_mode_lasts[i] = start_mode_lasts[i-1];
 		}
 		time_match_on_lasts[0] = time_now;
-		start_mode_lasts[0] = _start_type;
+		start_mode_lasts[0] = start_type;
+}
+void Acionna::make_history(stop_types stop_type, uint32_t time_on) {
+	// STOP - shift data to right at the end;
+	for(int i=(n_log-1);i>0;i--)
+	{
+		stops_lasts[i] = stops_lasts[i-1];
+		time_on_lasts[i] = time_on_lasts[i-1];
+	}
+	stops_lasts[0] = stop_type;
+	time_on_lasts[0] = time_on;
 }
 void Acionna::msg_fetch_(void) {
 
@@ -1298,7 +1310,7 @@ void Acionna::operation_pump_control() {
 			if(pump1_.state() == states_motor::off_idle)
 			{
 				pump1_.start(auto_start_mode[index]);
-				make_start_history(auto_start_mode[index], time_day_sec_);
+				make_history(auto_start_mode[index], time_day_sec_);
 				// If exists time value registered, use it. Else, use default.
 				if(time_to_shutdown[index])
 				{
@@ -1313,7 +1325,7 @@ void Acionna::operation_pump_control() {
 	{
 		if(pipe1_.pressure_mca() > pipe1_.pressure_max)
 			if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
-				pump1_.stop(states_stop::pressure_high);
+				pump1_.stop(stop_types::pressure_high);
 	}
 
 	// check low pressure
@@ -1321,7 +1333,7 @@ void Acionna::operation_pump_control() {
 	{
 		// set pump state and expected pressure
 		if(pipe2_.air_intake_detect(pump1_.state(), 60)) {
-			pump1_.stop(states_stop::pressure_low);
+			pump1_.stop(stop_types::pressure_low);
 		}
 	}
 
@@ -1330,7 +1342,7 @@ void Acionna::operation_pump_control() {
 	{
 		if(pump1_.state_Rth() == states_switch::on)
 			if(pump1_.state() != states_motor::off_thermal_activated)
-				pump1_.stop(states_stop::thermal_relay);
+				pump1_.stop(stop_types::thermal_relay);
 	}
 
 	// check low level
@@ -1339,7 +1351,7 @@ void Acionna::operation_pump_control() {
 	{
 		if(well1_.state_L1() == states_level::low)
 			if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
-				pump1_.stop(states_stop::level_low);;
+				pump1_.stop(stop_types::level_low);;
 	}
 	#endif
 }
@@ -1349,7 +1361,7 @@ void Acionna::operation_pump_valves_irrigation() {
 void Acionna::operation_system_off() {
 	if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
 	{
-		pump1_.stop(states_stop::system_lock);
+		pump1_.stop(stop_types::system_lock);
 	}
 }
 void Acionna::operation_valve_control() {
