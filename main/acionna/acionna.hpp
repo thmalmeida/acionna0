@@ -26,9 +26,9 @@
 #ifdef CONFIG_WELL_SUPPORT
 #include "well.hpp"
 #endif
-#ifdef CONFIG_VALVES_SUPPORT
+// #ifdef CONFIG_VALVES_SUPPORT
 #include "valves.hpp"
-#endif
+// #endif
 
 // Sensors
 #include "bmp180.hpp"
@@ -55,12 +55,10 @@ public:
 	uint32_t time_on_lasts[n_log] = {0};
 	stop_types stops_lasts[n_log];
 
-	Acionna() {	// : pipe1_(&adc, 4), pipe2_(&adc, 7) {
-		init();
-	}
+	Acionna(void);	// : pipe1_(&adc, 4), pipe2_(&adc, 7) {
 
 	// Initialize - should run once;
-	void init();
+	void init(void);
 
 	// run every second;
 	void operation_motorPeriodDecision();
@@ -89,14 +87,12 @@ public:
 	void run(void);
 
 	Pump pump1_;
+	Valves valves1_;
 
 private:
 	
 	#ifdef CONFIG_WELL_SUPPORT
 	well well1_;
-	#endif
-	#ifdef CONFIG_VALVES_SUPPORT
-	valves valves1_;
 	#endif
 
 	states_flag flag_check_k1_ = states_flag::disable;
@@ -112,6 +108,7 @@ private:
 	states_flag flag_start_request_ = states_flag::disable;			// flag request to start motor;
 	states_flag flag_check_time_match_ = states_flag::disable;
 	states_flag flag_time_match_ = states_flag::disable;			// flag when turn on time occurs;
+	states_flag flag_check_timer = states_flag::enable;
 	states_flag flag_json_data_back = states_flag::disable;			// Continuously send data back. ws server mode.
 
 	// Flags for communication purpose

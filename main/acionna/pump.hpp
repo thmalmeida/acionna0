@@ -452,18 +452,8 @@ private:
 		{
 			time_on_++;
 
-			if(flag_check_timer == states_flag::enable)
-			{
-				if(!time_to_shutdown)
-				{
-					stop(stop_types::timeout);		// stop motor by timeout;
-					ESP_LOGI(TAG_PUMP, "timeout off");
-				}
-				else
-				{
-					time_to_shutdown--;
-				}
-			}
+			if(time_to_shutdown)
+				time_to_shutdown--;
 		}
 		else {
 			time_off_++;

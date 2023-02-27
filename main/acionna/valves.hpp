@@ -8,6 +8,8 @@
 #include "esp_log.h"
 #include "helper.hpp"
 
+#include "pcy8575.hpp"
+
 static const char *TAG_VALVES = "VALVES";
 
 // Pressures of each sector in [m.c.a.]
@@ -23,7 +25,7 @@ static const char *TAG_VALVES = "VALVES";
 #define valve10_nominal_pressure 65
 #define valve11_nominal_pressure 65
 
-class valves {
+class Valves {
 public:
 
 	states_valves state_valves = states_valves::system_off;
@@ -33,17 +35,21 @@ public:
 	unsigned int time_valve_change = 0;	// between changes to verify if pressure has been pressure recovered [s];
 	states_flag flag_inverted_sequence = states_flag::enable;
 
-	valves() : ac_load_{{VALVE_01},{VALVE_02},{VALVE_03},{VALVE_04},{VALVE_05},{VALVE_06},{VALVE_07},{VALVE_08},{VALVE_09},{VALVE_10},{VALVE_11}}
-	{
-		ESP_LOGI(TAG_VALVES, "The VALVES was initialized HERE!!!!");
+	Valves(I2C_Master *i2c) : load_{i2c} {
+		init_valve_parameters();
+	}
+	// Valves() : ac_load_{{VALVE_01},{VALVE_02},{VALVE_03},{VALVE_04},{VALVE_05},{VALVE_06},{VALVE_07},{VALVE_08},{VALVE_09},{VALVE_10},{VALVE_11}} {
+	// 	ESP_LOGI(TAG_VALVES, "The VALVES was initialized HERE!!!!");
 
-		// pins directions for drive switches;
-		for(std::size_t i = 0; i < ac_load_count_; i++)
-		{
-			ac_load_[i].mode(GPIO_MODE_INPUT_OUTPUT);
-			ac_load_[i].write(0);
-		}
-
+	// 	// pins directions for drive switches;
+	// 	for(std::size_t i = 0; i < ac_load_count_; i++)
+	// 	{
+	// 		ac_load_[i].mode(GPIO_MODE_INPUT_OUTPUT);
+	// 		ac_load_[i].write(0);
+	// 	}
+	// 	init_valve_parameters();
+	// }
+	void init_valve_parameters(void) {
 		set_valve_pressure(1, valve01_nominal_pressure);
 		set_valve_pressure(2, valve02_nominal_pressure);
 		set_valve_pressure(3, valve03_nominal_pressure);
@@ -121,7 +127,7 @@ public:
 	void set_valve_state(int _valve_id, int _valve_state) {
 		if(_valve_id && (_valve_id < 12))
 		{
-			ac_load_[_valve_id-1].write(_valve_state);
+			// ac_load_[_valve_id-1].write(_valve_state);
 			ESP_LOGI(TAG_VALVES, "valve[%d]: %d", _valve_id, (int)get_valve_state(_valve_id));
 			ESP_LOGI(TAG_VALVES, "valve[%d], set to %d", _valve_id, _valve_state);
 
@@ -131,9 +137,9 @@ public:
 			ESP_LOGI(TAG_VALVES, "valve[%d], NOT set: %d", _valve_id, _valve_state);
 	}
 	states_switch get_valve_state(int _valve_id) {
-		if(ac_load_[_valve_id-1].read())
-			return states_switch::on;
-		else
+		// if(ac_load_[_valve_id-1].read())
+		// 	return states_switch::on;
+		// else
 			return states_switch::off;		
 	}
 	void start()
@@ -235,8 +241,10 @@ public:
 	}
 
 	private:
-		GPIO_Basic ac_load_[11];
-		const std::size_t ac_load_count_ = sizeof(ac_load_) / sizeof(ac_load_[0]);
+		// GPIO_Basic ac_load_[11];
+		pcy8575 load_;
+
+		// const std::size_t ac_load_count_ = sizeof(ac_load_) / sizeof(ac_load_[0]);
 
 		struct valves_sector{
 			int pressure;									// pressão nominal daquele setor [m.c.a.];

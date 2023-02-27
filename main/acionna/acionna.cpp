@@ -11,13 +11,19 @@ static ADC_driver adc0;
 static Pipepvc pipe1_(&adc0, 4, 150);
 static Pipepvc pipe2_(&adc0, 7, 100);
 
+// #ifdef CONFIG_VALVES_SUPPORT
+// static valves valves1_(&i2c);
+// #endif
+
 int timeout_sensors;
 int timeout_sensors_cfg = 600;
 
 // GPIO_Basic led0(LED_0);
 static pwm_ledc led_wifi_indicator(2, 1, 0, 1);
 
-
+Acionna::Acionna(void) : valves1_{&i2c} {
+	init();
+}
 uint32_t Acionna::get_uptime() {
 	return uptime_;
 }
@@ -1340,9 +1346,25 @@ void Acionna::operation_pump_control() {
 	// check thermal relay
 	if(flag_check_thermal_relay_ == states_flag::enable)
 	{
-		if(pump1_.state_Rth() == states_switch::on)
-			if(pump1_.state() != states_motor::off_thermal_activated)
+		if(pump1_.state_Rth() == states_switch::on) {
+			if(pump1_.state() != states_motor::off_thermal_activated) {
 				pump1_.stop(stop_types::thermal_relay);
+				make_history(stop_types::thermal_relay, pump1_.time_on());
+			}
+		}
+	}
+
+	// check time to shutdown
+	if(flag_check_timer == states_flag::enable)
+	{
+		if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_k2) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
+		{
+			if(!pump1_.time_to_shutdown)
+			{
+				pump1_.stop(stop_types::timeout);		// stop motor by timeout;
+				make_history(stop_types::timeout, pump1_.time_on());
+			}
+		}
 	}
 
 	// check low level
