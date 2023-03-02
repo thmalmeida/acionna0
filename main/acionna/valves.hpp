@@ -33,6 +33,7 @@ public:
 	unsigned int time_total_cfg = 0;	// sum of programmed valves time [s];	
 	unsigned int time_valve_remain = 0;	// valve time elapsed before turn off [s];
 	unsigned int time_valve_change = 0;	// between changes to verify if pressure has been pressure recovered [s];
+	static const int number_valves = 12;
 	states_flag flag_inverted_sequence = states_flag::enable;
 
 	Valves(I2C_Master *i2c) : load_{i2c} {
@@ -114,7 +115,7 @@ public:
 	{
 		unsigned int _total_time = 0;
 
-		for(int i=0; i<11; i++)
+		for(int i=0; i<number_valves; i++)
 		{
 			if(valve_[i].programmed == states_flag::enable)
 			{
@@ -125,21 +126,21 @@ public:
 		return _total_time/60.0;
 	}
 	void set_valve_state(int _valve_id, int _valve_state) {
-		if(_valve_id && (_valve_id < 12))
+		if(_valve_id && (_valve_id <= number_valves))
 		{
 			// ac_load_[_valve_id-1].write(_valve_state);
-			ESP_LOGI(TAG_VALVES, "valve[%d]: %d", _valve_id, (int)get_valve_state(_valve_id));
-			ESP_LOGI(TAG_VALVES, "valve[%d], set to %d", _valve_id, _valve_state);
-
-			ESP_LOGI(TAG_VALVES, "valve[%d]: %d", _valve_id, (int)get_valve_state(_valve_id));
+			load_.write(_valve_id, _valve_state);
+			// ESP_LOGI(TAG_VALVES, "valve[%d]: %d", _valve_id, static_cast<int>(get_valve_state(_valve_id)));
+			// ESP_LOGI(TAG_VALVES, "valve[%d], set to %d", _valve_id, _valve_state);
 		}
 		else
 			ESP_LOGI(TAG_VALVES, "valve[%d], NOT set: %d", _valve_id, _valve_state);
 	}
 	states_switch get_valve_state(int _valve_id) {
 		// if(ac_load_[_valve_id-1].read())
-		// 	return states_switch::on;
-		// else
+		if(load_.read(_valve_id))
+			return states_switch::on;
+		else
 			return states_switch::off;		
 	}
 	void start()
@@ -151,13 +152,13 @@ public:
 
 
 		if(flag_inverted_sequence == states_flag::enable)
-			valve_current = 12;
+			valve_current = number_valves+1;
 		else
 			valve_current = 0;
 	}
 	void stop()
 	{
-		for(int n=1; n<=11; n++)
+		for(int n=1; n<number_valves+1; n++)
 		{
 			set_valve_state(n, 0);
 		}
@@ -198,7 +199,7 @@ public:
 		{
 			do{
 				valve_current++;
-				if(valve_current < 12)
+				if(valve_current < number_valves + 1)
 				{
 					if(get_program_status(valve_current) == states_flag::enable)
 					{
@@ -240,6 +241,15 @@ public:
 		return time_system_on_;
 	}
 
+	void module_reset(void) {
+		load_.soft_reset();
+	}
+	int module_probe(void) {
+		return load_.probe();
+	}
+	uint16_t module_temperature(void) {
+		return load_.temperature();
+	}
 	private:
 		// GPIO_Basic ac_load_[11];
 		pcy8575 load_;
@@ -252,7 +262,7 @@ public:
 			states_flag programmed = states_flag::enable;	// se entra para a jornada ou não. enable or disable;
 			unsigned int time_elapsed_cfg;					// tempo que o setor ficará ligado [s];
 			unsigned int time_on_last;						// tempo ligado ou último tempo ligado [s];
-		} valve_[11];
+		} valve_[number_valves];
 
 		unsigned int time_system_on_ = 0;					// current time on [s];
 		states_flag flag_valve_found_ = states_flag::disable;

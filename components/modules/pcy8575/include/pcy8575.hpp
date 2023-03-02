@@ -5,6 +5,7 @@
 #include "esp_log.h"
 
 #include <string.h>
+#include <stdio.h>
 
 /*
 *	Command address
@@ -70,12 +71,12 @@ class pcy8575 {
 	int read(int pin);
 	void put(uint16_t word);
 	uint16_t get(void);
+	uint16_t temperature(void);
 	
 	private:
 
 	I2C_Master *i2c_;
-	uint8_t status_byte_, data_raw_[6], first_init_ = 1;
-	uint16_t output_;
+	uint16_t output_ = 0;
 };
 
 #endif

@@ -56,7 +56,8 @@ enum class stop_types {
 	level_low,
 	pressure_low,
 	red_time,
-	system_lock
+	system_lock,
+	other
 };
 enum class states_mode {
 	system_off = 0,					// never turn and don't let any load turn on;

@@ -43,8 +43,7 @@ httpd_config_t ws_server_config = {
 	NULL                    // uri_match_fn
 };
 
-esp_err_t ws_server_event_handler(httpd_req_t *req)
-{
+esp_err_t ws_server_event_handler(httpd_req_t *req) {
 	if (req->method == HTTP_GET) {
 		ESP_LOGI(TAG_WS, "Handshake done, the new connection was opened");
 		ESP_LOGI(TAG_WS, "req->method %u", req->method);
@@ -160,8 +159,7 @@ esp_err_t ws_server_event_handler(httpd_req_t *req)
 	// free(buf);
 	return ret;
 }
-void httpd_server_start(void)
-{
+void httpd_server_start(void) {
 	// Needs implementation for wss connection
 	// Prepare keep-alive engine
 	// wss_keep_alive_config_t keep_alive_config = KEEP_ALIVE_CONFIG_DEFAULT();
@@ -193,12 +191,10 @@ void httpd_server_start(void)
 	}
 	ESP_LOGI(TAG_WS, "leaving httpd_server_start");
 }
-void httpd_server_stop(void)
-{
+void httpd_server_stop(void) {
 	httpd_stop(ws_server);
 }
-void ws_server_send(std::string data)
-{
+void ws_server_send(std::string data) {
 	// build a websocket frame
 	httpd_ws_frame_t ws_pkt;
 	memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));

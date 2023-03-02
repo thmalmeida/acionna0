@@ -4,13 +4,13 @@ const char* TAG_SETUP = "SETUP";
 
 void test_i2c_to_gpio(void *pvParameter) {
 
-	I2C_Master i2c0(I2C_NUM_1, I2C_SCL, I2C_SDA, I2C_NORMAL_SPEED_HZ, 1);	
+	I2C_Master i2c0(I2C_NUM_1, I2C_SCL, I2C_SDA, I2C_NORMAL_SPEED_HZ, 1);
 	// pcy8575 i2c_to_gpio(&i2c);
 
 	// uint8_t data[4];
 
 	// uint8_t slave_addr = 0x23 >> 1;
-	uint8_t slave_addr = 0x11;
+	uint8_t slave_addr = 0x53;
 
 
 	// uint8_t slave_reg = 0x01;

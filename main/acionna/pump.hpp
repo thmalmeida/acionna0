@@ -38,9 +38,9 @@ public:
 	unsigned int time_wait_power_on_config = 600;	// [s]
 	unsigned int time_to_shutdown = 0;				// time variable to shutdown the motor [s].
 	unsigned int time_to_shutdown_config = 30*60;	// [s]
-	unsigned int time_switch_k_change = 400;		// [ms] delay on transition of k3 off to k2 on
+	unsigned int time_switch_k_change = 600;		// [ms] delay on transition of k3 off to k2 on
 	unsigned int time_delta_to_y_switch_ = 0;		// speeding up time from delta to Y start [s]
-	unsigned int time_delta_to_y_switch_config = 5;	// speeding up time from delta to Y start [s]
+	unsigned int time_delta_to_y_switch_config = 7;	// speeding up time from delta to Y start [s]
 
 //	Pump() : drive_k1_{AC_LOAD1}, drive_k2_{AC_LOAD2}, drive_k3_{AC_LOAD3}{}
 	Pump() : ac_load_{{AC_LOAD1},{AC_LOAD2},{AC_LOAD3}},
@@ -321,7 +321,7 @@ public:
 		drive_k_(2, 0);
 		drive_k_(3, 0);
 
-		// state_stop_reason = _reason;
+		// state_stop_reason = reason;
 		time_wait_power_on = time_wait_power_on_config;
 		flag_check_wait_power_on = states_flag::enable;
 		flag_start_y_delta_ = states_flag::disable;
@@ -367,8 +367,8 @@ private:
 	states_flag flag_start_y_delta_ = states_flag::disable;
 
 	// Motor times
-	unsigned int time_on_ = 0;
-	unsigned int time_off_ = 0;
+	uint32_t time_on_ = 0;
+	uint32_t time_off_ = 0;
 	
 	void update_switches_()
 	{

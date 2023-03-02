@@ -2,7 +2,8 @@
 
 static const char *TAG_ACIONNA = "Acionna0";
 
-static I2C_Master i2c(I2C_NUM_0, I2C_SCL, I2C_SDA, I2C_FAST_SPEED_HZ, 0);
+// static I2C_Master i2c(I2C_NUM_0, I2C_SCL, I2C_SDA, I2C_NORMAL_SPEED_HZ, 0);
+static I2C_Master i2c(I2C_NUM_1, I2C_SCL, I2C_SDA, I2C_NORMAL_SPEED_HZ, 1);
 static DS3231 rtc{&i2c};
 static Agro::RTC_Time device_clock;
 static DateTime dt;
@@ -139,6 +140,22 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$8:01:p:68;			- configura pressão nominal do setor [m.c.a.];
 		$8:01:t;			- mostra o tempo de irrigação do setor;
 		$8:01:p;			- mostra pressão nominal do setor
+
+	$8x						- Funções de programação da irrigação;
+		$80;				- show info
+		$80:s:[0|1];		- start/stop valves sequence;
+		$80:d:[0|1];		- 0 sentido direto; 1 - sentido inverso na troca dos setores;
+		$80:v:01;			- mostra condições de configuração da válvula 01;
+		$80:v:01:[0|1];		- desaciona|aciona válvula 01;
+		$80:v:01:i;			- insere setor na programação;
+		$80:v:01:r;			- remove setor da programação;
+		$80:v:01:t:120;		- configura o tempo de irrigação [min];
+		$80:v:01:t;			- mostra o tempo de irrigação do setor;
+		$80:v:01:p:68;		- configura pressão nominal do setor [m.c.a.];
+		$80:v:01:p;			- mostra pressão nominal do setor
+		$87;				- PCY8575 temperature;
+		$88;				- PCY8574 probe;
+		$89;				- PCY8575 soft reset;
 
 	$9X;					- System administration
 		$90:[0-9];			- WiFi
@@ -597,14 +614,14 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3] == ';') {
 						// $50; show all info and timers
 						memset(buffer, 0, sizeof(buffer));
-						sprintf(buffer,"tm flag:%d, n:%d, ", (int)flag_check_time_match_, time_match_n);
+						sprintf(buffer,"tm flag:%d n:%d\n", (int)flag_check_time_match_, time_match_n);
 						char buffer_temp[30];
 						for(int i=0; i<time_match_n; i++)
 						{
-							sprintf(buffer_temp, "h%d:%.2d:%.2d m:%d t:%d ", i+1, (int)timesec_to_hour(time_match[i]), (int)timesec_to_min(time_match[i]), (int)auto_start_mode[i], static_cast<int>(time_to_shutdown[i]/60));
+							sprintf(buffer_temp, "h%d:%.2d:%.2d m:%d t:%d\n", i+1, (int)timesec_to_hour(time_match[i]), (int)timesec_to_min(time_match[i]), (int)auto_start_mode[i], static_cast<int>(time_to_shutdown[i]/60));
 							strcat(buffer, buffer_temp);
 						}
-						strcat(buffer, "\n");
+						// strcat(buffer, "\n");
 					}
 					else if((command_str[3] == ':') && (command_str[5] == ';')) {
 						_aux[0] = '0';
@@ -869,113 +886,178 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			break;
 		}
 		case 8: {
-			if (command_str[2] == ';') {
-				sprintf(buffer, "sV:%d d_inv:%d tsOn:%.2d:%.2d:%.2d Tcfg:%d, v:%d tvOn:%.2d:%.2d:%.2d Pcfg:%d tv_cfg:%d, \n",
-																									(int)valves1_.state_valves,
-																									(int)valves1_.flag_inverted_sequence,
-																									timesec_to_hour(valves1_.get_time_on()),
-																									timesec_to_min(valves1_.get_time_on()),
-																									timesec_to_sec(valves1_.get_time_on()),
-																									valves1_.get_total_time_programmed(),
-																									valves1_.valve_current,
-																									timesec_to_hour(valves1_.time_valve_remain),
-																									timesec_to_min(valves1_.time_valve_remain),
-																									timesec_to_sec(valves1_.time_valve_remain),
-																									valves1_.get_valve_pressure(valves1_.valve_current),
-																									valves1_.get_valve_time(valves1_.valve_current)																									
-																									);
-			} // $8;
-			else if (command_str[3] == ';')
+			switch (opcode1) 
 			{
-				if(command_str[2] == '1') {
-					// start sequence;
-					valves1_.start();
-					sprintf(buffer, "Started valves");
-				} // $81;
-				else if(command_str[2] == '0') {
-					valves1_.stop();
-					sprintf(buffer, "Stoped valves");
-				} // $80;
-				else if(command_str[2] == 'd') {
-					valves1_.flag_inverted_sequence = states_flag::disable;
-					sprintf(buffer, "sentido %d\n", (int)valves1_.flag_inverted_sequence);
-				}
-				else if(command_str[2] == 'i') {
-					valves1_.flag_inverted_sequence = states_flag::enable;
-					sprintf(buffer, "sentido %d\n", (int)valves1_.flag_inverted_sequence);
-				}
-			} // $8[0|1];
-			else if(command_str[2] == ':') // $8:...
-			{
-				_aux[0] = command_str[3];
-				_aux[1] = command_str[4];		// '0' in uint8_t is 48. ASCII
-				_aux[2] = '\0';
-				int valve_id = atoi(_aux);
-
-				if (valve_id < 12)
-				{
-					if(command_str[5] == ';') // $8:01;
-					{
-						sprintf(buffer, "valve[%d]:%d, prog[%d], time: %d, pn: %d m.c.a.\n", valve_id, (int)valves1_.get_valve_state(valve_id), (int)valves1_.get_program_status(valve_id), valves1_.get_valve_time(valve_id), valves1_.get_valve_pressure(valve_id));
-					} // $8:01;
-					else if(command_str[5] == ':') // $8:01:...
-					{
-						if(((command_str[6] == '0') || (command_str[6] == '1')) && (command_str[7] == ';'))
-						{
-							_aux[0] = '0';
-							_aux[1] = command_str[6];		// '0' in uint8_t is 48. ASCII
-							_aux[2] = '\0';
-							int valve_state = atoi(_aux);
-				
-							valves1_.set_valve_state(valve_id, valve_state);
-							sprintf(buffer, "set valve[%d]:%d", valve_id, (int)valves1_.get_program_status(valve_id));
-						} // $8:01:[0|1];		- desaciona|aciona válvula 01;
-						else if((command_str[6] == 'i') && (command_str[7] == ';'))
-						{
-							valves1_.set_program_add(valve_id);
-							sprintf(buffer, "added valve %d: %d\n", valve_id, (int)valves1_.get_program_status(valve_id));
-						} // $8:01:i;		- insere setor na programação;
-						else if((command_str[6] == 'r') && (command_str[7] == ';'))
-						{
-							valves1_.set_program_remove(valve_id);
-							sprintf(buffer, "removed valve %d: %d\n", valve_id, (int)valves1_.get_program_status(valve_id));
-						} // $8:01:r;		- remove setor da programação;
-						else if ((command_str[6] == 't') && (command_str[7] == ';'))
-						{
-							int valve_time = valves1_.get_valve_time(valve_id);
-							sprintf(buffer, "valve %d: %d min\n", valve_id, valve_time);
-						} // $8:01:t;		- mostra o tempo de irrigação do setor;
-						else if ((command_str[6] == 't') && (command_str[7] == ':') && (command_str[11] == ';'))
-						{
-							_aux2[0] = '0';
-							_aux2[1] = command_str[8];
-							_aux2[2] = command_str[9];
-							_aux2[3] = command_str[10];		// '0' in uint8_t is 48. ASCII
-							_aux2[4] = '\0';
-							uint8_t valve_time = (uint8_t) atoi(_aux2);
-							valves1_.set_valve_time(valve_id, valve_time);
-							sprintf(buffer, "valve %d: %d min\n", valve_id, valves1_.get_valve_time(valve_id));
-						} // $8:01:t:120;	- configura o tempo de irrigação [min];
-						else if((command_str[6] == 'p') && (command_str[7] == ';'))
-						{
-							sprintf(buffer, "get valve %d: %d m.c.a.\n", valve_id, valves1_.get_valve_pressure(valve_id));
-						} // $8:01:p;		- mostra pressão nominal do setor
-						else if((command_str[6] == 'p') && (command_str[7] == ':') && (command_str[10] == ';'))
-						{
-							_aux[0] = command_str[8];
-							_aux[1] = command_str[9];
-							_aux[2] = '\0';
-							unsigned int valve_pressure = (unsigned int) atoi(_aux);
-							valves1_.set_valve_pressure(valve_id, valve_pressure);
-							sprintf(buffer, "set valve %d: %d m.c.a.\n", valve_id, valves1_.get_valve_pressure(valve_id));
-						} // $8:01:p:60;	- configura pressão nominal do setor [m.c.a.];
+				case 0: {
+					if (command_str[3] == ';') {
+						// $80;
+						sprintf(buffer, "sV:%d d_inv:%d tsOn:%.2d:%.2d:%.2d Tcfg:%d, v:%d tvOn:%.2d:%.2d:%.2d Pcfg:%d tv_cfg:%d, \n",
+																											(int)valves1_.state_valves,
+																											(int)valves1_.flag_inverted_sequence,
+																											timesec_to_hour(valves1_.get_time_on()),
+																											timesec_to_min(valves1_.get_time_on()),
+																											timesec_to_sec(valves1_.get_time_on()),
+																											valves1_.get_total_time_programmed(),
+																											valves1_.valve_current,
+																											timesec_to_hour(valves1_.time_valve_remain),
+																											timesec_to_min(valves1_.time_valve_remain),
+																											timesec_to_sec(valves1_.time_valve_remain),
+																											valves1_.get_valve_pressure(valves1_.valve_current),
+																											valves1_.get_valve_time(valves1_.valve_current)																									
+																											);
 					}
+					else if ((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == ':') && (command_str[7] == ';')) {
+					// $80:s:[0|1];
+						_aux[0] = '0';
+						_aux[1] = command_str[6];		// '0' in uint8_t is 48. ASCII
+						_aux[2] = '\0';
+						int status_code = atoi(_aux);
+
+						if(status_code) {
+							valves1_.start();
+							sprintf(buffer, "Started valves");
+						}
+						else {
+							valves1_.stop();
+							sprintf(buffer, "Stoped valves");
+						}
+					} else if ((command_str[3] == ':') && (command_str[4] == 'd') && (command_str[5] == ':') && (command_str[7] == ';')) {
+					// $80:d:[0|1];
+						_aux[0] = '0';
+						_aux[1] = command_str[6];		// '0' in uint8_t is 48. ASCII
+						_aux[2] = '\0';
+						int status_code = atoi(_aux);
+
+						if(status_code) {
+							valves1_.flag_inverted_sequence = states_flag::enable;
+							sprintf(buffer, "sentido %d\n", (int)valves1_.flag_inverted_sequence);
+						} else {
+							valves1_.flag_inverted_sequence = states_flag::disable;
+							sprintf(buffer, "sentido %d\n", (int)valves1_.flag_inverted_sequence);
+						}
+					} else if ((command_str[3] == ':') && (command_str[4] == 'v') && (command_str[5] == ':')) {
+					// $80:v:01
+						_aux[0] = command_str[6];
+						_aux[1] = command_str[7];		// '0' in uint8_t is 48. ASCII
+						_aux[2] = '\0';
+						int valve_id = atoi(_aux);
+
+						if (valve_id <= valves1_.number_valves)
+						{
+							if(command_str[8] == ';') {
+								// $80:v:01;
+								if(!valve_id) {
+									memset(buffer, 0, sizeof(buffer));
+									char buffer_temp[30];
+									for(int i=1; i<=valves1_.number_valves; i++) {
+										sprintf(buffer_temp, "v[%02d]:%d pg:%d t:%d p:%d\n", i, (int)valves1_.get_valve_state(i), (int)valves1_.get_program_status(i), valves1_.get_valve_time(i), valves1_.get_valve_pressure(i));
+										strcat(buffer, buffer_temp);
+									}
+									strcat(buffer, "\n");
+								}
+								else {
+									sprintf(buffer, "v[%02d]:%d pg:%d t:%d min p:%d m.c.a.\n", valve_id, (int)valves1_.get_valve_state(valve_id), (int)valves1_.get_program_status(valve_id), valves1_.get_valve_time(valve_id), valves1_.get_valve_pressure(valve_id));
+								}
+							} else if((command_str[8] == ':') && (command_str[9] == '0') && (command_str[10] == ';')) {
+								// $80:v:01:0; - set valve off
+								if(valve_id) {
+									valves1_.set_valve_state(valve_id, 0);
+									sprintf(buffer, "set valve[%d]:%d", valve_id, (int)valves1_.get_valve_state(valve_id));
+								} else {
+									for(int i=0; i<valves1_.number_valves; i++) {
+										valves1_.set_valve_state(i+1, 0);
+									}
+									sprintf(buffer, "reset all valves");
+								}
+							} else if((command_str[8] == ':') && (command_str[9] == '1') && (command_str[10] == ';')) {
+								// $80:v:01:1; - set valve on
+								if(valve_id) {
+									valves1_.set_valve_state(valve_id, 1);
+									sprintf(buffer, "set valve[%d]:%d", valve_id, (int)valves1_.get_valve_state(valve_id));
+								} else {
+									for(int i=0; i<valves1_.number_valves; i++) {
+										valves1_.set_valve_state(i+1, 1);
+									}
+									sprintf(buffer, "set all valves");
+								}
+							} else if((command_str[8] == ':') && (command_str[9] == 'i') && (command_str[10] == ';')) {
+								// $80:v:01:i;	insere setor na programação;
+								if(valve_id) {
+									valves1_.set_program_add(valve_id);
+									sprintf(buffer, "added valve %d: %d\n", valve_id, (int)valves1_.get_program_status(valve_id));
+								} else {
+									for(int i=0; i<valves1_.number_valves; i++) {
+										valves1_.set_program_add(i+1);
+									}
+									sprintf(buffer, "added all valves");
+								}
+							} else if((command_str[8] == ':') && (command_str[9] == 'r') && (command_str[10] == ';')) {
+								// $80:v:01:r;	remove setor da programação;
+								if(valve_id) {
+									valves1_.set_program_remove(valve_id);
+									sprintf(buffer, "removed valve %d: %d\n", valve_id, (int)valves1_.get_program_status(valve_id));								
+								} else {
+									for(int i=0; i<valves1_.number_valves; i++) {
+										valves1_.set_program_remove(i+1);
+									}
+									sprintf(buffer, "removed all valves");
+								}
+							} else if((command_str[8] == ':') && (command_str[9] == 't') && (command_str[10] == ';')) {
+								int valve_time = valves1_.get_valve_time(valve_id);
+								sprintf(buffer, "valve %d: %d min\n", valve_id, valve_time);
+							} else if((command_str[8] == ':') && (command_str[9] == 't') && (command_str[10] == ':') && (command_str[14] == ';')) {
+								// $80:v:01:t:120;	- configura o tempo de irrigação [min];
+								_aux2[0] = '0';
+								_aux2[1] = command_str[11];
+								_aux2[2] = command_str[12];
+								_aux2[3] = command_str[13];		// '0' in uint8_t is 48. ASCII
+								_aux2[4] = '\0';
+								uint8_t valve_time = (uint8_t) atoi(_aux2);
+
+								if(valve_id) {
+									valves1_.set_valve_time(valve_id, valve_time);
+									sprintf(buffer, "valve %d: %d min\n", valve_id, valves1_.get_valve_time(valve_id));
+								} else {
+									for(int i=0; i<valves1_.number_valves; i++) {
+										valves1_.set_valve_time(i+1, valve_time);
+									}
+									sprintf(buffer, "all times to %d min\n", valve_time);
+								}
+							} else if((command_str[8] == ':') && (command_str[9] == 'p') && (command_str[10] == ';')) {
+								// $80:v:01:p;		- mostra pressão nominal do setor
+								sprintf(buffer, "get valve %d: %d m.c.a.\n", valve_id, valves1_.get_valve_pressure(valve_id));
+							} else if((command_str[8] == ':') && (command_str[9] == 'p') && (command_str[10] == ':') && (command_str[13] == ';')) {
+								// $80:v:01:p:68; - configura pressão nominal do setor [m.c.a.];
+								_aux[0] = command_str[11];
+								_aux[1] = command_str[12];
+								_aux[2] = '\0';
+								unsigned int valve_pressure = (unsigned int) atoi(_aux);
+								valves1_.set_valve_pressure(valve_id, valve_pressure);
+								sprintf(buffer, "set valve %d: %d m.c.a.\n", valve_id, valves1_.get_valve_pressure(valve_id));
+							}
+						}
+					} else {
+						sprintf(buffer, "80 not handled\n");
+					}
+				break;
 				}
-				else
-				{
-					sprintf(buffer, "8 valve not installed");
+				case 7: {
+					sprintf(buffer, "PCY8575 temperature: 0x%02x\n", valves1_.module_temperature());
+					break;
 				}
-			} // $8:
+				case 8: {
+					sprintf(buffer, "PCY8575 probe: %s\n", valves1_.module_probe() ? "true" : "false");
+					break;
+				}
+				case 9: {
+					valves1_.module_reset();
+					sprintf(buffer, "reset valve mod ctrl\n");
+					break;
+				}
+				default: {
+					break;
+				}
+			}
 			break;
 		}
 		case 9: {
@@ -1122,27 +1204,24 @@ void Acionna::init() {
 	// update clock;
 }
 void Acionna::make_history(start_types start_type, uint32_t time_now) {
-		// Start - shift data to right at the end;
-		for(int i=(n_log-1);i>0;i--)
-		{
-			// minuteLog_OFF[i] = minuteLog_OFF[i-1];
-			// hourLog_OFF[i] = hourLog_OFF[i-1];
-			// dayLog_OFF[i] = dayLog_OFF[i-1];
-			// monthLog_OFF[i] = monthLog_OFF[i-1];
-
-			time_match_on_lasts[i] = time_match_on_lasts[i-1];
-			start_mode_lasts[i] = start_mode_lasts[i-1];
-		}
-		time_match_on_lasts[0] = time_now;
-		start_mode_lasts[0] = start_type;
-}
-void Acionna::make_history(stop_types stop_type, uint32_t time_on) {
-	// STOP - shift data to right at the end;
 	for(int i=(n_log-1);i>0;i--)
 	{
+		// Start - shift data to right at the end;
+		start_mode_lasts[i] = start_mode_lasts[i-1];
+		time_match_on_lasts[i] = time_match_on_lasts[i-1];
+		
+		// STOP - shift data to right at the end;
 		stops_lasts[i] = stops_lasts[i-1];
 		time_on_lasts[i] = time_on_lasts[i-1];
 	}
+	start_mode_lasts[0] = start_type;
+	time_match_on_lasts[0] = time_now;
+
+	stops_lasts[0] = stop_types::other;
+	time_on_lasts[0] = 0;	
+}
+void Acionna::make_history(stop_types stop_type, uint32_t time_on) {
+	
 	stops_lasts[0] = stop_type;
 	time_on_lasts[0] = time_on;
 }
@@ -1329,9 +1408,12 @@ void Acionna::operation_pump_control() {
 	// check high pressure
 	if(flag_check_pressure_high_ == states_flag::enable)
 	{
-		if(pipe1_.pressure_mca() > pipe1_.pressure_max)
-			if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
+		if(pipe1_.pressure_mca() > pipe1_.pressure_max) {
+			if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
 				pump1_.stop(stop_types::pressure_high);
+				make_history(stop_types::pressure_high, pump1_.time_on());
+			}
+		}
 	}
 
 	// check low pressure
@@ -1340,6 +1422,7 @@ void Acionna::operation_pump_control() {
 		// set pump state and expected pressure
 		if(pipe2_.air_intake_detect(pump1_.state(), 60)) {
 			pump1_.stop(stop_types::pressure_low);
+			make_history(stop_types::pressure_low, pump1_.time_on());
 		}
 	}
 
@@ -1357,10 +1440,8 @@ void Acionna::operation_pump_control() {
 	// check time to shutdown
 	if(flag_check_timer == states_flag::enable)
 	{
-		if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_k2) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
-		{
-			if(!pump1_.time_to_shutdown)
-			{
+		if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_k2) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
+			if(!pump1_.time_to_shutdown) {
 				pump1_.stop(stop_types::timeout);		// stop motor by timeout;
 				make_history(stop_types::timeout, pump1_.time_on());
 			}
@@ -1384,6 +1465,7 @@ void Acionna::operation_system_off() {
 	if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
 	{
 		pump1_.stop(stop_types::system_lock);
+		make_history(stop_types::system_lock, pump1_.time_on());
 	}
 }
 void Acionna::operation_valve_control() {
@@ -1544,7 +1626,7 @@ void Acionna::sys_fw_update_ans_async_(void)
 
 		if(OTA_update.state == OTA_process_states::updating) {
 			flag_send = 1;
-			sprintf(buffer_str, "%d %%\n", static_cast<int>(OTA_update.binary_file_length_write/(float)OTA_update.image_size*100.0));
+			sprintf(buffer_str, "%d %%", static_cast<int>(OTA_update.binary_file_length_write/(float)OTA_update.image_size*100.0));
 		}
 		else if(OTA_update.state == OTA_process_states::finish_update) {
 			flag_send = 1;
