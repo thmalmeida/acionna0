@@ -145,6 +145,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$80;				- show info
 		$80:s:[0|1];		- start/stop valves sequence;
 		$80:d:[0|1];		- 0 sentido direto; 1 - sentido inverso na troca dos setores;
+		$80:n;				- next valve forcing time valve to zero;
 		$80:v:01;			- mostra condições de configuração da válvula 01;
 		$80:v:01:[0|1];		- desaciona|aciona válvula 01;
 		$80:v:01:i;			- insere setor na programação;
@@ -239,7 +240,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						char buffer_temp[30];
 						for(int i=0; i<9; i++)
 						{
-							sprintf(buffer_temp, "s%d- %.2d:%.2d m:%d t:%d r:%u\n", i+1, (int)timesec_to_hour(time_match_on_lasts[i]), (int)timesec_to_min(time_match_on_lasts[i]), (int)start_mode_lasts[i], (int)timesec_to_min(time_on_lasts[i]), static_cast<int>(stops_lasts[i]));
+							sprintf(buffer_temp, "s%d- %.2d:%.2d m:%d t:%u r:%u\n", i+1, (int)timesec_to_hour(time_match_on_lasts[i]), (int)timesec_to_min(time_match_on_lasts[i]), static_cast<int>(start_mode_lasts[i]), static_cast<uint16_t>(time_on_lasts[i]/60), static_cast<int>(stops_lasts[i]));
 							strcat(buffer, buffer_temp);
 						}
 						strcat(buffer, "\n");
@@ -935,6 +936,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 							valves1_.flag_inverted_sequence = states_flag::disable;
 							sprintf(buffer, "sentido %d\n", (int)valves1_.flag_inverted_sequence);
 						}
+					} else if ((command_str[3] == ':') && (command_str[4] == 'n') && (command_str[5] == ';')) {
+					// $80:n;
+						valves1_.next_forced();
+						sprintf(buffer, "valves: next command\n");
 					} else if ((command_str[3] == ':') && (command_str[4] == 'v') && (command_str[5] == ':')) {
 					// $80:v:01
 						_aux[0] = command_str[6];
@@ -1040,6 +1045,12 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						sprintf(buffer, "80 not handled\n");
 					}
 				break;
+				}
+				
+				case 6: {
+					uint32_t uptime_temp = valves1_.module_uptime();
+					sprintf(buffer, "PCY8575 uptime %02u:%02u:%02u d:%d\n", timesec_to_hour(uptime_temp), timesec_to_min(uptime_temp), timesec_to_sec(uptime_temp), timesec_to_day(uptime_temp));
+					break;					
 				}
 				case 7: {
 					sprintf(buffer, "PCY8575 temperature: 0x%02x\n", valves1_.module_temperature());

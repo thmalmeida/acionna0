@@ -13,8 +13,8 @@
 static const char *TAG_VALVES = "VALVES";
 
 // Pressures of each sector in [m.c.a.]
-#define valve01_nominal_pressure 62	// 20220809
-#define valve02_nominal_pressure 52
+#define valve01_nominal_pressure 57	//20230305	//62 20220809
+#define valve02_nominal_pressure 59
 #define valve03_nominal_pressure 58
 #define valve04_nominal_pressure 62
 #define valve05_nominal_pressure 64
@@ -92,7 +92,6 @@ public:
 			else
 				time_valve_remain--;
 		}
-
 		// to implement
 	}
 	void set_valve_time(int valve_number, unsigned int value)
@@ -165,6 +164,9 @@ public:
 
 		state_valves = states_valves::system_off;
 		valve_current = 0;
+	}
+	void next_forced(void) {
+		time_valve_remain = 0;
 	}
 	unsigned int next()
 	{
@@ -249,6 +251,9 @@ public:
 	}
 	uint16_t module_temperature(void) {
 		return load_.temperature();
+	}
+	uint32_t module_uptime(void) {
+		return load_.uptime();
 	}
 	private:
 		// GPIO_Basic ac_load_[11];
