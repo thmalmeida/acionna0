@@ -34,12 +34,19 @@ void pcy8575::soft_reset(void) {
 void pcy8575::write(int pin, int level) {
 
 	// ESP_LOGI(TAG_PCY8575, "output_0: 0x%04x", output_);
-
-	if(level) {
-		output_ |= (1 << (pin-1));
-	}
-	else {
-		output_ &= ~(1 << (pin-1));
+	if(pin) {
+		if(level) {
+			output_ |= (1 << (pin-1));
+		}
+		else {
+			output_ &= ~(1 << (pin-1));
+		}
+	} else {
+		if(level) {
+			output_ = 0x0FFF;
+		} else {
+			output_ = 0x0000;
+		}
 	}
 
 	// ESP_LOGI(TAG_PCY8575, "output_1: 0x%04x", output_);
@@ -58,11 +65,12 @@ void pcy8575::put(uint16_t word) {
 	uint8_t data[2];
 	data[0] = word & 0x00FF;
 	data[1] = (word >> 8) & 0x00FF;
+	output_ = word;
 
 	i2c_->write(PCY8575_ADDR, PCY8575_REG_PUT, &data[0], 2, true);
 
 	// debug
-	ESP_LOGI(TAG_PCY8575, "put: 0x%04x", ((data[1] << 8) | data[0]));
+	// ESP_LOGI(TAG_PCY8575, "put: 0x%04x", ((data[1] << 8) | data[0]));
 	// for(int i=0; i<2; i++) {
 	// 	ESP_LOGI(TAG_PCY8575, "data_tx[%d]: 0x%02x", i, data[i]);
 	// }
@@ -72,11 +80,11 @@ uint16_t pcy8575::get(void) {
 	uint8_t data[2];
 	i2c_->read(PCY8575_ADDR, PCY8575_REG_GET, &data[0], 2, true);
 
-	for(int i=0; i<2; i++) {
-		ESP_LOGI(TAG_PCY8575, "data_rx[%d]: 0x%02x", i, data[i]);
-	}
-
-	return static_cast<uint16_t>((data[1] << 8) | data[0]);
+	// for(int i=0; i<2; i++) {
+	// 	ESP_LOGI(TAG_PCY8575, "data_rx[%d]: 0x%02x", i, data[i]);
+	// }
+	output_ = static_cast<uint16_t>((data[1] << 8) | data[0]);
+	return output_;
 }
 uint16_t pcy8575::temperature(void) {
 	
@@ -97,4 +105,13 @@ uint32_t pcy8575::uptime(void) {
 	// 	ESP_LOGI(TAG_PCY8575, "data_temp[%d]: 0x%02x", i, data[i]);
 	// }
 	return static_cast<uint32_t>((data[3] << 24) | (data[2] << 16) | (data[1] << 8) | (data[0]));
+}
+uint16_t pcy8575::irms(void) {
+	uint8_t data[2];
+	i2c_->read(PCY8575_ADDR, PCY8575_REG_IRMS, &data[0], 2, true);
+
+	// for(int i=0; i<sizeof(data); i++) {
+	// 	ESP_LOGI(TAG_PCY8575, "data_temp[%d]: 0x%02x", i, data[i]);
+	// }
+	return static_cast<uint16_t>((data[1] << 8) | (data[0]));
 }

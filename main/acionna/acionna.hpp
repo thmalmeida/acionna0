@@ -35,6 +35,7 @@
 #include "aht10.hpp"
 
 #include "helper.hpp"
+#include "convert_char_to_hex.h"
 
 class Acionna {
 public:

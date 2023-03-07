@@ -1,5 +1,9 @@
-#ifndef HELPER_HPP__
-#define HELPER_HPP__
+#ifndef __HELPER_HPP__
+#define __HELPER_HPP__
+
+#include <stdio.h>
+#include <stdint.h>
+#include <math.h>
 
 enum class states_flag {
 	disable = 0,
@@ -66,4 +70,5 @@ enum class states_mode {
 	irrigation_pump_valves,
 	valve_control
 };
+
 #endif

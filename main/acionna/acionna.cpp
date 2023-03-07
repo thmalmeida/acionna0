@@ -154,6 +154,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$80:v:01:t;			- mostra o tempo de irrigação do setor;
 		$80:v:01:p:68;		- configura pressão nominal do setor [m.c.a.];
 		$80:v:01:p;			- mostra pressão nominal do setor
+		$84:04F3;			- PCY8575 put 16 bit hex value directly to PCY8575;
+		$85;				- PCY8575 get output
+		$86;				- PCY8575 uptime;
 		$87;				- PCY8575 temperature;
 		$88;				- PCY8574 probe;
 		$89;				- PCY8575 soft reset;
@@ -955,13 +958,13 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 									memset(buffer, 0, sizeof(buffer));
 									char buffer_temp[30];
 									for(int i=1; i<=valves1_.number_valves; i++) {
-										sprintf(buffer_temp, "v[%02d]:%d pg:%d t:%d p:%d\n", i, (int)valves1_.get_valve_state(i), (int)valves1_.get_program_status(i), valves1_.get_valve_time(i), valves1_.get_valve_pressure(i));
+										sprintf(buffer_temp, "v[%02d]:%d pg:%d t:%d p:%d\n", i, (int)valves1_.get_valve_state(i), (int)valves1_.get_valve_programmed(i), valves1_.get_valve_time(i), valves1_.get_valve_pressure(i));
 										strcat(buffer, buffer_temp);
 									}
 									strcat(buffer, "\n");
 								}
 								else {
-									sprintf(buffer, "v[%02d]:%d pg:%d t:%d min p:%d m.c.a.\n", valve_id, (int)valves1_.get_valve_state(valve_id), (int)valves1_.get_program_status(valve_id), valves1_.get_valve_time(valve_id), valves1_.get_valve_pressure(valve_id));
+									sprintf(buffer, "v[%02d]:%d pg:%d t:%d min p:%d m.c.a.\n", valve_id, (int)valves1_.get_valve_state(valve_id), (int)valves1_.get_valve_programmed(valve_id), valves1_.get_valve_time(valve_id), valves1_.get_valve_pressure(valve_id));
 								}
 							} else if((command_str[8] == ':') && (command_str[9] == '0') && (command_str[10] == ';')) {
 								// $80:v:01:0; - set valve off
@@ -969,9 +972,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 									valves1_.set_valve_state(valve_id, 0);
 									sprintf(buffer, "set valve[%d]:%d", valve_id, (int)valves1_.get_valve_state(valve_id));
 								} else {
-									for(int i=0; i<valves1_.number_valves; i++) {
-										valves1_.set_valve_state(i+1, 0);
-									}
+									// for(int i=0; i<valves1_.number_valves; i++) {
+									// 	valves1_.set_valve_state(i+1, 0);
+									// }
+									valves1_.module_put(0x0000);
 									sprintf(buffer, "reset all valves");
 								}
 							} else if((command_str[8] == ':') && (command_str[9] == '1') && (command_str[10] == ';')) {
@@ -980,30 +984,31 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 									valves1_.set_valve_state(valve_id, 1);
 									sprintf(buffer, "set valve[%d]:%d", valve_id, (int)valves1_.get_valve_state(valve_id));
 								} else {
-									for(int i=0; i<valves1_.number_valves; i++) {
-										valves1_.set_valve_state(i+1, 1);
-									}
+									// for(int i=0; i<valves1_.number_valves; i++) {
+									// 	valves1_.set_valve_state(i+1, 1);
+									// }
+									valves1_.module_put(0x07FF);
 									sprintf(buffer, "set all valves");
 								}
 							} else if((command_str[8] == ':') && (command_str[9] == 'i') && (command_str[10] == ';')) {
 								// $80:v:01:i;	insere setor na programação;
 								if(valve_id) {
-									valves1_.set_program_add(valve_id);
-									sprintf(buffer, "added valve %d: %d\n", valve_id, (int)valves1_.get_program_status(valve_id));
+									valves1_.add(valve_id);
+									sprintf(buffer, "added valve %d: %d\n", valve_id, (int)valves1_.get_valve_programmed(valve_id));
 								} else {
 									for(int i=0; i<valves1_.number_valves; i++) {
-										valves1_.set_program_add(i+1);
+										valves1_.add(i+1);
 									}
 									sprintf(buffer, "added all valves");
 								}
 							} else if((command_str[8] == ':') && (command_str[9] == 'r') && (command_str[10] == ';')) {
 								// $80:v:01:r;	remove setor da programação;
 								if(valve_id) {
-									valves1_.set_program_remove(valve_id);
-									sprintf(buffer, "removed valve %d: %d\n", valve_id, (int)valves1_.get_program_status(valve_id));								
+									valves1_.remove(valve_id);
+									sprintf(buffer, "removed valve %d: %d\n", valve_id, (int)valves1_.get_valve_programmed(valve_id));								
 								} else {
 									for(int i=0; i<valves1_.number_valves; i++) {
-										valves1_.set_program_remove(i+1);
+										valves1_.remove(i+1);
 									}
 									sprintf(buffer, "removed all valves");
 								}
@@ -1046,21 +1051,50 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					}
 				break;
 				}
-				
+				case 3: {
+					// $83;	get valve irms
+					sprintf(buffer, "PCY8575 irms: 0x%04x\n", valves1_.module_irms());
+					break;
+				}
+				case 4: {
+					if((command_str[3] == ':') && (command_str[8] == ';')) {
+						// $84:04F3;	put directly to PCY8575
+						_aux2[0] = command_str[4];
+						_aux2[1] = command_str[5];
+						_aux2[2] = command_str[6];
+						_aux2[3] = command_str[7];		// '0' in uint8_t is 48. ASCII
+						_aux2[4] = '\0';
+						uint16_t output_temp = static_cast<uint16_t>(hexstr_to_int(&_aux2[0], 4));
+						ESP_LOGI(TAG_ACIONNA, "output_temp: 0x%04x", output_temp);
+						valves1_.module_put(output_temp);
+						sprintf(buffer, "PCY8575 put. verify get: 0x%04x\n", valves1_.module_get());
+					}
+					break;
+				}
+				case 5: {
+					// $85;	get output value
+					uint16_t output_temp = valves1_.module_get();
+					sprintf(buffer, "PCY8575 output: 0x%04x\n", output_temp);
+					break;
+				}
 				case 6: {
+					// $86; get module uptime
 					uint32_t uptime_temp = valves1_.module_uptime();
 					sprintf(buffer, "PCY8575 uptime %02u:%02u:%02u d:%d\n", timesec_to_hour(uptime_temp), timesec_to_min(uptime_temp), timesec_to_sec(uptime_temp), timesec_to_day(uptime_temp));
 					break;					
 				}
 				case 7: {
-					sprintf(buffer, "PCY8575 temperature: 0x%02x\n", valves1_.module_temperature());
+					// $87;	get module temperature
+					sprintf(buffer, "PCY8575 temperature: 0x%04x\n", valves1_.module_temperature());
 					break;
 				}
 				case 8: {
+					// $88;	just probe
 					sprintf(buffer, "PCY8575 probe: %s\n", valves1_.module_probe() ? "true" : "false");
 					break;
 				}
 				case 9: {
+					// $89; module soft reset
 					valves1_.module_reset();
 					sprintf(buffer, "reset valve mod ctrl\n");
 					break;

@@ -34,7 +34,7 @@ public:
 	unsigned int time_valve_remain = 0;	// valve time elapsed before turn off [s];
 	unsigned int time_valve_change = 0;	// between changes to verify if pressure has been pressure recovered [s];
 	static const int number_valves = 12;
-	states_flag flag_inverted_sequence = states_flag::enable;
+	states_flag flag_inverted_sequence = states_flag::disable;
 
 	Valves(I2C_Master *i2c) : load_{i2c} {
 		init_valve_parameters();
@@ -74,7 +74,10 @@ public:
 		set_valve_time(9, 30);
 		set_valve_time(10, 30);
 		set_valve_time(11, 30);
+		remove(12);
+		// set_valve_time(12, 0);
 	}
+	// This functions should be called every 1 second interval
 	void update()
 	{
 		if(state_valves == states_valves::automatic_switch)
@@ -144,11 +147,11 @@ public:
 	}
 	void start()
 	{
-		time_valve_remain = 0;
-		time_system_on_ = 0;
+		load_.put(0x0000);		// reset all valves;
+		time_valve_remain = 0;	// reset current valve time;
+		time_system_on_ = 0;	// reset valve time system;
 		state_valves = states_valves::automatic_switch;
 		flag_valve_found_ = states_flag::disable;
-
 
 		if(flag_inverted_sequence == states_flag::enable)
 			valve_current = number_valves+1;
@@ -157,10 +160,11 @@ public:
 	}
 	void stop()
 	{
-		for(int n=1; n<number_valves+1; n++)
-		{
-			set_valve_state(n, 0);
-		}
+		load_.put(0x0000);		// reset all valves;
+		// for(int n=1; n<number_valves+1; n++)
+		// {
+		// 	set_valve_state(n, 0);
+		// }
 
 		state_valves = states_valves::system_off;
 		valve_current = 0;
@@ -168,9 +172,9 @@ public:
 	void next_forced(void) {
 		time_valve_remain = 0;
 	}
-	unsigned int next()
-	{
+	unsigned int next() {
 		states_flag flag_valve_found_ = states_flag::disable;
+		set_valve_state(valve_current, 0);
 
 		if(flag_inverted_sequence == states_flag::enable)
 		{
@@ -178,17 +182,15 @@ public:
 				valve_current--;
 				if(valve_current)
 				{
-					if(get_program_status(valve_current) == states_flag::enable)
+					if(get_valve_programmed(valve_current) == states_flag::enable)
 					{
 						flag_valve_found_ = states_flag::enable;
 						time_valve_remain = get_valve_time(valve_current)*60.0;
 						set_valve_state(valve_current, 1);
-						set_valve_state(valve_current+1, 0);
+						// set_valve_state(valve_current+1, 0);
 					}
-					else
-					{
-						valve_current--;
-					}
+					// else
+					// 	valve_current--;
 				}
 				else
 				{
@@ -203,15 +205,15 @@ public:
 				valve_current++;
 				if(valve_current < number_valves + 1)
 				{
-					if(get_program_status(valve_current) == states_flag::enable)
+					if(get_valve_programmed(valve_current) == states_flag::enable)
 					{
 						flag_valve_found_ = states_flag::enable;
 						time_valve_remain = get_valve_time(valve_current)*60.0;
 						set_valve_state(valve_current, 1);
-						set_valve_state(valve_current-1, 0);
+						// set_valve_state(valve_current-1, 0);
 					}
-					else
-						valve_current++;
+					// else
+						// valve_current++;
 				}
 				else
 				{
@@ -226,28 +228,31 @@ public:
 
 		return valve_current;
 	}
-	void set_program_remove(unsigned int _valve_num)
-	{
+	void remove(unsigned int _valve_num) {
 		valve_[_valve_num-1].programmed = states_flag::disable;
 	}
-	void set_program_add(unsigned int _valve_num)
-	{
+	void add(unsigned int _valve_num) {
 		valve_[_valve_num-1].programmed = states_flag::enable;
 	}
-	states_flag get_program_status(unsigned _valve_num)
-	{
+	states_flag get_valve_programmed(unsigned _valve_num) {
 		return valve_[_valve_num-1].programmed;
 	}
-	unsigned int get_time_on()
-	{
+	unsigned int get_time_on() {
 		return time_system_on_;
 	}
 
+	// Functions directly to PCY8575
+	int module_probe(void) {
+		return load_.probe();
+	}
 	void module_reset(void) {
 		load_.soft_reset();
 	}
-	int module_probe(void) {
-		return load_.probe();
+	void module_put(uint16_t word) {
+		load_.put(word);
+	}
+	uint16_t module_get(void) {
+		return load_.get();
 	}
 	uint16_t module_temperature(void) {
 		return load_.temperature();
@@ -255,6 +260,10 @@ public:
 	uint32_t module_uptime(void) {
 		return load_.uptime();
 	}
+	uint16_t module_irms(void) {
+		return load_.irms();
+	}
+	
 	private:
 		// GPIO_Basic ac_load_[11];
 		pcy8575 load_;

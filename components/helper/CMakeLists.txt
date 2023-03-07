@@ -1,4 +1,6 @@
-idf_component_register(SRCS convert_char_type.c
+idf_component_register(SRCS 
+							convert_char_to_hex.c
+							convert_char_type.c
 							datetime.cpp
 							delay.cpp
 							my_string.cpp 
