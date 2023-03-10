@@ -1,205 +1,262 @@
-// #include "adc.hpp"
-//ADC_Basic::ADC_Basic(adc_channel_t channel)
-//{
-//
-//}
-//void ADC_Basic::check_efuse_(void)
-//{
-//}
-//uint32_t ADC_Basic::voltage_converter(uint32_t d12)
-//{
-	/*
-  4.5 V___	    922___	1.2 MPa___	 12 Bar___	 120 m.c.a.___		  4096 ___       3.16 V___
-		|			|			|			|				|				|				|
-		|			|			|			|				|				|				|
-		|			|			|			|				|				|				|
-	out_|		Pd__|		  __|			|			Pa__|		   d12__|			 v__|
-		|			|			|			|				|				|				|
-		|			|			|			|				|				|				|
-		|			|			|			|				|				|				|
-		|	_	   _|_		   _|_		   _|_			   _|_			   _|_			   _|_
-	0.5 V			103			0 MPa		0 Bar		0 m.c.a.		0				0 V
+#include "adc.hpp"
 
-	we are trying to convert
+static const char *TAG_ADC = "ADC driver";
 
-  1.1 V___	   2048___	  5.0 V___	  4.5 V___	 120 m.c.a.___		  4096 ___       3.16 V___
-		|			|			|			|				|				|				|
-		|			|			|			|				|				|				|
-		|			|			|			|				|				|				|
-	out_|		Pd__|		Vi__|			|			Pa__|		   d12__|			 v__|
-		|			|			|			|				|				|				|
-		|			|			|			|				|				|				|
-		|			|			|	 		|				|				|				|
-		|	_	  0_|_		0 V_|_	 0.5 V _|_			   _|_			   _|_			   _|_
-	0.0 V											0 m.c.a.		0				0 V
+// static TaskHandle_t s_task_handle;
+// static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
+// {
+// 	BaseType_t mustYield = pdFALSE;
+// 	//Notify that ADC continuous driver has done enough number of conversions
+// 	vTaskNotifyGiveFromISR(s_task_handle, &mustYield);
 
-	(out-0.5)/(4.5-0.5) = 1024
+// 	return (mustYield == pdTRUE);
+// }
 
-	(out-0.0)/(5-0) = (x-0)/(1024-0)
+// ADC_driver::ADC_driver(int channel) : channel_{static_cast<adc_channel_t>(channel)} {
+// 	init_driver_oneshot();
+// }
+ADC_driver::ADC_driver(void) {
+	init_driver_oneshot();
+}
+ADC_driver::~ADC_driver(void) {
+	deinit_driver_oneshot();
+}
+void ADC_driver::init_driver_oneshot(void) {
+	// 1 - Resource Allocation (init)
+	// adc_oneshot_unit_handle_t adc1_handle_;
+	adc_oneshot_unit_init_cfg_t init_config1 = {
+		.unit_id = unit_,							// ADC select
+		.ulp_mode = ADC_ULP_MODE_DISABLE,
+	};
 
-	(Pd - 103)/(922-103) = (Pa - 0)/(120 - 0)
-	Pa = 120.0*Pd/(1024.0);
+	// 1.1 - install driver and ADC instance
+	ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config1, &adc1_handle_));
 
-	(xs - 0) = temp - (0)
-	(255 - 0)  +50 - (0)
+	// Config channel to read
+	// channel_config_oneshot();
+}
+void ADC_driver::set_channel(int channel) {
+    channel_ = static_cast<adc_channel_t>(channel);
+}
+void ADC_driver::deinit_driver_oneshot(void) {
 
-	Direct Conversion
-	xs = 255*(temp+0)/51
-	tempNow_XS = (uint8_t) 255.0*(tempNow+0.0)/51.0;
+	ESP_ERROR_CHECK(adc_oneshot_del_unit(adc1_handle_));
+	if (do_calibration1) {
+		adc_calibration_deinit(adc1_cali_handle_);
+	}
+}
+void ADC_driver::channel_config_oneshot(int channel, int attenuation, int bitwidth) {
+	/* This function setup:
+	- channel number;
+	- attenuation;
+	- bit width.
+	*/
 
-	Inverse Conversion
-	temp = (TempMax*xs/255) - TempMin
-	tempNow = (uint8_t) ((sTempMax*tempNow_XS)/255.0 - sTempMin);
+	switch(attenuation) {
+		case 0: {
+			attenuation_ = ADC_ATTEN_DB_0;
+			break;
+		}
+		case 1: {
+			attenuation_ = ADC_ATTEN_DB_2_5;
+			break;
+		}
+		case 2: {
+			attenuation_ = ADC_ATTEN_DB_6;
+			break;
+		}
+		case 3: {
+			attenuation_ = ADC_ATTEN_DB_11;
+			break;
+		}
+		default: {
+			attenuation_ = ADC_ATTEN_DB_0;
+			break;
+		}
+	}
+	switch(bitwidth) {
+		case 9: {
+			width_ = ADC_BITWIDTH_9;
+			break;
+		}
+		case 10: {
+			width_ = ADC_BITWIDTH_10;
+			break;
+		}
+		case 11: {
+			width_ = ADC_BITWIDTH_11;
+			break;
+		}
+		case 12: {
+			width_ = ADC_BITWIDTH_12;			
+			break;
+		}
+		case 13: {
+			width_ = ADC_BITWIDTH_13;
+			break;
+		}
+		default: {
+			width_ = ADC_BITWIDTH_12;
+			break;
+		}
+	}
+	// 2 - Unit configuration of ADC1
+	adc_oneshot_chan_cfg_t config = {
+		.atten = attenuation_,
+		.bitwidth = width_,
+	};
+	ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle_, static_cast<adc_channel_t>(channel), &config));
+}
+int ADC_driver::read(int channel) {
 
-    (d12-0)/(4096-0) = (v-0)/(3.16-0)
-    v = d12/4096*3162
+	int data_adc_raw;
+	ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle_, static_cast<adc_channel_t>(channel), &data_adc_raw));
+	// ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ADC1_CHAN0, data_adc_raw);
 
-    */
+	// ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle_, ADC1_CHAN1, &adc_raw[0][1]));
+	// ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ADC1_CHAN1, adc_raw[0][1]);
 
-//	0,703089
+	return data_adc_raw;
+}
 
-//	uint32_t voltage = 0;
+bool ADC_driver::adc_calibration_init(adc_unit_t unit, adc_atten_t atten, adc_cali_handle_t *out_handle)
+{
+	adc_cali_handle_t handle = NULL;
+	esp_err_t ret = ESP_FAIL;
+	bool calibrated = false;
 
-//	voltage = d12*DEFAULT_VREF/2047;
-//	printf("Raw0: %d\n", d12);
-//	voltage = 1000.0*5.0*(d12/2048.0);
-//	printf("Raw0: %d\tVoltage0:%d\n", d12, voltage);
-//	return voltage;
-//}
-//uint32_t ADC_Basic::read(void)
-//{
-//	uint32_t adc_reading = 0;
-//
-//	for (int i = 0; i < NO_OF_SAMPLES; i++)		//Multisampling
-//	{
-//		if (unit == ADC_UNIT_1)					// Sample ADC1
-//		{
-//			adc_reading += adc1_get_raw((adc1_channel_t)channel_);
-//		}
-//		else
-//		{
-//			int raw;
-//			adc2_get_raw((adc2_channel_t)channel_, width, &raw);
-//			adc_reading += raw;
-//		}
-//	}
-//	adc_reading /= NO_OF_SAMPLES;
-//
-//	return adc_reading;
-//}
-//void ADC_Basic::run_example(void)
-//{
-//	uint32_t adc_readed = read();
-//	// Convert adc_reading to voltage in mV
-//	uint32_t voltage = esp_adc_cal_raw_to_voltage(adc_readed, adc_chars);
-//	uint32_t voltage2 = voltage_converter(adc_readed);
-//
-//	printf("adc_read: %d\tVoltage: %dmV, Voltage2 %dmV\n", adc_readed, voltage, voltage2);
-//}
+#if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
+    if (!calibrated) {
+        ESP_LOGI(TAG_ADC, "calibration scheme version is %s", "Curve Fitting");
+        adc_cali_curve_fitting_config_t cali_config = {
+            .unit_id = unit,
+            .atten = atten,
+            .bitwidth = ADC_BITWIDTH_DEFAULT,
+        };
+        ret = adc_cali_create_scheme_curve_fitting(&cali_config, &handle);
+        if (ret == ESP_OK) {
+            calibrated = true;
+        }
+    }
+#endif
 
-//static void print_char_val_type(esp_adc_cal_value_t val_type)
-//{
-//    if (val_type == ESP_ADC_CAL_VAL_EFUSE_TP) {
-//        printf("Characterized using Two Point Value\n");
-//    } else if (val_type == ESP_ADC_CAL_VAL_EFUSE_VREF) {
-//        printf("Characterized using eFuse Vref\n");
-//    } else {
-//        printf("Characterized using Default Vref!!!\n");
-//    }
-//}
+// #if ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
+    if (!calibrated) {
+        ESP_LOGI(TAG_ADC, "calibration scheme version is %s", "Line Fitting");
+        adc_cali_line_fitting_config_t cali_config = {
+            .unit_id = unit,
+            .atten = atten,
+            .bitwidth = ADC_BITWIDTH_DEFAULT,
+            .default_vref = 1110,
+            // adc_cali_line_fitting_config_t::default_vref
+        };
+        ret = adc_cali_create_scheme_line_fitting(&cali_config, &handle);
+        if (ret == ESP_OK) {
+            calibrated = true;
+        }
+    }
+// #endif
 
-//ADC_Basic::ADC_Basic
+    *out_handle = handle;
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG_ADC, "Calibration Success");
+    } else if (ret == ESP_ERR_NOT_SUPPORTED || !calibrated) {
+        ESP_LOGW(TAG_ADC, "eFuse not burnt, skip software calibration");
+    } else {
+        ESP_LOGE(TAG_ADC, "Invalid arg or no memory");
+    }
 
-//unsigned int GPIO_Basic::driver_instaled = 0;
-//
-//GPIO_Basic::GPIO_Basic(gpio_num_t num, gpio_mode_t mode) : level(0){
-//	this->num = num;
-//	gpio_set_direction(num,mode);
-//}
-//
-//void GPIO_Basic::mode(gpio_mode_t mode){
-//	gpio_set_direction(num,mode);
-//}
-//
-//void GPIO_Basic::write(int level){
-//	gpio_set_level(num, level);
-//}
-//
-//void GPIO_Basic::toggle(){
-//	level = !level;
-//	write(level);
-//}
-//
-//int GPIO_Basic::read(){
-//	level = gpio_get_level(num);
-//	return level;
-//}
-//
-//void GPIO_Basic::reset() noexcept
-//{
-//	gpio_reset_pin(num);
-//}
-//
-//void GPIO_Basic::pull(gpio_pull_mode_t mode){
-//	gpio_set_pull_mode(num, mode);
-//}
-//
-//void GPIO_Basic::strength(gpio_drive_cap_t cap){
-//	gpio_set_drive_capability(num, cap);
-//}
-//
-//void GPIO_Basic::hold(bool hold){
-//	if(hold){
-//		gpio_hold_en(num);
-//	} else {
-//		gpio_hold_dis(num);
-//	}
-//}
-//
-//void GPIO_Basic::deep_sleep_hold(bool hold){
-//	if(hold){
-//		gpio_deep_sleep_hold_en();
-//	} else {
-//		gpio_deep_sleep_hold_dis();
-//	}
-//}
-//
-//void GPIO_Basic::register_interrupt(gpio_isr_t handler, void* isr_args){
-//	if(driver_instaled == 0){
-//		gpio_install_isr_service(GPIO_INTERRUPT_FLAGS);
-//		driver_instaled++;
-//	}
-//
-//	this->isr_args = isr_args;
-//	gpio_isr_handler_add(num, handler,this);
-//}
-//
-//void GPIO_Basic::unregister_interrupt(){
-//	if(driver_instaled == 0){
-//		return;
-//	}
-//
-//	gpio_isr_handler_remove(num);
-//	disable_interrupt();
-//
-//	if(--driver_instaled){
-//		gpio_uninstall_isr_service();
-//	}
-//}
-//
-//void GPIO_Basic::enable_interrupt(gpio_int_type_t type){
-//	gpio_set_intr_type(num, type);
-//	gpio_intr_enable(num);
-//}
-//
-//void GPIO_Basic::disable_interrupt(){
-//	gpio_intr_disable(num);
-//}
-//
-//void* GPIO_Basic::get_isr_args(){
-//	return isr_args;
-//}
-//
-//GPIO_Basic::~GPIO_Basic(){
-//	unregister_interrupt();
-//}
+    return calibrated;
+}
+void ADC_driver::adc_calibration_deinit(adc_cali_handle_t handle)
+{
+#if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
+    ESP_LOGI(TAG_ADC, "deregister %s calibration scheme", "Curve Fitting");
+    ESP_ERROR_CHECK(adc_cali_delete_scheme_curve_fitting(handle));
+
+#elif ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
+    ESP_LOGI(TAG_ADC, "deregister %s calibration scheme", "Line Fitting");
+    ESP_ERROR_CHECK(adc_cali_delete_scheme_line_fitting(handle));
+#endif
+}
+void ADC_driver::calibrate(void) {
+
+	if (do_calibration1) {
+		ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_handle_, adc_raw[0][0], &voltage[0][0]));
+		ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC1_CHAN0, voltage[0][0]);
+
+		ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_handle_, adc_raw[0][1], &voltage[0][1]));
+		ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC1_CHAN1, voltage[0][1]);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// void ADC_driver::init_continuous(void) {
+	
+// 	esp_err_t ret;
+//     uint32_t ret_num = 0;
+//     uint8_t result[EXAMPLE_READ_LEN] = {0};
+//     memset(result, 0xcc, EXAMPLE_READ_LEN);
+
+//     s_task_handle = xTaskGetCurrentTaskHandle();
+
+//     adc_continuous_handle_t handle = NULL;
+//     config_continuous(channel, sizeof(channel) / sizeof(adc_channel_t), &handle);
+
+//     adc_continuous_evt_cbs_t cbs = {
+//         .on_conv_done = s_conv_done_cb,
+//     };
+//     ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(handle, &cbs, NULL));
+//     ESP_ERROR_CHECK(adc_continuous_start(handle));
+// }
+// void ADC_driver::config_continuous(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle)
+// {
+// 	adc_continuous_handle_t handle = NULL;
+
+// 	adc_continuous_handle_cfg_t adc_config_continuous = {
+// 		.max_store_buf_size = 1024,
+// 		.conv_frame_size = EXAMPLE_READ_LEN,
+// 	};
+// 	ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config_continuous, &handle));
+
+// 	adc_continuous_config_t dig_cfg = {
+// 		.sample_freq_hz = 20 * 1000,
+// 		.conv_mode = ADC_CONV_MODE,
+// 		.format = ADC_OUTPUT_TYPE,
+// 	};
+
+// 	adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
+// 	dig_cfg.pattern_num = channel_num;
+// 	for (int i = 0; i < channel_num; i++) {
+// 		uint8_t unit = GET_UNIT(channel[i]);
+// 		uint8_t ch = channel[i] & 0x7;
+// 		adc_pattern[i].atten = ADC_ATTEN_DB_0;
+// 		adc_pattern[i].channel = ch;
+// 		adc_pattern[i].unit = unit;
+// 		adc_pattern[i].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
+
+// 		ESP_LOGI(TAG, "adc_pattern[%d].atten is :%x", i, adc_pattern[i].atten);
+// 		ESP_LOGI(TAG, "adc_pattern[%d].channel is :%x", i, adc_pattern[i].channel);
+// 		ESP_LOGI(TAG, "adc_pattern[%d].unit is :%x", i, adc_pattern[i].unit);
+// 	}
+// 	dig_cfg.adc_pattern = adc_pattern;
+// 	ESP_ERROR_CHECK(adc_continuous_config(handle, &dig_cfg));
+
+// 	*out_handle = handle;
+// }
+// void ADC_driver::read_stream(uint8_t *data, int len) {
+// }

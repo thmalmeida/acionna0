@@ -9,20 +9,15 @@ static Agro::RTC_Time device_clock;
 static DateTime dt;
 
 static ADC_driver adc0;
-static Pipepvc pipe1_(&adc0, 4, 150);
-static Pipepvc pipe2_(&adc0, 7, 100);
-
-// #ifdef CONFIG_VALVES_SUPPORT
-// static valves valves1_(&i2c);
-// #endif
+// static Pipepvc pipe1_(&adc0, 4, 150);
+// static Pipepvc pipe2_(&adc0, 7, 100);
 
 int timeout_sensors;
 int timeout_sensors_cfg = 600;
 
-// GPIO_Basic led0(LED_0);
 static pwm_ledc led_wifi_indicator(2, 1, 0, 1);
 
-Acionna::Acionna(void) : valves1_{&i2c} {
+Acionna::Acionna(void) : valves1_{&i2c}, pipe1_(&adc0, 4, 150), pipe2_(&adc0, 7, 100) {
 	init();
 }
 uint32_t Acionna::get_uptime() {

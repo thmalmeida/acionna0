@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string>
 
-#include <adc2.hpp>
+#include <adc.hpp>
 
 #include <i2c_master.hpp>
 #include "ds3231.hpp"
@@ -21,14 +21,13 @@
 
 #include "json/ArduinoJson-v6.19.4.h"
 
-#include "pump.hpp"
-#include "pipepvc.hpp"
 #ifdef CONFIG_WELL_SUPPORT
 #include "well.hpp"
 #endif
-// #ifdef CONFIG_VALVES_SUPPORT
+
+#include "pump.hpp"
+#include "pipepvc.hpp"
 #include "valves.hpp"
-// #endif
 
 // Sensors
 #include "bmp180.hpp"
@@ -87,14 +86,16 @@ public:
 	// OS system;
 	void run(void);
 
-	Pump pump1_;
-	Valves valves1_;
-
 private:
 	
 	#ifdef CONFIG_WELL_SUPPORT
 	well well1_;
 	#endif
+
+	Pump pump1_;
+	Valves valves1_;
+	Pipepvc pipe1_;
+	Pipepvc pipe2_;
 
 	states_flag flag_check_k1_ = states_flag::disable;
 	states_flag flag_check_k2_ = states_flag::disable;

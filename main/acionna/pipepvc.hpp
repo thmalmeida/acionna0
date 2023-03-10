@@ -1,7 +1,7 @@
 #ifndef PIPEPVC_HPP
 #define PIPEPVC_HPP
 
-#include <adc2.hpp>
+#include <adc.hpp>
 #include <gpio.hpp>
 #include <pinout.hpp>
 #include <cmath>
@@ -40,23 +40,19 @@ public:
 //	uint8_t PRessurePer = 85;			// percent pressure bellow nominal to turn load off;
 //	uint8_t PRessureRef_Low = 10;
 //	uint16_t levelRef_10bit = 0;		// digital 10 bit number to threshold level sensor;
-//
 //	uint8_t flag_PressureUnstable = 1;
 //	uint8_t flag_PressureDown = 0;		// flag for pressure down occurrence;
 
 	Pipepvc(ADC_driver *adc, int channel, int sensor_pressure_factory) : sensor_pressure_ref(sensor_pressure_factory), adc_(adc),  channel_(channel) {
-		adc_->channel_config_oneshot(channel_);
+		adc_->channel_config_oneshot(channel_, 0, 12);
 	}
-
 	void update() {
 		update_pressure_();
 	}
-
 	int pressure_mca()
 	{
 		return pressure_mca_;
 	}
-
 	int air_intake_detect(states_motor state_motor, int pressure_expected)
 	{
 		switch (air_detect_state) 
@@ -151,23 +147,9 @@ public:
 
 		return 0;
 	}
-
 	int air_intake_detect_state(void) {
 		return static_cast<int>(air_detect_state);
 	}
-
-		// if(state_motor == states_motor::on_nominal_k2 ) {
-		// 	// switch ()
-		// }
-
-		// if(pressure_mca_ > pressure_mca_previous)
-		// {
-		// 	// pressure_current = 
-		// }
-		// // if(pump_state)
-		// {
-			
-		// }
 	int broke_pipe_detect(int pump_state)
 	{
 		return 0;
@@ -186,16 +168,16 @@ private:
 	}
 
 	/* Sensor functions
-	  4.5 V___	    922___	1.2 MPa___	 12 Bar___	 120 m.c.a.___		  4096 ___       3.16 V___
-			|			|			|			|				|				|				|
-			|			|			|			|				|				|				|
-			|			|			|			|				|				|				|
-		 Vo_|		Do__|		Po__|			|			Pa__|		   d12__|			 v__|
-			|			|			|			|				|				|				|
-			|			|			|			|				|				|				|
-			|			|			|			|				|				|				|
-			|	_	   _|_		   _|_		   _|_			   _|_			   _|_			   _|_
-		0.5 V		103			0 MPa		0 Bar		0 m.c.a.			0				0 V
+	  4.5 V___	 1.1 V__	922___	1.2 MPa___	 12 Bar___	 120 m.c.a.___		  4096 ___       3.16 V___
+			|		  | 		|			|			|				|				|				|
+			|		  |			|			|			|				|				|				|
+			|		  |			|			|			|				|				|				|
+		 Vo_|		  |		Do__|		Po__|			|			Pa__|		   d12__|			 v__|
+			|		  |			|			|			|				|				|				|
+			|		  |			|			|			|				|				|				|
+			|		  |			|			|			|				|				|				|
+		   _|_		 _|_	   _|_		   _|_		   _|_			   _|_			   _|_			   _|_
+		0.5 V	 0.1 V			103			0 MPa		0 Bar		0 m.c.a.			0				0 V
 
 	Vo  = Do
 	4.5	  2^n
