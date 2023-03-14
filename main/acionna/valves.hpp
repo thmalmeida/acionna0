@@ -97,21 +97,21 @@ public:
 		}
 		// to implement
 	}
-	void set_valve_time(int valve_number, unsigned int value)
+	void set_valve_time(int valve_id, unsigned int value)
 	{
-		valve_[valve_number-1].time_elapsed_cfg = value*60.0;
+		valve_[valve_id-1].time_elapsed_cfg = value*60.0;
 	}
-	unsigned int get_valve_time(int valve_number)
+	unsigned int get_valve_time(int valve_id)
 	{
-		return valve_[valve_number-1].time_elapsed_cfg/60.0;
+		return valve_[valve_id-1].time_elapsed_cfg/60.0;
 	}
-	void set_valve_pressure(int valve_number, unsigned int value)
+	void set_valve_pressure(int valve_id, unsigned int value)
 	{
-		valve_[valve_number-1].pressure = value;
+		valve_[valve_id-1].pressure = value;
 	}
-	int get_valve_pressure(int valve_number)
+	int get_valve_pressure(int valve_id)
 	{
-		return valve_[valve_number-1].pressure;
+		return valve_[valve_id-1].pressure;
 	}
 	unsigned int get_total_time_programmed()
 	{
@@ -127,20 +127,16 @@ public:
 
 		return _total_time/60.0;
 	}
-	void set_valve_state(int _valve_id, int _valve_state) {
-		if(_valve_id && (_valve_id <= number_valves))
-		{
-			// ac_load_[_valve_id-1].write(_valve_state);
-			load_.write(_valve_id, _valve_state);
-			// ESP_LOGI(TAG_VALVES, "valve[%d]: %d", _valve_id, static_cast<int>(get_valve_state(_valve_id)));
-			// ESP_LOGI(TAG_VALVES, "valve[%d], set to %d", _valve_id, _valve_state);
+	void set_valve_state(int valve_id, int _valve_state) {
+		if(valve_id && (valve_id <= number_valves))	{
+			load_.write(valve_id, _valve_state);
 		}
 		else
-			ESP_LOGI(TAG_VALVES, "valve[%d], NOT set: %d", _valve_id, _valve_state);
+			ESP_LOGI(TAG_VALVES, "id error");
 	}
-	states_switch get_valve_state(int _valve_id) {
-		// if(ac_load_[_valve_id-1].read())
-		if(load_.read(_valve_id))
+	states_switch get_valve_state(int valve_id) {
+		// if(ac_load_[valve_id-1].read())
+		if(load_.read(valve_id))
 			return states_switch::on;
 		else
 			return states_switch::off;		
@@ -272,7 +268,7 @@ public:
 
 		struct valves_sector{
 			int pressure;									// pressão nominal daquele setor [m.c.a.];
-			states_switch state = states_switch::off;		// estado da válvula;
+			// states_switch state = states_switch::off;		// estado da válvula;
 			states_flag programmed = states_flag::enable;	// se entra para a jornada ou não. enable or disable;
 			unsigned int time_elapsed_cfg;					// tempo que o setor ficará ligado [s];
 			unsigned int time_on_last;						// tempo ligado ou último tempo ligado [s];

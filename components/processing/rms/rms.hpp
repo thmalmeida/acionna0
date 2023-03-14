@@ -1,15 +1,14 @@
-#ifndef __ADC_HPP__
-#define __ADC_HPP__
+#ifndef ADC2_HPP__
+#define ADC2_HPP__
 
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
 
 // Includes for one shot read
+#include <stdlib.h>
 #include "soc/soc_caps.h"
 #include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"

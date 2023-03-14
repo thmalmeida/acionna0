@@ -9,16 +9,15 @@ pcy8575::pcy8575(I2C_Master *i2c) : i2c_(i2c) {
 void pcy8575::init(uint8_t mode) {
 }
 bool pcy8575::probe(void) {
-
 	// bool alive = i2c_->probe(PCY8575_ADDR);
 	// ESP_LOGI(TAG_PCY8575, "probe: %d", static_cast<int>(alive));
-	static int n_bytes = 2;
+	static int n_bytes = 1;
 	uint8_t data[n_bytes];
 	int ret = i2c_->read(PCY8575_ADDR, PCY8575_REG_PROBE, &data[0], n_bytes, true);
 
-	// for(int i=0; i<n_bytes; i++) {
-	// 	ESP_LOGI(TAG_PCY8575, "Read byte[%d]: 0x%02x",i, data[i]);
-	// }
+	for(int i=0; i<n_bytes; i++) {
+		ESP_LOGI(TAG_PCY8575, "Probe byte[%d]: 0x%02x",i, data[i]);
+	}
 
 	if(ret == 1)
 		return true;
@@ -32,23 +31,21 @@ void pcy8575::soft_reset(void) {
 	// delay_ms(AHT10_DELAY_SOFT_RESET);
 }
 void pcy8575::write(int pin, int level) {
-
 	// ESP_LOGI(TAG_PCY8575, "output_0: 0x%04x", output_);
 	if(pin) {
 		if(level) {
-			output_ |= (1 << (pin-1));
+			output_ |=  (1 << (pin-1));
 		}
 		else {
 			output_ &= ~(1 << (pin-1));
 		}
 	} else {
 		if(level) {
-			output_ = 0x0FFF;
+			output_ = 0xFFFF;
 		} else {
 			output_ = 0x0000;
 		}
 	}
-
 	// ESP_LOGI(TAG_PCY8575, "output_1: 0x%04x", output_);
 	put(output_);
 }
