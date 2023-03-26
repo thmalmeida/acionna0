@@ -59,7 +59,7 @@ extern conn_states wifi_state;
 void wifi_sta_init(void);
 void wifi_sta_stop(void);
 void wifi_get_info(void);
-void wifi_get_mac(void);
+void wifi_get_mac(uint8_t* wifi_mac);
 void print_auth_mode(int authmode);
 void print_cipher_type(int pairwise_cipher, int group_cipher);
 void wifi_scan();

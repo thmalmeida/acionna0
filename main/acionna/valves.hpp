@@ -23,7 +23,7 @@ static const char *TAG_VALVES = "VALVES";
 #define valve08_nominal_pressure 64
 #define valve09_nominal_pressure 64
 #define valve10_nominal_pressure 65
-#define valve11_nominal_pressure 65
+#define valve11_nominal_pressure 63	// 20230325
 
 class Valves {
 public:

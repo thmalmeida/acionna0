@@ -2,9 +2,6 @@
 #define PIPEPVC_HPP
 
 #include <adc.hpp>
-#include <gpio.hpp>
-#include <pinout.hpp>
-#include <cmath>
 
 #include "helper.hpp"
 
@@ -22,8 +19,9 @@ public:
 	int pressure_min = 30;							// min threshold pressure for indicate some problem;
 	int sensor_pressure_ref;						// sensor max pressure [psi];
 	int sensor_data_dig = 0;						// readed value from ADC peripheral;
-	int pressure_mca_fi = 0;
-
+	int pressure_mca_fi = 0;						// pressure value after dig low pass filter
+	
+	int air_detect_pressure_low_ref = 10;			// after stable, min threshold pressure to find air intake;
 	uint32_t air_detect_timer_increase = 0;
 	uint32_t air_detect_timer_increase_ref = 60;
 	uint32_t air_detect_count_increase = 0;
@@ -105,9 +103,9 @@ public:
 					pressure_mca_previous = pressure_mca_;
 					
 					// Refresh pressure average
-					pressure_mca_avg++;
-					pressure_mca_avg += pressure_mca_;
-					pressure_mca_avg >>= 1;
+					pressure_mca_avg++;					// Remove the .5 value
+					pressure_mca_avg += pressure_mca_;	// add old value with newone
+					pressure_mca_avg >>= 1;				// divide by 2 finding new average
 				}
 				else {
 					air_detect_state = air_detect_states::pressure_low_idle;
@@ -119,7 +117,7 @@ public:
 					air_detect_timer_stable++;
 
 					// if(pressure_mca_ < 0.75*pressure_mca_previous) {
-					if((pressure_mca_ < 0.70*pressure_mca_avg) || (pressure_mca_ < 5)) {
+					if((pressure_mca_ < 0.70*pressure_mca_avg) || (pressure_mca_ < air_detect_pressure_low_ref)) {
 
 						air_detect_state = air_detect_states::pressure_slope;
 						break;

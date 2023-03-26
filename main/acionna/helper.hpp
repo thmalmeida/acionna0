@@ -45,20 +45,20 @@ enum class stop_types {
 	 * 0x00 - command line request
 	 * 0x01 - time out
 	 * 0x02 - high pressure
-	 * 0x03 - thermal relay occurs;
-	 * 0x04 - contactor not on
-	 * 0x05 - low level
-	 * 0x06 - low pressure(broken pipe?)
+	 * 0x03 - low pressure(broken pipe?)
+	 * 0x04 - thermal relay occurs;
+	 * 0x05 - contactor not on
+	 * 0x06 - low level
 	 * 0x07 - red time
 	 * 0x08 - system lock??
 	 * */
 	command_line_user = 0,
 	timeout,
 	pressure_high,
+	pressure_low,
 	thermal_relay,
 	contactor_not_on,
 	level_low,
-	pressure_low,
 	red_time,
 	system_lock,
 	other
@@ -67,8 +67,7 @@ enum class states_mode {
 	system_off = 0,					// never turn and don't let any load turn on;
 	system_idle,					// idle means that never turn any load automaticaly. But can work manual with all updates and checks
 	water_pump_control_night,
-	irrigation_pump_valves,
-	valve_control
+	irrigation_pump_valves
 };
 
 #endif

@@ -146,6 +146,7 @@ private:
 
 	void sys_wifi_info_(char* buffer_str);
 	void sys_wifi_scan_(char* buffer_str);
+	void sys_wifi_mac_(char* buffer_str);
 	void sys_ram_free_(char* buffer_str);
 	void sys_reset_reason_(char* buffer_str);
 	void sys_restart_(void);

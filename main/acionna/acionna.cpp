@@ -53,6 +53,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$05;				- Mostra os horários que liga no modo $62;
 		$06;				- Tempo ligado e tempo desligado;
 		$07;				- Show low pressure algorithm variables
+			$07:l;			- show threshold low pressure to slope machine;
+			$07:l:10; 		- set threshold low pressure to slope machine;
+
 			$07:0;			- ADC reference change; AREF
 			$07:1;			- AVCC with external cap at AREF pin
 			$07:2;			- Internal 1.1 Voltage reference.
@@ -161,7 +164,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			$90:0;			- WiFi AP info;
 			$90:1;			- WiFi Scan;
 			$90:2;			- Show mac address;
-		$92;				- show firwmare version;
+		$91;				- show firwmare version;
 		$95:[0-9];			- firmware ota;
 			$95:0;			- show ota partitions info;
 			$95:1;			- show ota app info
@@ -425,8 +428,18 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 																					static_cast<int>(pipe2_.air_detect_count_increase),
 																					static_cast<int>(pipe2_.air_detect_timer_increase),
 																					static_cast<int>(pipe2_.air_detect_timer_stable));
-					}
+					} else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == ';')) {
+					//	$07:l; - show low pressure to slope machine;
+						sprintf(buffer, "press low threshold: %d\n", pipe2_.air_detect_pressure_low_ref);
+					} else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == ':') && (command_str[8] == ';')) {
+					//	$07:l:10; - set threshold low pressure to slope machine;
+						_aux[0] = command_str[6];
+						_aux[1] = command_str[7];		// '0' in uint8_t is 48. ASCII
+						_aux[2] = '\0';
 
+						pipe2_.air_detect_pressure_low_ref = atoi(_aux);
+						sprintf(buffer, "set press low threshold: %d\n", pipe2_.air_detect_pressure_low_ref);
+					}
 					break;
 				}
 				case 8: { // $08;
@@ -1104,30 +1117,47 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			switch(opcode1)
 			{
 				case 0: {
-					if(command_str[3] == ';') {
-						sys_wifi_info_(buffer);
-					} // $90;
-
-					break;
-				} // $90:s:1;
-				case 1: {
-					if(command_str[3] == ';')
-					{
-						sys_wifi_scan_(buffer);
-						// signal_wifi_scan = 1;
-						// sprintf(buffer, "wifi scan\n");
-					} // $91;
+					if((command_str[3] == ':') && (command_str[5] == ';')) {
+						// $90:X;
+						_aux[0] = '0';
+						_aux[1] = command_str[4];		// '0' in uint8_t is 48. ASCII
+						_aux[2] = '\0';
+						int opcode_sub2 = atoi(_aux);
+						
+						switch (opcode_sub2) {
+							case 0: {
+								sys_wifi_info_(buffer);
+								break;
+							}
+							case 1: {
+								// $90:1; scan
+								sys_wifi_scan_(buffer);
+								break;
+							}
+							case 2: {
+								// $90:1; scan
+								sys_wifi_mac_(buffer);
+								break;
+							}
+							default:
+							break;
+						}
+					}
+					// $90:2;
 					break;
 				}
-				case 2: {
-					char fw_version[33];
-					memset(buffer, 0, sizeof(buffer));
-					strcpy(fw_version, "fw: ");
-					strcat(fw_version, __DATE__);
-					strcat(fw_version, " ");
-					strcat(fw_version, __TIME__);
-					strcat(fw_version, "\n");
-					strcpy(buffer, fw_version);
+				case 1: {
+					if(command_str[3] == ';') {
+						// $91;	- firmware version
+						char fw_version[33];
+						memset(buffer, 0, sizeof(buffer));
+						strcpy(fw_version, "fw: ");
+						strcat(fw_version, __DATE__);
+						strcat(fw_version, " ");
+						strcat(fw_version, __TIME__);
+						strcat(fw_version, "\n");
+						strcpy(buffer, fw_version);
+					}
 					break;
 				}
 				case 5: { //$95:[0-9];
@@ -1135,9 +1165,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux[0] = '0';
 						_aux[1] = command_str[4];		// '0' in uint8_t is 48. ASCII
 						_aux[2] = '\0';
-						int statusCommand_2 = atoi(_aux);
+						int opcode_sub2 = atoi(_aux);
 
-						switch (statusCommand_2) {
+						switch (opcode_sub2) {
 							case 0: {
 								sys_fw_info_partitions_(buffer);
 								break;
@@ -1819,10 +1849,24 @@ void Acionna::sys_wifi_scan_(char* buffer_str) {
 	for(int i=0; (i<DEFAULT_SCAN_LIST_SIZE) && (i<ap_count); i++)
 	{
 		sprintf(buffer_temp, "Ch: %d, RSSI: %d, SSID: %s\n", ap_info[i].primary, ap_info[i].rssi, ap_info[i].ssid);
-		strcat(buffer_str, buffer_temp);;
+		strcat(buffer_str, buffer_temp);
 	}
 	// std::string str(buffer_str);
 	// ws_server_send(str);
+}
+void Acionna::sys_wifi_mac_(char* buffer_str) {
+	
+	uint8_t wifi_mac[6];
+	wifi_get_mac(&wifi_mac[0]);
+
+	memset(buffer_str, 0, sizeof(*buffer_str));
+	char buffer_temp[10];
+	
+	sprintf(buffer_str, "MAC");
+	for(int i=0; i<6; i++) {
+		sprintf(buffer_temp, ":%02x", wifi_mac[i]);
+		strcat(buffer_str, buffer_temp);
+	}
 }
 void Acionna::sensor_dht(void) {
 

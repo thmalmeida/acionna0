@@ -1,6 +1,6 @@
 #include "httpd_setup.hpp"
 
-static const char *TAG_WS = "ws_server";
+static const char *TAG_WS = "HTTPD";
 
 // websocket ws_server handle parameters
 async_resp_arg ws_server_sock0;									// pointer to connection socket
@@ -167,32 +167,35 @@ void httpd_server_start(void) {
 	// httpd_ssl_config
 
 	// httpd_server_start(arg);
-	ESP_LOGI(TAG_WS, "HTTPD ws_server start");
-
 	// httpd_handle_t* ws_server = (httpd_handle_t*) arg;
 	// httpd_handle_t ws_server = NULL; // moved to global
+	ESP_LOGI(TAG_WS, "ws_server starting...");
 	if (ws_server == NULL)
 	{
 		// *ws_server = start_webserver();
 		// Start the httpd ws_server
-		ESP_LOGI(TAG_WS, "Starting webserver on port: '%d'", ws_server_config.server_port);
+
+		ESP_LOGI(TAG_WS, "using port: %u", ws_server_config.server_port);
 		if (httpd_start(&ws_server, &ws_server_config) == ESP_OK) // httpd_start(&ws_server, &config)
 		{
 			// Registering the ws handler
-			ESP_LOGI(TAG_WS, "Registering URI handlers");
+			ESP_LOGI(TAG_WS, "registering URI handlers");
 			httpd_register_uri_handler(ws_server, &ws);
 			// return ws_server;
 		}
 		else
 		{
-			ESP_LOGI(TAG_WS, "Error starting ws_server!");
+			ESP_LOGI(TAG_WS, "error starting ws_server!");
 			ws_server = NULL;
 		}
 	}
 	ESP_LOGI(TAG_WS, "leaving httpd_server_start");
 }
 void httpd_server_stop(void) {
-	httpd_stop(ws_server);
+	if(ws_server != NULL) {
+		httpd_stop(ws_server);
+		ws_server = NULL;
+	}
 }
 void ws_server_send(std::string data) {
 	// build a websocket frame

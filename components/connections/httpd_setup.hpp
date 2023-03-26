@@ -22,6 +22,11 @@ struct async_resp_arg {
 	int fd;
 };
 
+enum class httpd_states {
+	down,
+	up
+};
+
 // websocket server handle parameters
 extern async_resp_arg ws_server_sock0;		// pointer to connection socket
 extern uint8_t ws_server_data[BUFFER_LEN];	// buffer received

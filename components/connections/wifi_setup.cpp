@@ -172,8 +172,7 @@ void wifi_get_info(void)
 	esp_wifi_sta_get_ap_info(&ap);
 	printf("%d\n", ap.rssi);
 }
-void wifi_get_mac(void) {
-	uint8_t wifi_mac[6];
+void wifi_get_mac(uint8_t* wifi_mac) {
 	esp_read_mac(wifi_mac, ESP_MAC_WIFI_STA);
 }
 void print_auth_mode(int authmode)
@@ -341,7 +340,6 @@ void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_bas
 			led_wifi.pwm_ledc_set_duty(2);
 			ESP_LOGI(TAG_WIFI, "connected to ap SSID:%s password:%s", WIFI_SSID_STA, WIFI_PASS);
 			ESP_LOGI(TAG_WIFI, "ESP32 station connected to AP");
-
 			// httpd web socket start
 		}
 		else if(event_id == WIFI_EVENT_STA_DISCONNECTED)
@@ -359,7 +357,6 @@ void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_bas
 				wifi_scan();
 			}
 
-		
 			esp_wifi_connect();
 			s_retry_num++;
 			ESP_LOGI(TAG_WIFI, "connect retry: %d", s_retry_num);
