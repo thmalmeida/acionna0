@@ -51,14 +51,12 @@ public:
 	{
 		return pressure_mca_;
 	}
-	int air_intake_detect(states_motor state_motor, int pressure_expected)
+	int air_intake_detect(states_motor state_motor, states_motor state_motor_ref, int pressure_expected)
 	{
 		switch (air_detect_state) 
 		{
 			case air_detect_states::pressure_low_idle: {
-				// if((state_motor == states_motor::on_nominal_k1) || (state_motor == states_motor::on_nominal_k2) || (state_motor == states_motor::on_nominal_delta)) {
-				// if(state_motor == states_switch::on) {
-				if(state_motor == states_motor::on_nominal_k2) {
+				if(state_motor == state_motor_ref) {
 					air_detect_state = air_detect_states::pressure_increasing;
 					air_detect_timer_increase = 0;
 					air_detect_timer_stable = 0;
@@ -70,7 +68,7 @@ public:
 				break;
 			}
 			case air_detect_states::pressure_increasing: {
-				if(state_motor == states_motor::on_nominal_k2) {
+				if(state_motor == state_motor_ref) {
 					
 					// digital low pass filter
 					// pressure_mca_fi = beta*pressure_mca_ + pressure_mca_fi - beta*pressure_mca_fi;
@@ -113,7 +111,7 @@ public:
 				break;
 			}
 			case air_detect_states::pressure_stable: {
-				if(state_motor == states_motor::on_nominal_k2) {
+				if(state_motor == state_motor_ref) {
 					air_detect_timer_stable++;
 
 					// if(pressure_mca_ < 0.75*pressure_mca_previous) {
@@ -130,7 +128,7 @@ public:
 					pressure_mca_avg += pressure_mca_;
 					pressure_mca_avg >>= 1;
 				}
-			break;
+				break;
 			}
 			case air_detect_states::pressure_slope: {
 				air_detect_state = air_detect_states::pressure_low_idle;

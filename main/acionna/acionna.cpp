@@ -9,8 +9,6 @@ static Agro::RTC_Time device_clock;
 static DateTime dt;
 
 static ADC_driver adc0;
-// static Pipepvc pipe1_(&adc0, 4, 150);
-// static Pipepvc pipe2_(&adc0, 7, 100);
 
 int timeout_sensors;
 int timeout_sensors_cfg = 600;
@@ -53,9 +51,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$05;				- Mostra os horários que liga no modo $62;
 		$06;				- Tempo ligado e tempo desligado;
 		$07;				- Show low pressure algorithm variables
-			$07:l;			- show threshold low pressure to slope machine;
-			$07:l:10; 		- set threshold low pressure to slope machine;
-
+			$07:l1;			- show threshold low pressure to slope machine;
+			$07:l1:20; 		- set threshold low pressure to slope machine;
+			$07:l2;			- show threshold low pressure to slope machine;
+			$07:l2:10; 		- set threshold low pressure to slope machine;
 			$07:0;			- ADC reference change; AREF
 			$07:1;			- AVCC with external cap at AREF pin
 			$07:2;			- Internal 1.1 Voltage reference.
@@ -423,22 +422,37 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 				}
 				case 7: { // $07; show low press check variables
 					if(command_str[3]==';') {
-						sprintf(buffer, "state: %d, c_inc:%d, t_inc:%d t_stable:%d\n",
+						sprintf(buffer, "pipe1: s:%d c_inc:%d t_inc:%d t_stable:%d\npipe2: s:%d c_inc:%d t_inc:%d t_stable:%d\n",
+																					static_cast<int>(pipe1_.air_detect_state),
+																					static_cast<int>(pipe1_.air_detect_count_increase),
+																					static_cast<int>(pipe1_.air_detect_timer_increase),
+																					static_cast<int>(pipe1_.air_detect_timer_stable),
 																					static_cast<int>(pipe2_.air_detect_state),
 																					static_cast<int>(pipe2_.air_detect_count_increase),
 																					static_cast<int>(pipe2_.air_detect_timer_increase),
 																					static_cast<int>(pipe2_.air_detect_timer_stable));
-					} else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == ';')) {
-					//	$07:l; - show low pressure to slope machine;
-						sprintf(buffer, "press low threshold: %d\n", pipe2_.air_detect_pressure_low_ref);
-					} else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == ':') && (command_str[8] == ';')) {
-					//	$07:l:10; - set threshold low pressure to slope machine;
-						_aux[0] = command_str[6];
-						_aux[1] = command_str[7];		// '0' in uint8_t is 48. ASCII
+					} else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '1') && (command_str[6] == ';')) {
+					//	$07:l1; - show low pressure to slope machine;
+						sprintf(buffer, "press1 low threshold: %d\n", pipe1_.air_detect_pressure_low_ref);
+					} else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '1') && (command_str[6] == ':') && (command_str[9] == ';')) {
+					//	$07:l1:10; - set threshold low pressure to slope machine;
+						_aux[0] = command_str[7];
+						_aux[1] = command_str[8];		// '0' in uint8_t is 48. ASCII
+						_aux[2] = '\0';
+
+						pipe1_.air_detect_pressure_low_ref = atoi(_aux);
+						sprintf(buffer, "set press1 low threshold: %d\n", pipe1_.air_detect_pressure_low_ref);
+					} else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '2') && (command_str[6] == ';')) {
+					//	$07:l2; - show low pressure to slope machine;
+						sprintf(buffer, "press2 low threshold: %d\n", pipe2_.air_detect_pressure_low_ref);
+					} else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '2') && (command_str[6] == ':') && (command_str[9] == ';')) {
+					//	$07:l2:10; - set threshold low pressure to slope machine;
+						_aux[0] = command_str[7];
+						_aux[1] = command_str[8];		// '0' in uint8_t is 48. ASCII
 						_aux[2] = '\0';
 
 						pipe2_.air_detect_pressure_low_ref = atoi(_aux);
-						sprintf(buffer, "set press low threshold: %d\n", pipe2_.air_detect_pressure_low_ref);
+						sprintf(buffer, "set press2 low threshold: %d\n", pipe2_.air_detect_pressure_low_ref);
 					}
 					break;
 				}
@@ -755,20 +769,16 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 			switch (statusCommand)
 			{
-				case 0:
-				{
+				case 0: {
 					state_mode = states_mode::system_off;
 					sprintf(buffer,"state mode: system_off, s:%d\n", static_cast<int>(state_mode));
 					break;
 				}
-
-				case 1:
-				{
+				case 1:	{
 					state_mode = states_mode::system_idle;
 					sprintf(buffer,"state mode: system_idle, s:%d\n", static_cast<int>(state_mode));
 					break;
 				}
-
 				default:
 				break;
 			}
@@ -1332,7 +1342,7 @@ void Acionna::msg_fetch_(void) {
 void Acionna::msg_exec_(void) {
 
 	#ifdef CONFIG_BT_ENABLE
-	if((bt_ans_flag_ == states_flag::enable) || (ws_server_ans_flag_ == states_flag::enable) || (ws_client_ans_flag_ == states_flag::enable)) {
+		if((bt_ans_flag_ == states_flag::enable) || (ws_server_ans_flag_ == states_flag::enable) || (ws_client_ans_flag_ == states_flag::enable)) {
 	#else
 		if((ws_server_ans_flag_ == states_flag::enable) || (ws_client_ans_flag_ == states_flag::enable)) {
 	#endif
@@ -1418,9 +1428,6 @@ void Acionna::operation_mode() {
 			operation_pump_valves_irrigation();
 			break;
 
-		case states_mode::valve_control:
-			break;
-
 		default:
 			break;
 	}
@@ -1490,7 +1497,13 @@ void Acionna::operation_pump_control() {
 	if(flag_check_pressure_low_ == states_flag::enable)
 	{
 		// set pump state and expected pressure
-		if(pipe2_.air_intake_detect(pump1_.state(), 60)) {
+		if(pipe2_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k2, 60)) {
+			pump1_.stop(stop_types::pressure_low);
+			make_history(stop_types::pressure_low, pump1_.time_on());
+		}
+
+		// Trying for irrigation. It needs some tests.
+		if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_delta, 60)) {
 			pump1_.stop(stop_types::pressure_low);
 			make_history(stop_types::pressure_low, pump1_.time_on());
 		}
