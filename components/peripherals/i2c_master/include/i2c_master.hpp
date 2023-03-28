@@ -46,6 +46,7 @@ class I2C_Master{
 
 		int read(uint8_t slave_addr, uint8_t reg, uint8_t* data, size_t len, bool ack_check);
 		int read(uint8_t slave_addr, uint8_t reg, uint8_t* data, bool ack_check = true);
+		int read(uint8_t slave_addr, uint8_t reg, uint8_t* data);
 		int read(uint8_t slave_address, const uint8_t *write_buffer, size_t write_buffer_len, uint8_t *read_buffer, size_t read_buffer_len);
 		int read_only(uint8_t slave_addr, uint8_t* data, size_t data_len, bool ack_check = true);
 

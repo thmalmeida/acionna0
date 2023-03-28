@@ -39,33 +39,38 @@ opcode:
 	- TEMP:			0x05
 	- UPTIME:		0x06
 	- IRMS:			0x07
+	- RST_REASON:	0x08
 
 protocol example
 
 PROBE:		write													read
-Start | ADDR - R/W = 0 | PROBE | Stop | ... delay ... | Start | ADDR - R/W = 1 | read byte 1 |
+Start | ADDR - R/W = 0 | PROBE	| Stop | ... delay ... | Start | ADDR - R/W = 1 | byte 0 | Stop |
 
 SOFT RESET:	write
-Start | ADDR - R/W = 0 | RESET | Stop |
+Start | ADDR - R/W = 0 | RESET	| Stop |
 
 CONFIG:		write				  P07-P00   P15-P00
 Start | ADDR - R/W = 0 | CONFIG	| byte 0  | byte 1  | Stop |
 
 PUT:		write
-Start | ADDR - R/W = 0 | CONFIG | Stop | ... delay ... | Start | ADDR - R/W = 1 | read byte 1 |
+Start | ADDR - R/W = 0 | PUT    | byte 0  | byte 1  | Stop |
 
 GET:		write												 Read			  P07-P00   P15-P00
-Start | ADDR - R/W = 0 | GET    | Stop | ... delay ... | Start | ADDR - R/W = 1 | byte 0  | byte 1 |
+Start | ADDR - R/W = 0 | GET    | Stop | ... delay ... | Start | ADDR - R/W = 1 | byte 0  | byte 1 | Stop |
 
 GET TEMP:	write												 Read					16 bits
-Start | ADDR - R/W = 0 | TEMP   | Stop | ... delay ... | Start | ADDR - R/W = 1 | byte L  | byte H |
+Start | ADDR - R/W = 0 | TEMP   | Stop | ... delay ... | Start | ADDR - R/W = 1 | byte L  | byte H | Stop |
 
 UPTIME:		write												 Read			     	32 bits
-Start | ADDR - R/W = 0 | UPTIME | Stop | ... delay ... | Start | ADDR - R/W = 1 | byte L  | byte L | byte H | byte H |
+Start | ADDR - R/W = 0 | UPTIME | Stop | ... delay ... | Start | ADDR - R/W = 1 | byte L  | byte L | byte H | byte H | Stop |
 
 IRMS:		write																		16 bits
-Start | ADDR - R/W = 0 | UPTIME | Stop | ... delay ... | Start | ADDR - R/W = 1 | byte L  | byte H |
+Start | ADDR - R/W = 0 | UPTIME | Stop | ... delay ... | Start | ADDR - R/W = 1 | byte L  | byte H | Stop |
+
+RST REASON:	write												 Read				8 bits
+Start | ADDR - R/W = 0 | REASON | Stop | ... delay ... | Start | ADDR - R/W = 1 | byte L  | Stop |
 */
+
 
 class pcy8575 {
 
@@ -83,6 +88,7 @@ class pcy8575 {
 	uint16_t temperature(void);
 	uint32_t uptime(void);
 	uint16_t irms(void);
+	uint8_t reset_reason(void);
 	
 	private:
 

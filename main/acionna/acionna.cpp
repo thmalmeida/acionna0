@@ -898,6 +898,19 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 						sprintf(buffer, "set check press valve: %d\n", (int)flag_check_pressure_valve_);
 					}
+					else if((command_str[3] == ':') && (command_str[4] == 'v') && (command_str[5] == 'c') && (command_str[6] == ';')) {
+					// $70:vc;			- show verificação constante das valvulas em pleno funcionamento
+						sprintf(buffer, "check valves: %d\n", (int)flag_check_valves_);
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 'v') && (command_str[5] == 'c') && (command_str[6] == ':') && (command_str[8] == ';')) {
+					// $70:vc:[0|1];			- verificação constante das valvulas em pleno funcionamento
+						if(opcode_sub0)
+							flag_check_valves_ = states_flag::enable;
+						else
+							flag_check_valves_ = states_flag::disable;
+
+						sprintf(buffer, "set check valves: %d\n", (int)flag_check_valves_);
+					}
 					break;
 				}
 				default: {
@@ -1496,14 +1509,14 @@ void Acionna::operation_pump_control() {
 	// check low pressure
 	if(flag_check_pressure_low_ == states_flag::enable)
 	{
-		// set pump state and expected pressure
-		if(pipe2_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k2, 60)) {
+		// Trying for irrigation. It needs some tests.
+		if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_delta, 60)) {
 			pump1_.stop(stop_types::pressure_low);
 			make_history(stop_types::pressure_low, pump1_.time_on());
 		}
 
-		// Trying for irrigation. It needs some tests.
-		if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_delta, 60)) {
+		// set pump state and expected pressure
+		if(pipe2_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k2, 60)) {
 			pump1_.stop(stop_types::pressure_low);
 			make_history(stop_types::pressure_low, pump1_.time_on());
 		}
@@ -1540,6 +1553,14 @@ void Acionna::operation_pump_control() {
 				pump1_.stop(stop_types::level_low);;
 	}
 	#endif
+
+	// check for PCY8575 module. Maybe this part should be inside valves class.
+	if(flag_check_valves_ == states_flag::enable) {
+		if((pump1_.state() == states_motor::on_nominal_delta) && (valves1_.state_valves == states_valves::automatic_switch)) {
+			valves1_.set_valve_state(valves1_.valve_current, 1);
+		}
+	}
+
 }
 void Acionna::operation_pump_valves_irrigation() {
 

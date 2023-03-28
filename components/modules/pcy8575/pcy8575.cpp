@@ -112,3 +112,10 @@ uint16_t pcy8575::irms(void) {
 	// }
 	return static_cast<uint16_t>((data[1] << 8) | (data[0]));
 }
+uint8_t pcy8575::reset_reason(void) {
+	uint8_t data;
+
+	i2c_->read(PCY8575_ADDR, PCY8575_REG_IRMS, &data);
+
+	return static_cast<uint8_t>(data[0]);
+}
