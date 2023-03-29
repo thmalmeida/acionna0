@@ -120,9 +120,6 @@ int I2C_Master::read(uint8_t slave_addr, uint8_t reg, uint8_t* data, size_t len,
 int I2C_Master::read(uint8_t slave_addr, uint8_t reg, uint8_t* data, bool ack_check /* = true */) {
 	return read(slave_addr, reg, data, 1, ack_check);
 }
-int read(uint8_t slave_addr, uint8_t reg, uint8_t* data) {
-	return read(slave_addr, reg, data, 1, true);
-}
 int I2C_Master::read(uint8_t slave_address, const uint8_t *write_buffer, size_t write_buffer_len, uint8_t *read_buffer, size_t read_buffer_len) {
 
 	esp_err_t ret = i2c_master_write_read_device(static_cast<i2c_port_t>(i2c_master_port_), slave_address, write_buffer, write_buffer_len, read_buffer, read_buffer_len, I2C_COMMAND_WAIT_MS / portTICK_PERIOD_MS);

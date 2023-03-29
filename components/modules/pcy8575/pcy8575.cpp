@@ -117,5 +117,5 @@ uint8_t pcy8575::reset_reason(void) {
 
 	i2c_->read(PCY8575_ADDR, PCY8575_REG_IRMS, &data);
 
-	return static_cast<uint8_t>(data[0]);
+	return static_cast<uint8_t>(data);
 }
