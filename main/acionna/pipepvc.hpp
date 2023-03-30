@@ -78,11 +78,14 @@ public:
 					air_detect_timer_increase++;
 
 					if(air_detect_timer_increase > 5) {
+
+						// if new read pressure is bellow 70% of previous one, slope is detected.
 						if(pressure_mca_ < 0.70*pressure_mca_previous) {
 							air_detect_state = air_detect_states::pressure_slope;
 							break;
 						}
 
+						// 
 						if(!(pressure_mca_ - pressure_mca_avg))
 						{
 							air_detect_count_increase++;
@@ -127,6 +130,8 @@ public:
 					pressure_mca_avg++;
 					pressure_mca_avg += pressure_mca_;
 					pressure_mca_avg >>= 1;
+				} else {
+					air_detect_state = air_detect_states::pressure_low_idle;
 				}
 				break;
 			}

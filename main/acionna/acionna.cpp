@@ -1520,6 +1520,12 @@ void Acionna::operation_pump_control() {
 			pump1_.stop(stop_types::pressure_low);
 			make_history(stop_types::pressure_low, pump1_.time_on());
 		}
+
+		// To main waterpump with 3 stages;
+		if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k1, 60)) {
+			pump1_.stop(stop_types::pressure_low);
+			make_history(stop_types::pressure_low, pump1_.time_on());
+		}
 	}
 
 	// check thermal relay
