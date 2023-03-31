@@ -64,7 +64,6 @@ public:
 					pressure_mca_avg = pressure_mca_;
 					pressure_mca_fi = pressure_mca_;
 				}
-
 				break;
 			}
 			case air_detect_states::pressure_increasing: {

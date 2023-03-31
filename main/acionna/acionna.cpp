@@ -779,6 +779,11 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					sprintf(buffer,"state mode: system_idle, s:%d\n", static_cast<int>(state_mode));
 					break;
 				}
+				case 2: {
+					state_mode = states_mode::irrigation_pump_valves;
+					sprintf(buffer,"state mode: auto irrigation s:%d\n", static_cast<int>(state_mode));
+					break;
+				}
 				default:
 				break;
 			}
@@ -1438,6 +1443,7 @@ void Acionna::operation_mode() {
 			break;
 
 		case states_mode::irrigation_pump_valves:
+			operation_pump_control();
 			operation_pump_valves_irrigation();
 			break;
 
@@ -1559,7 +1565,8 @@ void Acionna::operation_pump_control() {
 				pump1_.stop(stop_types::level_low);;
 	}
 	#endif
-
+}
+void Acionna::operation_pump_valves_irrigation() {
 	// check for PCY8575 module. Maybe this part should be inside valves class.
 	if(flag_check_valves_ == states_flag::enable) {
 		if((pump1_.state() == states_motor::on_nominal_delta) && (valves1_.state_valves == states_valves::automatic_switch)) {
@@ -1567,8 +1574,19 @@ void Acionna::operation_pump_control() {
 		}
 	}
 
-}
-void Acionna::operation_pump_valves_irrigation() {
+	if(flag_valves_programmed == states_flag::enable) {
+		if(valves1_.state_valves == states_valves::system_off) {
+			if(pump1_.state_motor_() == states_motor::on_nominal_delta) {
+				valves1_.start();
+			}
+		}
+	}
+
+	if(valves1_.state_valves == states_valves::automatic_switch) {
+		if(pump1_.state() != states_motor::on_nominal_delta) {
+			valves1_.stop();
+		}
+	}
 
 }
 void Acionna::operation_system_off() {
@@ -1614,7 +1632,7 @@ void Acionna::run(void) {
 
 	msg_back_();		// send answer back to origin;
 
-	update_all();		// update variables and rtc
+	update_all();		// update variables and rtc in a 1 second period time;
 
 	operation_mode();	// execution process
 }
