@@ -118,25 +118,16 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$70:k2:[0|1];		- contator K2 (not implemented);
 		$70:k3;
 		$70:k3:[0|1];		- contator K3 (not implemented);
+		$70:l1:[0|1];		- low pressure detection for on_nominal_k1 state motor using pipe1.
+		$70:l2:[0|1];		- low pressure detection for on_nominal_k2 state motor using pipe2.
+		$70:l4:[0|1];		- low pressure detection for on_nominal_delta state motor using pipe1.
 		$70:ph;
 		$70:ph:1|0;			- desligamento por alta pressão;
-		$70:pl;
+		$70:pl;				- low pressure global flag detection show.
+		$70:pl[0|1];		- Enable/disable low pressure global flag detection.
 		$70:pl:0-9;			- desligamento por pressão baixa em min caso seja diferente de 0;
 		$70:pv;
 		$70:pv:1|0;			- desligamento por pressão alta por válvula;
-
-	$8						- Funções de programação da irrigação;
-		$81;				- start valves sequence;
-		$80;				- stop valves sequence;
-		$8:[0|1];			- 0 sentido direto; 1 - sentido inverso na troca dos setores;
-		$8:01;				- mostra condições de configuração da válvula 01;
-		$8:01:[0|1];		- desaciona|aciona válvula 01;
-		$8:01:i;			- insere setor na programação;
-		$8:01:r;			- remove setor da programação;
-		$8:01:t:120;		- configura o tempo de irrigação [min];
-		$8:01:p:68;			- configura pressão nominal do setor [m.c.a.];
-		$8:01:t;			- mostra o tempo de irrigação do setor;
-		$8:01:p;			- mostra pressão nominal do setor
 
 	$8x						- Funções de programação da irrigação;
 		$80;				- show info
@@ -864,6 +855,45 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					
 						sprintf(buffer, "set check k3: %d\n", (int)flag_check_k3_);
 					}
+					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '1') && (command_str[6] == ';')) {
+					// $70:l1;
+						sprintf(buffer, "check low press k1: %d\n", static_cast<int>(flag_check_low_pressure_k1_));
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '1') && (command_str[6] == ':') && (command_str[8] == ';')) {
+					// $70:l1:[0|1];
+						if(opcode_sub0)
+							flag_check_low_pressure_k1_ = states_flag::enable;
+						else
+							flag_check_low_pressure_k1_ = states_flag::disable;
+					
+						sprintf(buffer, "set check low press k1: %d\n", static_cast<int>(flag_check_low_pressure_k1_));
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '2') && (command_str[6] == ';')) {
+					// $70:l2;
+						sprintf(buffer, "check low press k2: %d\n", static_cast<int>(flag_check_low_pressure_k2_));
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '2') && (command_str[6] == ':') && (command_str[8] == ';')) {
+					// $70:l2:[0|1];
+						if(opcode_sub0)
+							flag_check_low_pressure_k2_ = states_flag::enable;
+						else
+							flag_check_low_pressure_k2_ = states_flag::disable;
+					
+						sprintf(buffer, "set check low press k2: %d\n", static_cast<int>(flag_check_low_pressure_k2_);
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '4') && (command_str[6] == ';')) {
+					// $70:l4;
+						sprintf(buffer, "check low press delta: %d\n", static_cast<int>(flag_check_low_pressure_delta_));
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '4') && (command_str[6] == ':') && (command_str[8] == ';')) {
+					// $70:l4:[0|1];
+						if(opcode_sub0)
+							flag_check_low_pressure_delta_ = states_flag::enable;
+						else
+							flag_check_low_pressure_delta_ = states_flag::disable;
+					
+						sprintf(buffer, "set check k3: %d\n", static_cast<int>(flag_check_low_pressure_delta_));
+					}
 					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == 'h') && (command_str[6] == ';')) {
 					// $70:ph;
 						sprintf(buffer, "check press high: %d\n", (int)flag_check_pressure_high_);
@@ -1264,9 +1294,6 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 void Acionna::init() {
 	ESP_LOGI(TAG_ACIONNA, "initialization");
 
-	//
-	// i2c.init();
-
 	// Clock time init
 	dt.setDate(2022, 12, 20);
 	dt.setTime(0, 0, 0, ND);
@@ -1515,22 +1542,28 @@ void Acionna::operation_pump_control() {
 	// check low pressure
 	if(flag_check_pressure_low_ == states_flag::enable)
 	{
-		// Trying for irrigation. It needs some tests.
-		if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_delta, 60)) {
-			pump1_.stop(stop_types::pressure_low);
-			make_history(stop_types::pressure_low, pump1_.time_on());
+		if(flag_check_low_pressure_k1_) {
+			// To main waterpump with 3 stages;
+			if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k1, 60)) {
+				pump1_.stop(stop_types::pressure_low);
+				make_history(stop_types::pressure_low, pump1_.time_on());
+			}
 		}
 
-		// set pump state and expected pressure
-		if(pipe2_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k2, 60)) {
-			pump1_.stop(stop_types::pressure_low);
-			make_history(stop_types::pressure_low, pump1_.time_on());
+		if(flag_check_low_pressure_delta_) {
+			// Trying for irrigation. It needs some tests.
+			if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_delta, 60)) {
+				pump1_.stop(stop_types::pressure_low);
+				make_history(stop_types::pressure_low, pump1_.time_on());
+			}
 		}
 
-		// To main waterpump with 3 stages;
-		if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k1, 60)) {
-			pump1_.stop(stop_types::pressure_low);
-			make_history(stop_types::pressure_low, pump1_.time_on());
+		if(flag_check_low_pressure_k2_) {
+			// set pump state and expected pressure
+			if(pipe2_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k2, 60)) {
+				pump1_.stop(stop_types::pressure_low);
+				make_history(stop_types::pressure_low, pump1_.time_on());
+			}
 		}
 	}
 

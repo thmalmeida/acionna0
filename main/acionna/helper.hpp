@@ -25,8 +25,8 @@ enum class states_motor {
 	off_idle = 0,
 	on_nominal_k1,
 	on_nominal_k2,
-	on_nominal_delta,
 	on_speeding_up,
+	on_nominal_delta,
 	off_k3_short_circuit,
 	off_thermal_activated,
 	undefined

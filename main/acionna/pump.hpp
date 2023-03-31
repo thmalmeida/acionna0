@@ -38,7 +38,7 @@ public:
 	unsigned int time_wait_power_on_config = 600;	// [s]
 	unsigned int time_to_shutdown = 0;				// time variable to shutdown the motor [s].
 	unsigned int time_to_shutdown_config = 30*60;	// [s]
-	unsigned int time_switch_k_change = 600;		// [ms] delay on transition of k3 off to k2 on
+	unsigned int time_switch_k_change = 700;		// [ms] delay on transition of k3 off to k2 on
 	unsigned int time_delta_to_y_switch_ = 0;		// speeding up time from delta to Y start [s]
 	unsigned int time_delta_to_y_switch_config = 7;	// speeding up time from delta to Y start [s]
 
