@@ -861,8 +861,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '1') && (command_str[6] == ':') && (command_str[8] == ';')) {
 					// $70:l1:[0|1];
-						if(opcode_sub0)
+						if(opcode_sub0) {
 							flag_check_low_pressure_k1_ = states_flag::enable;
+							flag_check_low_pressure_delta_ = states_flag::disable;
+						}
 						else
 							flag_check_low_pressure_k1_ = states_flag::disable;
 					
@@ -879,7 +881,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						else
 							flag_check_low_pressure_k2_ = states_flag::disable;
 					
-						sprintf(buffer, "set check low press k2: %d\n", static_cast<int>(flag_check_low_pressure_k2_);
+						sprintf(buffer, "set check low press k2: %d\n", static_cast<int>(flag_check_low_pressure_k2_));
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '4') && (command_str[6] == ';')) {
 					// $70:l4;
@@ -887,8 +889,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '4') && (command_str[6] == ':') && (command_str[8] == ';')) {
 					// $70:l4:[0|1];
-						if(opcode_sub0)
+						if(opcode_sub0) {
 							flag_check_low_pressure_delta_ = states_flag::enable;
+							flag_check_low_pressure_k1_ = states_flag::disable;
+						}
 						else
 							flag_check_low_pressure_delta_ = states_flag::disable;
 					
@@ -1542,7 +1546,7 @@ void Acionna::operation_pump_control() {
 	// check low pressure
 	if(flag_check_pressure_low_ == states_flag::enable)
 	{
-		if(flag_check_low_pressure_k1_) {
+		if(flag_check_low_pressure_k1_ == states_flag::enable) {
 			// To main waterpump with 3 stages;
 			if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k1, 60)) {
 				pump1_.stop(stop_types::pressure_low);
@@ -1550,7 +1554,7 @@ void Acionna::operation_pump_control() {
 			}
 		}
 
-		if(flag_check_low_pressure_delta_) {
+		if(flag_check_low_pressure_delta_ == states_flag::enable) {
 			// Trying for irrigation. It needs some tests.
 			if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_delta, 60)) {
 				pump1_.stop(stop_types::pressure_low);
@@ -1558,7 +1562,7 @@ void Acionna::operation_pump_control() {
 			}
 		}
 
-		if(flag_check_low_pressure_k2_) {
+		if(flag_check_low_pressure_k2_ == states_flag::enable) {
 			// set pump state and expected pressure
 			if(pipe2_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k2, 60)) {
 				pump1_.stop(stop_types::pressure_low);
@@ -1607,13 +1611,14 @@ void Acionna::operation_pump_valves_irrigation() {
 		}
 	}
 
-	if(flag_valves_programmed == states_flag::enable) {
+	// if(flag_check_valves_time_match_ == states_flag::enable) {
 		if(valves1_.state_valves == states_valves::system_off) {
-			if(pump1_.state_motor_() == states_motor::on_nominal_delta) {
+			if(pump1_.state() == states_motor::on_nominal_delta) {
 				valves1_.start();
+				pump1_.time_to_shutdown = valves1_.time_total_cfg-3;
 			}
 		}
-	}
+	// }
 
 	if(valves1_.state_valves == states_valves::automatic_switch) {
 		if(pump1_.state() != states_motor::on_nominal_delta) {

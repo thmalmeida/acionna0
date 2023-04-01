@@ -113,7 +113,7 @@ private:
 	states_flag flag_check_timer = states_flag::enable;
 	states_flag flag_json_data_back = states_flag::disable;			// Continuously send data back. ws server mode.
 	states_flag flag_check_valves_ = states_flag::disable;			// continuously check valves through PCY8575 module
-	states_flag flag_valves_programmed_ = states_flag::disable;
+	states_flag flag_check_valves_time_match_ = states_flag::disable;
 	states_flag flag_check_low_pressure_ = states_flag::enable;			// global flag
 	states_flag flag_check_low_pressure_k1_ = states_flag::disable;
 	states_flag flag_check_low_pressure_k2_ = states_flag::enable;
