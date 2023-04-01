@@ -102,10 +102,8 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 	$6X;					- Modos de funcionamento;
 		$60; 				- Sistema Desligado não permite ligar;
-		$61;				- Sistema ocioso com permissão de acionamento manual (nunca ligará sozinho);
-		$62;				- Liga de modo automático nos determinados horários estipulados;
-		$63;				- Função para válvula do reservatório;
-		$64;				- Função para motobomba do reservatório;
+		$61;				- Sistema ocioso esperando um time match automático ou acionamento manual por linha de comando.
+		$62;				- Modo irrigação com controle das válvulas em modo de acionamento automático.
 
 	$7X						- Funções que habilitam ou desabilitam verificações de:
 		$70:rt;
@@ -1470,12 +1468,12 @@ void Acionna::operation_mode() {
 			operation_pump_control();
 			break;
 
-		case states_mode::water_pump_control_night:
-			break;
-
 		case states_mode::irrigation_pump_valves:
 			operation_pump_control();
 			operation_pump_valves_irrigation();
+			break;
+
+		case states_mode::water_pump_control_night:
 			break;
 
 		default:

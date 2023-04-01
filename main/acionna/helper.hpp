@@ -65,9 +65,9 @@ enum class stop_types {
 };
 enum class states_mode {
 	system_off = 0,					// never turn and don't let any load turn on;
-	system_idle,					// idle means that never turn any load automaticaly. But can work manual with all updates and checks
-	water_pump_control_night,
-	irrigation_pump_valves
+	system_idle,					// idle means that is waiting for time match or manual command line with all updates and checks;
+	irrigation_pump_valves,
+	water_pump_control_night
 };
 
 #endif
