@@ -1302,6 +1302,18 @@ void Acionna::init() {
 	device_clock.set_time(dt.getUnixTime());
 	time_day_sec_ = dt.getHour()*3600 + dt.getMinute()*60 + dt.getSecond();
 
+	// wifi and ws server init - ws server will ask to init into connection_event_handler when got IP.
+	wifi_sta_init();
+
+	// Bluetooth init
+	#ifdef CONFIG_BT_ENABLE
+	bt_init();
+	#endif
+	// Acionna init
+	// ws client initialize
+	// ws_client_start();
+
+
 	// Network connection init
 	#if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
 		device_clock.init(rtc);

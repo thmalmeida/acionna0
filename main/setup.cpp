@@ -125,18 +125,7 @@ void test_sensors(void *pvParameter) {
 
 void machine_run(void *pvParameter)
 {
-	// wifi and ws server init - ws server will ask to init into connection_event_handler when got IP.
-	wifi_sta_init();
-
-	// Bluetooth init
-	#ifdef CONFIG_BT_ENABLE
-	bt_init();
-	#endif
-	// Acionna init
 	Acionna acionna0;
-
-	// ws client initialize
-	// ws_client_start();
 
 	while(1)
 	{
