@@ -31,7 +31,6 @@
 
 #define WIFI_SSID_STA	CONFIG_WIFI_SSID
 #define WIFI_PASS		CONFIG_WIFI_PASSWORD
-#define IP_END			CONFIG_IP_END			// local ip end: 192.168.1.IP_END
 
 // #define WIFI_MAX_RETRY	600				    // CONFIG_ESP_MAXIMUM_RETRY
 // #define WIFI_SSID_AP    "0yd018"
@@ -53,10 +52,12 @@ enum class ip_states {
 	ip_defined
 };
 
+extern uint8_t wifi_ip_end;
+
 extern ip_states ip_state;
 extern conn_states wifi_state;
 
-void wifi_sta_init(void);
+void wifi_sta_init(uint8_t ip_end);
 void wifi_sta_stop(void);
 void wifi_get_info(void);
 void wifi_get_mac(uint8_t* wifi_mac);

@@ -1303,7 +1303,40 @@ void Acionna::init() {
 	time_day_sec_ = dt.getHour()*3600 + dt.getMinute()*60 + dt.getSecond();
 
 	// wifi and ws server init - ws server will ask to init into connection_event_handler when got IP.
-	wifi_sta_init();
+	#ifdef CONFIG_IP_END_FORCE
+	wifi_ip_end = CONFIG_IP_END;
+	wifi_sta_init(wifi_ip_end);
+	#else
+	// static ip select using the inner mac address.
+	char mac_device[18];
+	char buffer_temp[5];
+	uint8_t wifi_mac_[6];
+	wifi_get_mac(&wifi_mac_[0]);
+	char mac_table[3][18] = {
+							{"84:cc:a8:69:f6:f0"},	// .31 - test device;
+							{"84:cc:a8:69:97:7c"},	// .32 - poço cacimba;
+							{"84:cc:a8:69:9c:4c"}};	// .33 - irrigação.
+	// Converting uint8_t vector mac address to string
+	for(int i=0; i<6; i++) {
+		sprintf(buffer_temp, "%02x", wifi_mac_[i]);
+		strcat(mac_device, buffer_temp);
+		if(i < 5) {
+			strcat(mac_device, ":");
+		}
+	}
+	// Compare the mac and set ip address end byte;
+	if(strcmp(mac_device, &mac_table[0][0]) == 0) {
+		wifi_ip_end = 31;
+	} else if(strcmp(mac_device, &mac_table[1][0]) == 0) {
+		wifi_ip_end = 32;
+	} else if(strcmp(mac_device, &mac_table[2][0]) == 0) {
+		wifi_ip_end = 33;
+	} else {
+		wifi_ip_end = 30;
+	}
+	wifi_sta_init(wifi_ip_end);
+	#endif
+
 
 	// Bluetooth init
 	#ifdef CONFIG_BT_ENABLE
@@ -1448,7 +1481,7 @@ void Acionna::msg_json_back_(void) {
 
 			char buffer_str[150];
 			DynamicJsonDocument doc(1024);
-			doc["id"] = IP_END;
+			doc["id"] = wifi_ip_end;
 			doc["p1"] = pipe1_.pressure_mca();
 			doc["p2"] = pipe2_.pressure_mca();
 			doc["ton"] = pump1_.time_on();

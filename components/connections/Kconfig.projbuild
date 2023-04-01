@@ -19,11 +19,19 @@ menu "Connections configuration"
 			WiFi password (WPA or WPA2) for the example to use.
 			Can be left blank if the network has no security set.
 
-	config IP_END
-		int "WiFi ip end"
-		default "30"
+	config IP_END_FORCE
+		bool "Force ip end"
+		default 1
 		help
-			when static ip choose define ip end on lan network
+			Force ip end byte to device.
+
+	if IP_END_FORCE
+		config IP_END
+			int "WiFi ip end"
+			default "29"
+			help
+				when static ip choose define ip end on lan network
+	endif
 
 	config WS_SERVER_PORT
 		int "Websocket local server port connection"

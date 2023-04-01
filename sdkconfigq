@@ -1,7 +1,3 @@
-#
-# Automatically generated file. DO NOT EDIT.
-# Espressif IoT Development Framework (ESP-IDF) Project Configuration
-#
 CONFIG_SOC_BROWNOUT_RESET_SUPPORTED="Not determined"
 CONFIG_SOC_TWAI_BRP_DIV_SUPPORTED="Not determined"
 CONFIG_SOC_DPORT_WORKAROUND="Not determined"
@@ -318,9 +314,9 @@ CONFIG_PARTITION_TABLE_MD5=y
 # Connections configuration
 #
 CONFIG_BT_NAME="bt_00"
-CONFIG_WIFI_SSID="0yd020"
+CONFIG_WIFI_SSID="0yd017"
 CONFIG_WIFI_PASSWORD="praticamente"
-# CONFIG_IP_END_FORCE is not set
+CONFIG_IP_END=30
 CONFIG_WS_SERVER_PORT=9000
 CONFIG_WS_CLIENT_URI="ws://192.168.1.10"
 CONFIG_WS_CLIENT_PORT=8999

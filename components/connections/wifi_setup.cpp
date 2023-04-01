@@ -17,11 +17,12 @@ const char *TAG_WIFI = "wifi setup";
 const char *TAG_IP = "IP stuffs";
 
 static int s_retry_num = 0;
+uint8_t wifi_ip_end = 29;
 
 static pwm_ledc led_wifi(2, 1, 99, 1);
 
 
-void wifi_sta_init(void)
+void wifi_sta_init(uint8_t ip_end)
 {
 	// s_wifi_event_group = xEventGroupCreate();
 
@@ -43,7 +44,7 @@ void wifi_sta_init(void)
 
 			esp_netif_dhcpc_stop(my_sta);
 			esp_netif_ip_info_t ip_info;
-			IP4_ADDR(&ip_info.ip, 192, 168, 1, IP_END);
+			IP4_ADDR(&ip_info.ip, 192, 168, 1, ip_end);
 			IP4_ADDR(&ip_info.gw, 192, 168, 1, 1);
 			IP4_ADDR(&ip_info.netmask, 255, 255, 255, 0);
 			esp_netif_set_ip_info(my_sta, &ip_info);
