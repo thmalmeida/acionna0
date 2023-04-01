@@ -31,6 +31,8 @@ public:
 	int pressure_mca_avg = 0;
 	air_detect_states air_detect_state = air_detect_states::pressure_low_idle;
 
+	int n_samples = 10;
+
 //	int PRessHold=0;					// max pressure converted on turned on period;
 //	uint8_t PRessureRef = 0;			// max threshold pressure;
 //	uint8_t PRessureRef_Valve = 0;		// max threshold valve pressure to turn open;
@@ -163,7 +165,11 @@ private:
 
 
 	void update_pressure_(void) {
-		sensor_data_dig = adc_->read(channel_);
+		sensor_data_dig = 0;
+		for(int i=0; i<n_samples; i++) {
+			sensor_data_dig += adc_->read(channel_);
+		}
+		sensor_data_dig = sensor_data_dig/n_samples;
 		convert_pressure(sensor_data_dig);
 	}
 
