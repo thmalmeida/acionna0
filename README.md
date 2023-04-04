@@ -5,10 +5,12 @@ Acionna is a firmware implementation to control and control and monitoring loads
 # The system works above layers of control
 
 
+# Features
+	- intake air detect;
+
 # TODO list:
 - FSM valves needs works jointly with FSM machine control;
 - enhance low pressure dectection:
-    - intake air;
-    - broke main pipe;
+	- broke main pipe;
     - while running some valve sector, identifies if has some broke pipe;
     - prevent occurs when change valve sector.

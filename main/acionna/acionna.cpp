@@ -969,7 +969,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 																											timesec_to_hour(valves1_.get_time_on()),
 																											timesec_to_min(valves1_.get_time_on()),
 																											timesec_to_sec(valves1_.get_time_on()),
-																											valves1_.get_total_time_programmed(),
+																											static_cast<int>(valves1_.get_total_time_programmed()/60.0),
 																											valves1_.valve_current,
 																											timesec_to_hour(valves1_.time_valve_remain),
 																											timesec_to_min(valves1_.time_valve_remain),
@@ -1658,7 +1658,7 @@ void Acionna::operation_pump_valves_irrigation() {
 		if(valves1_.state_valves == states_valves::system_off) {
 			if(pump1_.state() == states_motor::on_nominal_delta) {
 				valves1_.start();
-				pump1_.time_to_shutdown = valves1_.time_total_cfg-3;
+				pump1_.time_to_shutdown = valves1_.get_total_time_programmed()-3;
 			}
 		}
 	// }

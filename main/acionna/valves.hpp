@@ -30,7 +30,7 @@ public:
 
 	states_valves state_valves = states_valves::system_off;
 	unsigned int valve_current = 0;		// 
-	unsigned int time_total_cfg = 0;	// sum of programmed valves time [s];	
+	// unsigned int time_total_cfg = 0;	// sum of programmed valves time [s];	
 	unsigned int time_valve_remain = 0;	// valve time elapsed before turn off [s];
 	unsigned int time_valve_change = 0;	// between changes to verify if pressure has been pressure recovered [s];
 	static const int number_valves = 12;
@@ -125,7 +125,7 @@ public:
 			}
 		}
 
-		return _total_time/60.0;
+		return _total_time;
 	}
 	void set_valve_state(int valve_id, int _valve_state) {
 		if(valve_id && (valve_id <= number_valves))	{
