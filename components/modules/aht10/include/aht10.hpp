@@ -59,12 +59,20 @@
 #define AHT10_STATUS_BIT_FIFO_FULL	1
 #define AHT10_STATUS_BIT_FIFO_EMPTY	0
 
+enum class aht10_mode {
+	NORMAL_MODE = 0,
+	CYCLE_MODE,
+	COMMAND_MODE,
+	CALIBRATE_ONLY_MODE,
+	A8_MODE
+};
+
 class aht10 {
 	public:
 	
 	aht10(I2C_Master *i2c);
 
-	void init(uint8_t mode);
+	void init(aht10_mode mode = aht10_mode::NORMAL_MODE);	
 	bool probe(void);
 	void soft_reset(void);
 		

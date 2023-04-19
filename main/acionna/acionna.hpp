@@ -107,12 +107,12 @@ private:
 	states_flag flag_check_pressure_high_ = states_flag::disable;
 	states_flag flag_check_pressure_valve_ = states_flag::disable;
 	states_flag flag_check_thermal_relay_ = states_flag::disable;
-	states_flag flag_start_request_ = states_flag::disable;			// flag request to start motor;
+	states_flag flag_start_request_ = states_flag::disable;				// flag request to start motor;
 	states_flag flag_check_time_match_ = states_flag::disable;
-	states_flag flag_time_match_ = states_flag::disable;			// flag when turn on time occurs;
-	states_flag flag_check_timer = states_flag::enable;
-	states_flag flag_json_data_back = states_flag::disable;			// Continuously send data back. ws server mode.
-	states_flag flag_check_valves_ = states_flag::disable;			// continuously check valves through PCY8575 module
+	states_flag flag_time_match_ = states_flag::disable;				// flag when turn on time occurs;
+	states_flag flag_check_timer_ = states_flag::enable;
+	states_flag flag_json_data_back_ = states_flag::disable;			// Continuously send data back. ws server mode.
+	states_flag flag_check_valves_ = states_flag::disable;				// continuously check valves through PCY8575 module
 	states_flag flag_check_valves_time_match_ = states_flag::disable;
 	states_flag flag_check_low_pressure_ = states_flag::enable;			// global flag
 	states_flag flag_check_low_pressure_k1_ = states_flag::disable;
@@ -130,7 +130,7 @@ private:
 	// Handle message process flags
 	// states_flag flag_enable_decode_ = states_flag::disable;
 
-	uint32_t uptime_ = 0;											// uptime in seconds
+	uint32_t uptime_ = 0;												// uptime in seconds
 	uint32_t time_day_sec_ = 0;
 
 	// communication member functions

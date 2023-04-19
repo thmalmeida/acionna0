@@ -126,6 +126,8 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$70:pl:0-9;			- desligamento por pressão baixa em min caso seja diferente de 0;
 		$70:pv;
 		$70:pv:1|0;			- desligamento por pressão alta por válvula;
+		$70:vc;				- Show valve check status;
+		$70:vc:[0|1];		- Enable disable valve check status;
 
 	$8x						- Funções de programação da irrigação;
 		$80;				- show info
@@ -214,10 +216,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						opcode_sub0 = atoi(_aux);
 
 						if(opcode_sub0 == 1) {
-							flag_json_data_back = states_flag::enable;
+							flag_json_data_back_ = states_flag::enable;
 						}
 						else if(!opcode_sub0) {
-							flag_json_data_back = states_flag::disable;
+							flag_json_data_back_ = states_flag::disable;
 						}
 					} // $00:[0|1]; 
 					break;
@@ -1477,7 +1479,7 @@ void Acionna::msg_back_(void) {
 }
 void Acionna::msg_json_back_(void) {
 	if(ws_server_client_state == conn_states::connected) {
-		if(flag_json_data_back == states_flag::enable) {
+		if(flag_json_data_back_ == states_flag::enable) {
 
 			char buffer_str[150];
 			DynamicJsonDocument doc(1024);
@@ -1497,8 +1499,8 @@ void Acionna::msg_json_back_(void) {
 		}
 	}
 	else {
-		if(flag_json_data_back == states_flag::enable) {
-			flag_json_data_back = states_flag::disable;
+		if(flag_json_data_back_ == states_flag::enable) {
+			flag_json_data_back_ = states_flag::disable;
 		}
 	}
 }
@@ -1626,7 +1628,7 @@ void Acionna::operation_pump_control() {
 	}
 
 	// check time to shutdown
-	if(flag_check_timer == states_flag::enable)
+	if(flag_check_timer_ == states_flag::enable)
 	{
 		if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_k2) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
 			if(!pump1_.time_to_shutdown) {
@@ -1647,21 +1649,19 @@ void Acionna::operation_pump_control() {
 	#endif
 }
 void Acionna::operation_pump_valves_irrigation() {
-	// check for PCY8575 module. Maybe this part should be inside valves class.
+	// check valves through PCY8575 module. Maybe this part should be inside valves class?
 	if(flag_check_valves_ == states_flag::enable) {
 		if((pump1_.state() == states_motor::on_nominal_delta) && (valves1_.state_valves == states_valves::automatic_switch)) {
 			valves1_.set_valve_state(valves1_.valve_current, 1);
 		}
 	}
 
-	// if(flag_check_valves_time_match_ == states_flag::enable) {
-		if(valves1_.state_valves == states_valves::system_off) {
-			if(pump1_.state() == states_motor::on_nominal_delta) {
-				valves1_.start();
-				pump1_.time_to_shutdown = valves1_.get_total_time_programmed()-3;
-			}
+	if(valves1_.state_valves == states_valves::system_off) {
+		if(pump1_.state() == states_motor::on_nominal_delta) {
+			valves1_.start();
+			pump1_.time_to_shutdown = valves1_.get_total_time_programmed()-3;
 		}
-	// }
+	}
 
 	if(valves1_.state_valves == states_valves::automatic_switch) {
 		if(pump1_.state() != states_motor::on_nominal_delta) {

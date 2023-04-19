@@ -31,7 +31,7 @@ I2C_Master::I2C_Master(int port, int scl, int sda, uint32_t freq, bool pull_up /
 I2C_Master::~I2C_Master() {
 	i2c_driver_delete(static_cast<i2c_port_t>(i2c_master_port_));
 }
-int I2C_Master::write(uint8_t slave_addr, uint8_t reg, uint8_t* data, size_t len, bool ack_check) {
+int I2C_Master::write(uint8_t slave_addr, uint8_t reg, uint8_t* data, size_t len, bool ack_check /* = true */) {
 	esp_err_t ret;
 
 	i2c_cmd_handle_t cmd_handle = i2c_cmd_link_create();
@@ -131,7 +131,7 @@ int I2C_Master::read(uint8_t slave_address, const uint8_t *write_buffer, size_t 
 
 	return I2C_ERR_OK;
 }
-int I2C_Master::read_only(uint8_t slave_addr, uint8_t* data, size_t data_len, bool ack_check) {
+int I2C_Master::read_only(uint8_t slave_addr, uint8_t* data, size_t data_len, bool ack_check /* = true */) {
 
 	// Read only: read start	
 	i2c_cmd_handle_t cmd_handle = i2c_cmd_link_create();

@@ -37,9 +37,9 @@ class I2C_Master{
 		// void init(int intr_alloc_flags = 0);
 		// void deinit();
 
-		int write(uint8_t slave_addr, uint8_t reg, uint8_t* data, size_t len, bool ack_check);
-		int write(uint8_t slave_addr, uint8_t reg, uint8_t data, bool ack_check);
-		int write(uint8_t slave_addr, uint8_t reg, bool ack_check);
+		int write(uint8_t slave_addr, uint8_t reg, uint8_t* data, size_t len, bool ack_chec = true);
+		int write(uint8_t slave_addr, uint8_t reg, uint8_t data, bool ack_check = true);
+		int write(uint8_t slave_addr, uint8_t reg, bool ack_check = true);
 		int write(uint8_t slave_addr, uint8_t *data, uint8_t data_len);
 
 		int set_mask(uint8_t slave_addr, uint8_t reg, uint8_t data, uint8_t mask, bool ack_check = true);

@@ -5,7 +5,7 @@ const char* TAG_AHT10 = "AHT10";
 aht10::aht10(I2C_Master *i2c) : i2c_(i2c) {
 
 }
-void aht10::init(uint8_t mode) {
+void aht10::init(aht10_mode mode) {
 
 	if(first_init_) {
 		first_init_ = 0;
@@ -13,7 +13,8 @@ void aht10::init(uint8_t mode) {
 		delay_ms(AHT10_DELAY_POWER_ON);
 
 		// Soft reset before init
-		soft_reset();
+		printf("AHT10 RESET!\n");
+		soft_reset();	
 	}
 
 	// small delay before any command;
@@ -21,60 +22,60 @@ void aht10::init(uint8_t mode) {
 
 	// Command to initialize
 	uint8_t data_cmd[2];
-	uint8_t data_cmd_mode = 0x48;
+	uint8_t data_cmd_mode = 0x00;	// suppose to be 0x48 ?
 	
 	switch(mode) {
-		case 1:
-			ESP_LOGI(TAG_AHT10, "Init Cycle mode");
+		default:
+			printf("Init Normal Mode\n");
+			data_cmd_mode = (AHT10_INIT_CTRL_NORMAL_MODE | AHT10_INIT_CTRL_CAL_ON);
+			break;		
+
+		case aht10_mode::CYCLE_MODE:
+			printf("Init Cycle mode\n");
 			data_cmd_mode = (AHT10_INIT_CTRL_CYCLE_MODE | AHT10_INIT_CTRL_CAL_ON);
 			break;
 
-		case 2:
-			ESP_LOGI(TAG_AHT10, "Init Command Mode");
+		case aht10_mode::COMMAND_MODE:
+			printf("Init Command Mode\n");
 			data_cmd_mode = (AHT10_INIT_CTRL_CMD_MODE | AHT10_INIT_CTRL_CAL_ON);
 			break;
 
-		case 3:
-			ESP_LOGI(TAG_AHT10, "Init Calibrate only");
+		case aht10_mode::CALIBRATE_ONLY_MODE:
+			printf("Init Calibrate only\n");
 			data_cmd_mode = AHT10_INIT_CTRL_CAL_ON;
 			break;
 	
-		case 4:
-			ESP_LOGI(TAG_AHT10, "Init mode 0xA8");
+		case aht10_mode::A8_MODE:
+			printf("Init mode 0xA8\n");
 			data_cmd_mode = 0xA8; // some codes show this way
-			break;
-
-		default:
-			ESP_LOGI(TAG_AHT10, "Init Normal Mode");
-			data_cmd_mode = (AHT10_INIT_CTRL_NORMAL_MODE | AHT10_INIT_CTRL_CAL_ON);
 			break;
 	}
 
 	data_cmd[0] = data_cmd_mode;
 	data_cmd[1] = AHT10_NOP_CTRL;
 
-	i2c_->write(AHT10_ADDR, AHT10_REG_INIT, &data_cmd[0], 2, true);
+	i2c_->write(AHT10_ADDR, AHT10_REG_INIT, &data_cmd[0], 2);
 }
 bool aht10::probe(void) {
 	
 	delay_ms(AHT10_DELAY_CMD);
 
 	bool alive = i2c_->probe(AHT10_ADDR);
-	ESP_LOGI(TAG_AHT10, "probe: %d", static_cast<int>(alive));
+	// printf("probe: %d", static_cast<int>(alive));
 	return alive;
 }
 void aht10::soft_reset(void) {
-	ESP_LOGI(TAG_AHT10, "cmd soft reset");
-	i2c_->write(AHT10_ADDR, AHT10_REG_SOFT_RST, true);
+	printf("cmd soft reset\n");
+	i2c_->write(AHT10_ADDR, AHT10_REG_SOFT_RST);
 	delay_ms(AHT10_DELAY_SOFT_RESET);
 }
 uint8_t aht10::read_status_register(void) {
 
 	delay_ms(AHT10_DELAY_CMD);
 
-	ESP_LOGI(TAG_AHT10, "cmd status register");
+	printf("cmd status register\n");
 	// way 1
-	i2c_->read(AHT10_ADDR, AHT10_REG_READ_STATUS, &status_byte_, true);
+	i2c_->read(AHT10_ADDR, AHT10_REG_READ_STATUS, &status_byte_);
 	// -----
 
 	// way 2
@@ -98,17 +99,17 @@ void aht10::trig_meas(void) {
 	data_cmd[0] = AHT10_START_MEAS_CTRL;
 	data_cmd[1] = AHT10_NOP_CTRL;
 
-	i2c_->write(AHT10_ADDR, AHT10_REG_TRIG_MEAS, &data_cmd[0], 2, true);
+	i2c_->write(AHT10_ADDR, AHT10_REG_TRIG_MEAS, &data_cmd[0], 2);
 
 	// wait at least 75 ms
 	delay_ms(75);
 
 	// Read only after write. There are six bytes to read
-	i2c_->read_only(AHT10_ADDR, &data_raw_[0], 6, true);
+	i2c_->read_only(AHT10_ADDR, &data_raw_[0], 6);
 
 	// refresh status byte
 	status_byte_ = data_raw_[0];
-	// ESP_LOGI(TAG_AHT10, "Trig meas with data_raw_[0]= 0x%02x", data_raw_[0]);
+	// printf("Trig meas with data_raw_[0]= 0x%02x", data_raw_[0]);
 }
 bool aht10::get_status_bit(uint8_t bit_select, bool new_read) {
 
@@ -155,14 +156,14 @@ void aht10::print_status_bits(void) {
 		sprintf(buffer_temp, "%d", status_byte[i]);
 		strcat(buffer, buffer_temp);
 	}
-	ESP_LOGI(TAG_AHT10, "%s", buffer);
+	printf("%s", buffer);
 }
 void aht10::print_raw_data(void) {
 	const int data_len = 6;
 
 	for(int i=0; i<data_len; i++) {
-		ESP_LOGI(TAG_AHT10, "data[%d]= %d",i, data_raw_[i]);
+		printf("data[%d]= %d",i, data_raw_[i]);
 	}
 
-	ESP_LOGI(TAG_AHT10, "humidity: %f, temperature: %f", get_humidity(), get_temperature());
+	printf("humidity: %f, temperature: %f", get_humidity(), get_temperature());
 }
