@@ -1,5 +1,7 @@
 #include "adc.hpp"
 
+static const char *TAG_ADC = "ADC";
+
 // static TaskHandle_t s_task_handle;
 // static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
 // {
@@ -12,19 +14,32 @@
 // ADC_driver::ADC_driver(int channel) : channel_{static_cast<adc_channel_t>(channel)} {
 // 	init_driver_oneshot();
 // }
-ADC_driver::ADC_driver(void) {
-	init_driver_oneshot();
+ADC_driver::ADC_driver(adc_mode mode = adc_mode::oneshot) {
+
+	switch (mode) {
+		case adc_mode::oneshot: {
+			oneshot_init();
+			break;
+		}
+		case adc_mode::stream: {
+			stream_init();
+			break;
+		}
+	}
 }
 ADC_driver::~ADC_driver(void) {
 	deinit_driver_oneshot();
 }
-void ADC_driver::init_driver_oneshot(void) {
+void ADC_driver::oneshot_init(void) {
 	// 1 - Resource Allocation (init)
 	// adc_oneshot_unit_handle_t adc1_handle_;
 	adc_oneshot_unit_init_cfg_t init_config1 = {
 		.unit_id = unit_,							// ADC select
-		.ulp_mode = ADC_ULP_MODE_DISABLE,
+		// .ulp_mode = ADC_ULP_MODE_DISABLE,
+		// .clk_src = ADC_RTC_CLK_SRC_DEFAULT
 	};
+
+	// init_config1.clk_src = ADC_DIGI_CLK_SRC_DEFAULT;
 
 	// 1.1 - install driver and ADC instance
 	ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config1, &adc1_handle_));
@@ -115,6 +130,76 @@ int ADC_driver::read(int channel) {
 
 	return data_adc_raw;
 }
+// Stream functions - ADC DMA Continuous mode
+void ADC_driver::stream_init(void) {
+
+	memset(result, 0xcc, READ_LENGTH);
+
+	stream_config();
+}
+void ADC_driver::stream_callback_config(void) {
+	// callback config
+	// stream_callback.on_conv_done = 
+	// ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(stream_handle))
+}
+void ADC_driver::stream_config(void) {
+	// ----- Resource Allocation -----
+
+	// Driver initialize on ADC Continuous Mode
+	adc_continuous_handle_cfg_t adc_config;
+	adc_config.max_store_buf_size = 1024;
+	adc_config.conv_frame_size = 256;
+	ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &stream_handle));
+
+	// Configurations of ADC
+	adc_digi_pattern_config_t pattern_table[ADC_CHANNELS_NUMBER];
+
+	pattern_table[0].atten = ADC_ATTEN_DB_11;
+	pattern_table[0].channel = ADC_CHANNEL_0;
+	pattern_table[0].unit = ADC_UNIT_1;
+	pattern_table[0].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
+
+	int i = 0;
+	ESP_LOGI(TAG_ADC, "pattern_table[%d].atten is :%x", i, pattern_table[i].atten);
+	ESP_LOGI(TAG_ADC, "pattern_table[%d].channel is :%x", i, pattern_table[i].channel);
+	ESP_LOGI(TAG_ADC, "pattern_table[%d].unit is :%x", i, pattern_table[i].unit);
+	ESP_LOGI(TAG_ADC, "pattern_table[%d].bit_width is :%u", i, pattern_table[i].unit);
+
+	adc_continuous_config_t stream_dig_config;
+	stream_dig_config.pattern_num = 1;							// number of ADC channel;
+	stream_dig_config.adc_pattern = &pattern_table[0];			// list of configs for each ADC channel
+	stream_dig_config.sample_freq_hz = 20*1000;					// Sampling frequency [Samples/s]
+	stream_dig_config.conv_mode = ADC_CONV_SINGLE_UNIT_1;		// ADC digital controller (DMA mode) working mode. Only ADC1 for conversion
+	stream_dig_config.format = ADC_DIGI_OUTPUT_FORMAT_TYPE1;	// output data format?
+
+	ESP_ERROR_CHECK(adc_continuous_config(stream_handle, &stream_dig_config));
+}
+void ADC_driver::stream_start(void) {
+	adc_continuous_start(stream_handle);
+	adc_state_ = adc_states::running;
+}
+void ADC_driver::stream_stop(void) {
+	ESP_ERROR_CHECK(adc_continuous_stop(stream_handle));
+	adc_state_ = adc_states::stopped;
+}
+void ADC_driver::stream_read(int channel, uint16_t* buffer, int length) {
+
+	if(adc_state_ == adc_states::stopped) {
+		stream_start();
+	}
+
+	uint32_t length_out = 0;
+	adc_continuous_read(stream_handle, result, static_cast<uint32_t>(length), &length_out, 0);
+	for(int i=0; i<length_out; i += SOC_ADC_DIGI_RESULT_BYTES) {
+		adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
+		buffer[i] = p->type1.data;
+	}
+	ESP_LOGI(TAG_ADC, "len: %d, len_out:%lu", length, length_out);
+}
+void ADC_driver::stream_deinit(void) {
+	// Recycle the ADC Unit
+	adc_continuous_deinit(stream_handle);
+}
 
 bool ADC_driver::adc_calibration_init(adc_unit_t unit, adc_atten_t atten, adc_cali_handle_t *out_handle)
 {
@@ -178,13 +263,13 @@ void ADC_driver::adc_calibration_deinit(adc_cali_handle_t handle)
 }
 void ADC_driver::calibrate(void) {
 
-	if (do_calibration1) {
-		ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_handle_, adc_raw[0][0], &voltage[0][0]));
-		ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC1_CHAN0, voltage[0][0]);
+	// if (do_calibration1) {
+	// 	ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_handle_, adc_raw[0][0], &voltage[0][0]));
+	// 	ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC1_CHAN0, voltage[0][0]);
 
-		ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_handle_, adc_raw[0][1], &voltage[0][1]));
-		ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC1_CHAN1, voltage[0][1]);
-	}
+	// 	ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_handle_, adc_raw[0][1], &voltage[0][1]));
+	// 	ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC1_CHAN1, voltage[0][1]);
+	// }
 }
 
 
