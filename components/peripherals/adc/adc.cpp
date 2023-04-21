@@ -147,8 +147,8 @@ void ADC_driver::stream_config(void) {
 
 	// Driver initialize on ADC Continuous Mode
 	adc_continuous_handle_cfg_t adc_config;
-	adc_config.max_store_buf_size = 1024;
-	adc_config.conv_frame_size = 256;
+	adc_config.max_store_buf_size = 2800;
+	adc_config.conv_frame_size = 1400;
 	ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &stream_handle));
 
 	// Configurations of ADC
@@ -168,7 +168,7 @@ void ADC_driver::stream_config(void) {
 	adc_continuous_config_t stream_dig_config;
 	stream_dig_config.pattern_num = 1;							// number of ADC channel;
 	stream_dig_config.adc_pattern = &pattern_table[0];			// list of configs for each ADC channel
-	stream_dig_config.sample_freq_hz = 20*1000;					// Sampling frequency [Samples/s]
+	stream_dig_config.sample_freq_hz = 21000;					// Sampling frequency [Samples/s] 20 kS/s to 2 MS/s.
 	stream_dig_config.conv_mode = ADC_CONV_SINGLE_UNIT_1;		// ADC digital controller (DMA mode) working mode. Only ADC1 for conversion
 	stream_dig_config.format = ADC_DIGI_OUTPUT_FORMAT_TYPE1;	// output data format?
 
@@ -189,12 +189,22 @@ void ADC_driver::stream_read(int channel, uint16_t* buffer, int length) {
 	}
 
 	uint32_t length_out = 0;
-	adc_continuous_read(stream_handle, result, static_cast<uint32_t>(length), &length_out, 0);
-	for(int i=0; i<length_out; i += SOC_ADC_DIGI_RESULT_BYTES) {
-		adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
-		buffer[i] = p->type1.data;
+	uint16_t data_raw = 1;
+	int i = 0, j = 0;
+	adc_continuous_read(stream_handle, result, 2*static_cast<uint32_t>(length), &length_out, 0);
+	for(i=0; i<length_out; i += SOC_ADC_DIGI_RESULT_BYTES) {
+		adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t*>(&result[i]);
+		// adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
+		data_raw = p->type1.data;
+		if(data_raw < 4096) {
+			if(data_raw > 10) {
+				buffer[i] = data_raw;
+				j++;
+				printf("%u ", data_raw);
+			}
+		}
 	}
-	ESP_LOGI(TAG_ADC, "len: %d, len_out:%lu", length, length_out);
+	ESP_LOGI(TAG_ADC, "len: %d, len_out:%lu, j:%d", length, length_out, j);
 }
 void ADC_driver::stream_deinit(void) {
 	// Recycle the ADC Unit

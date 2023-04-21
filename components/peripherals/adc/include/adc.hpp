@@ -21,12 +21,8 @@
 
 #include "sdkconfig.h"
 
-#define ADC1_CHAN0			ADC_CHANNEL_4
+#define ADC1_CHAN0			ADC_CHANNEL_0
 #define ADC1_CHAN1			ADC_CHANNEL_7
-
-// Continuous macros
-#define READ_LEN   256
-
 
 // #define DEFAULT_VREF    1110        //Use adc2_vref_to_gpio() to obtain a better estimate
 // #define NO_OF_SAMPLES   16          //Multisampling
@@ -55,7 +51,11 @@
  */
 
 #define ADC_CHANNELS_NUMBER 1
-#define READ_LENGTH 256
+// Continuous macros
+#define POINTS_PER_CYCLE	300
+#define N_CYCLES			2
+#define READ_LENGTH 4*POINTS_PER_CYCLE*N_CYCLES
+
 
 enum class adc_mode {
 	oneshot = 0,
