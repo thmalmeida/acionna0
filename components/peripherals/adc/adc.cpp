@@ -135,40 +135,52 @@ void ADC_driver::stream_init(void) {
 
 	memset(result, 0xcc, READ_LENGTH);
 
-	stream_config();
+	// stream_config();
 }
 void ADC_driver::stream_callback_config(void) {
 	// callback config
 	// stream_callback.on_conv_done = 
 	// ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(stream_handle))
 }
-void ADC_driver::stream_config(void) {
+void ADC_driver::stream_config(int channel, int attenuation) {
+	int _channels_list[1];
+	int _attenuations_list[1];
+	_channels_list[0] = channel;
+	_attenuations_list[0] = attenuation;
+	stream_config(&_channels_list[0], &_attenuations_list[0], 1);
+}
+void ADC_driver::stream_config(int* channels_list, int* attenuations_list, int n_channels) {
+	
 	// ----- Resource Allocation -----
 
-	// Driver initialize on ADC Continuous Mode
+	/*	_______________________________ One conversion Frame ________________________________
+		| Conversion Result |  Conversion Result |  Conversion Result |  Conversion Result  |
+	*/
+
+	// Driver initialize on ADC Continuous Mode - set the conversion frame size that contains conversion results
 	adc_continuous_handle_cfg_t adc_config;
-	adc_config.max_store_buf_size = 2800;
-	adc_config.conv_frame_size = 1400;
+	adc_config.max_store_buf_size = POINTS_PER_CYCLE*N_CYCLES*SOC_ADC_DIGI_DATA_BYTES_PER_CONV;
+	adc_config.conv_frame_size = POINTS_PER_CYCLE*N_CYCLES*SOC_ADC_DIGI_RESULT_BYTES;//SOC_ADC_DIGI_DATA_BYTES_PER_CONV;
 	ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &stream_handle));
 
-	// Configurations of ADC
+	// Configurations of ADC - fill the pattern table
 	adc_digi_pattern_config_t pattern_table[ADC_CHANNELS_NUMBER];
+	for(int i=0; i<n_channels; i++) {
+		pattern_table[i].channel = static_cast<adc_channel_t>(channels_list[i]);	// ADC_CHANNEL_0	
+		pattern_table[i].atten = static_cast<adc_atten_t>(attenuations_list[i]);	// ADC_ATTEN_DB_11
+		pattern_table[i].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
+		pattern_table[i].unit = ADC_UNIT_1;
 
-	pattern_table[0].atten = ADC_ATTEN_DB_11;
-	pattern_table[0].channel = ADC_CHANNEL_0;
-	pattern_table[0].unit = ADC_UNIT_1;
-	pattern_table[0].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
-
-	int i = 0;
-	ESP_LOGI(TAG_ADC, "pattern_table[%d].atten is :%x", i, pattern_table[i].atten);
-	ESP_LOGI(TAG_ADC, "pattern_table[%d].channel is :%x", i, pattern_table[i].channel);
-	ESP_LOGI(TAG_ADC, "pattern_table[%d].unit is :%x", i, pattern_table[i].unit);
-	ESP_LOGI(TAG_ADC, "pattern_table[%d].bit_width is :%u", i, pattern_table[i].unit);
+		ESP_LOGI(TAG_ADC, "pattern_table[%d].channel is :%x", i, pattern_table[i].channel);
+		ESP_LOGI(TAG_ADC, "pattern_table[%d].atten is :%x", i, pattern_table[i].atten);
+		ESP_LOGI(TAG_ADC, "pattern_table[%d].bit_width is :%u", i, pattern_table[i].unit);
+		ESP_LOGI(TAG_ADC, "pattern_table[%d].unit is :%x", i, pattern_table[i].unit);
+	}
 
 	adc_continuous_config_t stream_dig_config;
-	stream_dig_config.pattern_num = 1;							// number of ADC channel;
+	stream_dig_config.pattern_num = n_channels;					// number of ADC channels;
 	stream_dig_config.adc_pattern = &pattern_table[0];			// list of configs for each ADC channel
-	stream_dig_config.sample_freq_hz = 21000;					// Sampling frequency [Samples/s] 20 kS/s to 2 MS/s.
+	stream_dig_config.sample_freq_hz = 25650;					// Sampling frequency [Samples/s] 20 kS/s to 2 MS/s.
 	stream_dig_config.conv_mode = ADC_CONV_SINGLE_UNIT_1;		// ADC digital controller (DMA mode) working mode. Only ADC1 for conversion
 	stream_dig_config.format = ADC_DIGI_OUTPUT_FORMAT_TYPE1;	// output data format?
 
@@ -189,22 +201,33 @@ void ADC_driver::stream_read(int channel, uint16_t* buffer, int length) {
 	}
 
 	uint32_t length_out = 0;
-	uint16_t data_raw = 1;
+	uint16_t data_raw = 0;
 	int i = 0, j = 0;
-	adc_continuous_read(stream_handle, result, 2*static_cast<uint32_t>(length), &length_out, 0);
-	for(i=0; i<length_out; i += SOC_ADC_DIGI_RESULT_BYTES) {
-		adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t*>(&result[i]);
-		// adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
-		data_raw = p->type1.data;
-		if(data_raw < 4096) {
-			if(data_raw > 10) {
-				buffer[i] = data_raw;
-				j++;
-				printf("%u ", data_raw);
-			}
-		}
+	uint32_t length_exp = static_cast<uint32_t>(2*length);
+
+	adc_continuous_read(stream_handle, result, length_exp, &length_out, 0);
+
+	// adc_digi_output_data_t a[2];
+	// ESP_LOGI(TAG_ADC, "SIZE:%d", sizeof(a));
+	
+	for(i=0; i<length_out; i += SOC_ADC_DIGI_RESULT_BYTES) {	// SOC_ADC_DIGI_DATA_BYTES_PER_CONV = 4 and SOC_ADC_DIGI_RESULT_BYTES = 2
+		// adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t*>(&result[i]);
+		adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
+		data_raw = static_cast<uint16_t>(p->type1.data);
+		// printf("channel: %d, data:%d\n", p->type1.channel, p->type1.data);
+		buffer[i/2] = data_raw;
+		j++;
+		// printf("%u, ", data_raw);
+		// if(data_raw < 4096) {
+		// 	if(data_raw > 10) {
+		// 		buffer[i] = data_raw;
+		// 		j++;
+		// 		printf("%u ", data_raw);
+		// 	}
+		// }
 	}
-	ESP_LOGI(TAG_ADC, "len: %d, len_out:%lu, j:%d", length, length_out, j);
+	ESP_LOGI(TAG_ADC, "RAM free:%lu, min:%lu\n", esp_get_free_internal_heap_size(), esp_get_minimum_free_heap_size());
+	ESP_LOGI(TAG_ADC, "\nlen_exp: %lu, len_out:%lu, i:%d, j:%d", length_exp, length_out, i, j);
 }
 void ADC_driver::stream_deinit(void) {
 	// Recycle the ADC Unit

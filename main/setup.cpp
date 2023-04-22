@@ -125,13 +125,15 @@ void test_sensors(void *pvParameter) {
 void test_adc_dma(void *pvParameter) {
 	
 	ADC_driver adc0(adc_mode::stream);
-	const int n_samples = 700;
+	adc0.stream_config(0, 3);
+	const int n_samples = POINTS_PER_CYCLE*N_CYCLES;
 	uint16_t adc_buffer[n_samples];
 	
 	while(1) {
 		adc0.stream_read(0, &adc_buffer[0], n_samples);
-		printf("adc_buffer: ");
-		// for(int i=0; i<n_samples; i++) {
+		// adc0.stream_stop();
+		// printf("adc_buffer: ");
+		// for(int i=0; i<POINTS_PER_CYCLE*N_CYCLES; i++) {
 		// 	printf("%u ", adc_buffer[i]);
 		// }
 		// printf("\n");

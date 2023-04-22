@@ -52,9 +52,9 @@
 
 #define ADC_CHANNELS_NUMBER 1
 // Continuous macros
-#define POINTS_PER_CYCLE	300
+#define POINTS_PER_CYCLE	350
 #define N_CYCLES			2
-#define READ_LENGTH 4*POINTS_PER_CYCLE*N_CYCLES
+#define READ_LENGTH 		POINTS_PER_CYCLE*N_CYCLES*SOC_ADC_DIGI_DATA_BYTES_PER_CONV
 
 
 enum class adc_mode {
@@ -104,7 +104,8 @@ public:
 
 	void stream_init(void);
 	void stream_callback_config(void); 
-	void stream_config(void);
+	void stream_config(int channel, int attenuation);
+	void stream_config(int* channels_list, int* attenuations_list, int n_channels);
 	void stream_start(void);
 	void stream_stop(void);
 	void stream_read(int channel, uint16_t* buffer, int length);
