@@ -131,9 +131,8 @@ void test_adc_dma(void *pvParameter) {
 	
 	while(1) {
 		adc0.stream_read(0, &adc_buffer[0], n_samples);
-		// adc0.stream_stop();
 		// printf("adc_buffer: ");
-		// for(int i=0; i<POINTS_PER_CYCLE*N_CYCLES; i++) {
+		// for(int i=0; i<n_samples; i++) {
 		// 	printf("%u ", adc_buffer[i]);
 		// }
 		// printf("\n");

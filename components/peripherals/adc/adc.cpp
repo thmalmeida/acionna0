@@ -180,7 +180,7 @@ void ADC_driver::stream_config(int* channels_list, int* attenuations_list, int n
 	adc_continuous_config_t stream_dig_config;
 	stream_dig_config.pattern_num = n_channels;					// number of ADC channels;
 	stream_dig_config.adc_pattern = &pattern_table[0];			// list of configs for each ADC channel
-	stream_dig_config.sample_freq_hz = 25650;					// Sampling frequency [Samples/s] 20 kS/s to 2 MS/s.
+	stream_dig_config.sample_freq_hz = 25600;					// Sampling frequency [Samples/s] 20 kS/s to 2 MS/s.
 	stream_dig_config.conv_mode = ADC_CONV_SINGLE_UNIT_1;		// ADC digital controller (DMA mode) working mode. Only ADC1 for conversion
 	stream_dig_config.format = ADC_DIGI_OUTPUT_FORMAT_TYPE1;	// output data format?
 
@@ -213,11 +213,11 @@ void ADC_driver::stream_read(int channel, uint16_t* buffer, int length) {
 	for(i=0; i<length_out; i += SOC_ADC_DIGI_RESULT_BYTES) {	// SOC_ADC_DIGI_DATA_BYTES_PER_CONV = 4 and SOC_ADC_DIGI_RESULT_BYTES = 2
 		// adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t*>(&result[i]);
 		adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
-		data_raw = static_cast<uint16_t>(p->type1.data);
+	
 		// printf("channel: %d, data:%d\n", p->type1.channel, p->type1.data);
-		buffer[i/2] = data_raw;
+		buffer[i/2] = static_cast<uint16_t>(p->type1.data);;
+		printf("%u, ", buffer[i/2]);
 		j++;
-		// printf("%u, ", data_raw);
 		// if(data_raw < 4096) {
 		// 	if(data_raw > 10) {
 		// 		buffer[i] = data_raw;
@@ -226,8 +226,8 @@ void ADC_driver::stream_read(int channel, uint16_t* buffer, int length) {
 		// 	}
 		// }
 	}
-	ESP_LOGI(TAG_ADC, "RAM free:%lu, min:%lu\n", esp_get_free_internal_heap_size(), esp_get_minimum_free_heap_size());
-	ESP_LOGI(TAG_ADC, "\nlen_exp: %lu, len_out:%lu, i:%d, j:%d", length_exp, length_out, i, j);
+	ESP_LOGI(TAG_ADC, "RAM free:%lu, min:%lu", esp_get_free_internal_heap_size(), esp_get_minimum_free_heap_size());
+	ESP_LOGI(TAG_ADC, "len_exp: %lu, len_out:%lu, i:%d, j:%d", length_exp, length_out, i, j);
 }
 void ADC_driver::stream_deinit(void) {
 	// Recycle the ADC Unit
