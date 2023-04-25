@@ -11,6 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 						components/basic_defines
 						components/connections
 						components/crc
+						components/dsp
 						components/eeprom
 						components/helper
 						components/modules

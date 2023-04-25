@@ -126,11 +126,59 @@ void test_adc_dma(void *pvParameter) {
 	
 	ADC_driver adc0(adc_mode::stream);
 	adc0.stream_config(0, 3);
+
+	// Number of samples depends of sample frequency, signal frequency and number of cycles;
 	const int n_samples = POINTS_PER_CYCLE*N_CYCLES;
+
+	// adc raw data array;
 	uint16_t adc_buffer[n_samples];
+
+	// time domain load current;
+	double iL_t[n_samples];
+
+	// rms load current;
+	double iL_rms;
+
+	// some dsp process;
+	rms s0;
 	
 	while(1) {
+
+		// Read stream array from ADC using DMA;
 		adc0.stream_read(0, &adc_buffer[0], n_samples);
+
+		// Convert digital ADC raw array to iL(t) signal;
+		s0.calc_iL_t(&adc_buffer[0], &iL_t[0], n_samples);
+
+		// Find the RMS value from iL(t) signal
+		iL_rms = s0.calc_rms(&iL_t[0], n_samples);
+
+		// print adc raw values for debug purposes
+		printf("adc_buffer: ");
+		for(int i=0; i<n_samples; i++) {
+			printf("%u, ", adc_buffer[i]);
+		}
+		printf("\n");
+
+		// print rms load current in Amperes
+		ESP_LOGI(TAG_SETUP, "iL_rms:%.2lf A\n", iL_rms);
+
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+	}
+}
+void test_adc(void *pvParameter) {
+	
+	ADC_driver adc0(adc_mode::oneshot);
+	adc0.channel_config_oneshot(0, 3, 12);
+
+	uint16_t adc_data;
+	uint16_t adc_data_ss;
+
+	while(1) {
+		// adc0.stream_read(0, &adc_buffer[0], n_samples);
+		adc_data_ss = adc0.read(0, 100);
+		adc_data = adc0.read(0);
+		ESP_LOGI(TAG_SETUP, "adc_data: %u, adc_data_ss: %u\n", adc_data, adc_data_ss);
 		// printf("adc_buffer: ");
 		// for(int i=0; i<n_samples; i++) {
 		// 	printf("%u ", adc_buffer[i]);

@@ -59,7 +59,8 @@
 
 
 enum class adc_mode {
-	oneshot = 0,
+	noption = 0,
+	oneshot,
 	stream
 };
 
@@ -92,6 +93,18 @@ public:
 	void channel_config_oneshot(int channel, int attenuation, int bitwidth);
 	void set_channel(int channel);
 	int read(int channel);
+	int read(int channel, int n_samples) {
+		int adc_raw = read(channel);
+		int filtered = static_cast<long int>(adc_raw);
+
+		for(int i=1; i<n_samples; i++) {
+			// v[i] = 0.8*v[i-1] + 0.2*read(channel);
+			adc_raw = 0.8*adc_raw + 0.2*read(channel);
+			filtered += (adc_raw + 1);
+			filtered >>= 1;
+		}
+		return filtered;
+	}
 
 
 	// ----- Continuous mode setup -----

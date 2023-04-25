@@ -8,7 +8,7 @@ static DS3231 rtc{&i2c};
 static Agro::RTC_Time device_clock;
 static DateTime dt;
 
-static ADC_driver adc0(adc_mode::oneshot);
+static ADC_driver adc0(adc_mode::noption);
 
 int timeout_sensors;
 int timeout_sensors_cfg = 600;

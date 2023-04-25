@@ -32,6 +32,7 @@
 // Sensors
 #include "bmp180.hpp"
 #include "aht10.hpp"
+#include "rms.hpp"
 
 #include "helper.hpp"
 #include "convert_char_to_hex.h"

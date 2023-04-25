@@ -25,6 +25,9 @@ ADC_driver::ADC_driver(adc_mode mode = adc_mode::oneshot) {
 			stream_init();
 			break;
 		}
+		default: {
+			break;
+		}
 	}
 }
 ADC_driver::~ADC_driver(void) {
@@ -35,7 +38,7 @@ void ADC_driver::oneshot_init(void) {
 	// adc_oneshot_unit_handle_t adc1_handle_;
 	adc_oneshot_unit_init_cfg_t init_config1 = {
 		.unit_id = unit_,							// ADC select
-		// .ulp_mode = ADC_ULP_MODE_DISABLE,
+		.ulp_mode = ADC_ULP_MODE_DISABLE,
 		// .clk_src = ADC_RTC_CLK_SRC_DEFAULT
 	};
 
@@ -216,7 +219,7 @@ void ADC_driver::stream_read(int channel, uint16_t* buffer, int length) {
 	
 		// printf("channel: %d, data:%d\n", p->type1.channel, p->type1.data);
 		buffer[i/2] = static_cast<uint16_t>(p->type1.data);;
-		printf("%u, ", buffer[i/2]);
+		// printf("%u, ", buffer[i/2]);
 		j++;
 		// if(data_raw < 4096) {
 		// 	if(data_raw > 10) {
@@ -226,8 +229,8 @@ void ADC_driver::stream_read(int channel, uint16_t* buffer, int length) {
 		// 	}
 		// }
 	}
-	ESP_LOGI(TAG_ADC, "RAM free:%lu, min:%lu", esp_get_free_internal_heap_size(), esp_get_minimum_free_heap_size());
-	ESP_LOGI(TAG_ADC, "len_exp: %lu, len_out:%lu, i:%d, j:%d", length_exp, length_out, i, j);
+	// ESP_LOGI(TAG_ADC, "RAM free:%lu, min:%lu", esp_get_free_internal_heap_size(), esp_get_minimum_free_heap_size());
+	// ESP_LOGI(TAG_ADC, "len_exp: %lu, len_out:%lu, i:%d, j:%d", length_exp, length_out, i, j);
 }
 void ADC_driver::stream_deinit(void) {
 	// Recycle the ADC Unit
