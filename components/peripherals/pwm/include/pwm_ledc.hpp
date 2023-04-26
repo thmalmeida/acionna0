@@ -8,6 +8,13 @@
 #include "esp_log.h"
 static const char *TAG_PWM = "PWM_LEDC";
 
+/*  ledc pwm peripheral are dividided into 2 groups of 8 channels.
+    1- group uses hardware;
+    2- group uses software.
+
+    Each group is able to use different clock sources.
+*/
+
 class pwm_ledc {
 
 public:

@@ -8,14 +8,18 @@ static DS3231 rtc{&i2c};
 static Agro::RTC_Time device_clock;
 static DateTime dt;
 
-static ADC_driver adc0(adc_mode::noption);
-
+// static ADC_driver adc0(adc_mode::noption);
 int timeout_sensors;
 int timeout_sensors_cfg = 600;
 
 static pwm_ledc led_wifi_indicator(2, 1, 0, 1);
 
-Acionna::Acionna(void) : valves1_{&i2c}, pipe1_(&adc0, 4, 150), pipe2_(&adc0, 7, 100) {
+Acionna::Acionna(ADC_driver* adc) : valves1_{&i2c}, pipe1_(adc, 4, 150), pipe2_(adc, 7, 100) {
+// Acionna::Acionna(void) : valves1_{&i2c} {
+	// ADC_driver adc0(adc_mode::oneshot);
+	// ADC_driver adc0(adc_mode::oneshot);
+	// pipe1_(&adc0, 4, 150);
+	// pipe2_(&adc0, 7, 100);
 	init();
 }
 uint32_t Acionna::get_uptime() {

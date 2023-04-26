@@ -131,7 +131,7 @@ void test_adc_dma(void *pvParameter) {
 	const int n_samples = POINTS_PER_CYCLE*N_CYCLES;
 
 	// adc raw data array;
-	uint16_t adc_buffer[n_samples];
+	uint16_t adc_buffer[n_samples];						// são 700 pontos
 
 	// time domain load current;
 	double iL_t[n_samples];
@@ -191,7 +191,8 @@ void test_adc(void *pvParameter) {
 
 void machine_run(void *pvParameter)
 {
-	Acionna acionna0;
+	ADC_driver adc0(adc_mode::oneshot);
+	Acionna acionna0(&adc0);
 
 	while(1)
 	{

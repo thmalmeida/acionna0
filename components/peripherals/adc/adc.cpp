@@ -2,18 +2,6 @@
 
 static const char *TAG_ADC = "ADC";
 
-// static TaskHandle_t s_task_handle;
-// static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
-// {
-// 	BaseType_t mustYield = pdFALSE;
-// 	//Notify that ADC continuous driver has done enough number of conversions
-// 	vTaskNotifyGiveFromISR(s_task_handle, &mustYield);
-// 	return (mustYield == pdTRUE);
-// }
-
-// ADC_driver::ADC_driver(int channel) : channel_{static_cast<adc_channel_t>(channel)} {
-// 	init_driver_oneshot();
-// }
 ADC_driver::ADC_driver(adc_mode mode = adc_mode::oneshot) {
 
 	switch (mode) {
@@ -127,7 +115,6 @@ int ADC_driver::read(int channel) {
 	int data_adc_raw;
 	ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle_, static_cast<adc_channel_t>(channel), &data_adc_raw));
 	// ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ADC1_CHAN0, data_adc_raw);
-
 	// ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle_, ADC1_CHAN1, &adc_raw[0][1]));
 	// ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ADC1_CHAN1, adc_raw[0][1]);
 
@@ -167,7 +154,7 @@ void ADC_driver::stream_config(int* channels_list, int* attenuations_list, int n
 	ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &stream_handle));
 
 	// Configurations of ADC - fill the pattern table
-	adc_digi_pattern_config_t pattern_table[ADC_CHANNELS_NUMBER];
+	adc_digi_pattern_config_t pattern_table[n_channels];
 	for(int i=0; i<n_channels; i++) {
 		pattern_table[i].channel = static_cast<adc_channel_t>(channels_list[i]);	// ADC_CHANNEL_0	
 		pattern_table[i].atten = static_cast<adc_atten_t>(attenuations_list[i]);	// ADC_ATTEN_DB_11
@@ -204,21 +191,18 @@ void ADC_driver::stream_read(int channel, uint16_t* buffer, int length) {
 	}
 
 	uint32_t length_out = 0;
-	uint16_t data_raw = 0;
 	int i = 0, j = 0;
 	uint32_t length_exp = static_cast<uint32_t>(2*length);
 
 	adc_continuous_read(stream_handle, result, length_exp, &length_out, 0);
-
-	// adc_digi_output_data_t a[2];
-	// ESP_LOGI(TAG_ADC, "SIZE:%d", sizeof(a));
 	
-	for(i=0; i<length_out; i += SOC_ADC_DIGI_RESULT_BYTES) {	// SOC_ADC_DIGI_DATA_BYTES_PER_CONV = 4 and SOC_ADC_DIGI_RESULT_BYTES = 2
+	// SOC_ADC_DIGI_DATA_BYTES_PER_CONV = 4 and SOC_ADC_DIGI_RESULT_BYTES = 2
+	for(i=0; i<length_out; i += SOC_ADC_DIGI_RESULT_BYTES) {
 		// adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t*>(&result[i]);
 		adc_digi_output_data_t *p = (adc_digi_output_data_t*)&result[i];
 	
 		// printf("channel: %d, data:%d\n", p->type1.channel, p->type1.data);
-		buffer[i/2] = static_cast<uint16_t>(p->type1.data);;
+		buffer[i/2] = static_cast<uint16_t>(p->type1.data);
 		// printf("%u, ", buffer[i/2]);
 		j++;
 		// if(data_raw < 4096) {
@@ -309,72 +293,16 @@ void ADC_driver::calibrate(void) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// void ADC_driver::init_continuous(void) {
-	
-// 	esp_err_t ret;
-//     uint32_t ret_num = 0;
-//     uint8_t result[EXAMPLE_READ_LEN] = {0};
-//     memset(result, 0xcc, EXAMPLE_READ_LEN);
-
-//     s_task_handle = xTaskGetCurrentTaskHandle();
-
-//     adc_continuous_handle_t handle = NULL;
-//     config_continuous(channel, sizeof(channel) / sizeof(adc_channel_t), &handle);
-
-//     adc_continuous_evt_cbs_t cbs = {
-//         .on_conv_done = s_conv_done_cb,
-//     };
-//     ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(handle, &cbs, NULL));
-//     ESP_ERROR_CHECK(adc_continuous_start(handle));
-// }
-// void ADC_driver::config_continuous(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle)
+// Callback implementation
+// static TaskHandle_t s_task_handle;
+// static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata, void *user_data)
 // {
-// 	adc_continuous_handle_t handle = NULL;
-
-// 	adc_continuous_handle_cfg_t adc_config_continuous = {
-// 		.max_store_buf_size = 1024,
-// 		.conv_frame_size = EXAMPLE_READ_LEN,
-// 	};
-// 	ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config_continuous, &handle));
-
-// 	adc_continuous_config_t dig_cfg = {
-// 		.sample_freq_hz = 20 * 1000,
-// 		.conv_mode = ADC_CONV_MODE,
-// 		.format = ADC_OUTPUT_TYPE,
-// 	};
-
-// 	adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
-// 	dig_cfg.pattern_num = channel_num;
-// 	for (int i = 0; i < channel_num; i++) {
-// 		uint8_t unit = GET_UNIT(channel[i]);
-// 		uint8_t ch = channel[i] & 0x7;
-// 		adc_pattern[i].atten = ADC_ATTEN_DB_0;
-// 		adc_pattern[i].channel = ch;
-// 		adc_pattern[i].unit = unit;
-// 		adc_pattern[i].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
-
-// 		ESP_LOGI(TAG, "adc_pattern[%d].atten is :%x", i, adc_pattern[i].atten);
-// 		ESP_LOGI(TAG, "adc_pattern[%d].channel is :%x", i, adc_pattern[i].channel);
-// 		ESP_LOGI(TAG, "adc_pattern[%d].unit is :%x", i, adc_pattern[i].unit);
-// 	}
-// 	dig_cfg.adc_pattern = adc_pattern;
-// 	ESP_ERROR_CHECK(adc_continuous_config(handle, &dig_cfg));
-
-// 	*out_handle = handle;
+// 	BaseType_t mustYield = pdFALSE;
+// 	//Notify that ADC continuous driver has done enough number of conversions
+// 	vTaskNotifyGiveFromISR(s_task_handle, &mustYield);
+// 	return (mustYield == pdTRUE);
 // }
-// void ADC_driver::read_stream(uint8_t *data, int len) {
+
+// ADC_driver::ADC_driver(int channel) : channel_{static_cast<adc_channel_t>(channel)} {
+// 	init_driver_oneshot();
 // }

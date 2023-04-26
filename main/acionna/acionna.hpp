@@ -56,7 +56,7 @@ public:
 	uint32_t time_on_lasts[n_log] = {0};
 	stop_types stops_lasts[n_log];
 
-	Acionna(void);	// : pipe1_(&adc, 4), pipe2_(&adc, 7) {
+	Acionna(ADC_driver* adc);	// : pipe1_(&adc, 4), pipe2_(&adc, 7) {
 
 	// Initialize - should run once;
 	void init(void);
