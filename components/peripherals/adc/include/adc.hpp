@@ -17,12 +17,11 @@
 
 // Includes for adc continuous mode
 #include "esp_adc/adc_continuous.h"
-// #include "freertos/semphr.h"
 
-// #include "sdkconfig.h"
+// #include "arch/sys_arch.h"	        // include for delays
+#include "esp32/rom/ets_sys.h"      // include for ets_delay_us()
 
 // Continuous macros
-// #define NUMBER_OF_CHANNELS 	1
 #define POINTS_PER_CYCLE	350
 #define N_CYCLES			2
 #define READ_LENGTH 		POINTS_PER_CYCLE*N_CYCLES*SOC_ADC_DIGI_RESULT_BYTES			// 2 bytes of conversion
@@ -34,7 +33,7 @@ enum class adc_mode {
 	stream
 };
 
-enum class adc_states {
+enum class adc_stream_states {
 	stopped = 0,
 	running
 };
@@ -64,12 +63,17 @@ public:
 		}
 		return filtered;
 	}
-
+	void read(int channel, int* v, int length, int frequency) {
+		int Ts = static_cast<int>(1.0/static_cast<double>(frequency)*1000000.0);
+		for(int i=0; i<length; i++) {
+			v[i] = read(channel);
+			delay_us_(Ts);	
+		}
+	}
 
 	// ----- Continuous mode setup -----
 	// Parameters initizalization
 	// adc_channel_t channels_list[ADC_CHANNELS_NUMBER];	// channels list		
-	adc_continuous_handle_t stream_handle = NULL;	// ADC handle
 	// adc_continuous_evt_cbs_t stream_callback;		// Callback structure
 	uint8_t result[READ_LENGTH] = {0};
 
@@ -87,18 +91,25 @@ public:
 	void calibrate(void);
 
 private:
-	// one shot configuration
-	adc_oneshot_unit_handle_t adc1_handle_;
-    adc_cali_handle_t adc1_cali_handle_ = NULL;
 
-	// used for single read
-	adc_channel_t channel_;						// ADC channel
-	adc_bitwidth_t width_ = ADC_BITWIDTH_12;	// bits for resolution conversion
-	adc_atten_t attenuation_ = ADC_ATTEN_DB_0;	// attenuation for the channel
-	adc_unit_t unit_ = ADC_UNIT_1;				// unit conversion
+	void delay_us_(uint32_t microseconds)
+	{
+		ets_delay_us(microseconds);
+	}
+	// adc parameters
+	adc_mode mode_ = adc_mode::noption;
+
+	// one shot configuration
+	adc_oneshot_unit_handle_t oneshot_handle_;
+    adc_cali_handle_t adc1_cali_handle_ = NULL;
+	adc_channel_t channel_;											// ADC channel
+	adc_bitwidth_t width_ = ADC_BITWIDTH_12;						// bits for resolution conversion
+	adc_atten_t attenuation_ = ADC_ATTEN_DB_0;						// attenuation for the channel
+	adc_unit_t unit_ = ADC_UNIT_1;									// unit conversion
 
 	// continuous DMA read
-	adc_states adc_state_ = adc_states::stopped;
+	adc_continuous_handle_t stream_handle_ = NULL;					// ADC handle
+	adc_stream_states stream_state_ = adc_stream_states::stopped;
 };
 
 #endif /* ADC_HPP__ */

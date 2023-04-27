@@ -188,7 +188,6 @@ void test_adc(void *pvParameter) {
 	}
 }
 
-
 void machine_run(void *pvParameter)
 {
 	ADC_driver adc0(adc_mode::oneshot);
@@ -201,14 +200,6 @@ void machine_run(void *pvParameter)
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 }
-
-
-
-
-
-
-
-
 
 
 
@@ -235,40 +226,4 @@ temperature
 
 // void pkt_create(void)
 // {
-
-// }
-
-
-// // Start the httpd server
-// ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
-// if (httpd_start(&server, &config) == ESP_OK) {
-//     // Registering the ws handler
-//     ESP_LOGI(TAG, "Registering URI handlers");
-//     httpd_register_uri_handler(server, &ws);
-//     return server;
-// }
-// ESP_LOGI(TAG, "Error starting server!");
-// return NULL;
-// }
-// void stop_webserver(httpd_handle_t server)
-// {
-//     // Stop the httpd server
-//     httpd_stop(server);
-// }
-// void disconnect_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
-// {
-//     httpd_handle_t* server = (httpd_handle_t*) arg;
-//     if (*server) {
-//         ESP_LOGI(TAG, "Stopping webserver");
-//         stop_webserver(*server);
-//         *server = NULL;
-//     }
-// }
-// void connect_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
-// {
-//     httpd_handle_t* server = (httpd_handle_t*) arg;
-//     if (*server == NULL) {
-//         ESP_LOGI(TAG, "Starting webserver");
-//         *server = start_webserver();
-//     }
 // }

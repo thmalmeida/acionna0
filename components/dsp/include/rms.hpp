@@ -47,7 +47,6 @@ public:
 	// int Fs;						// sample frequency	[samples/s]
 
 	rms() {}
-
 	double calc_rms(double *v, int len) {
 		double sum = 0;
 
@@ -57,36 +56,38 @@ public:
 
 		return sqrt(sum/len);
 	}
-
 	void calc_Vadc_t(uint16_t* d_out, double* Vadc_t, int length) {
 		// Finding Vadc_t after ADC read
 		for(int i=0; i<length; i++) {
 			Vadc_t[i] = d_out[i]*(Vmax-Vmin)/(d_max) + Vmin;
 		}
     }
-
 	void calc_iL_t(uint16_t* d_out, double* iL_t, int length) {
 		for(int i=0; i<length; i++) {
 			iL_t[i] = (d_out[i]*(Vmax-Vmin)/(d_max) + Vmin - V_R2)*(1/Rb2)*(N2/N1);
 		}
 	}
-
-	double calc_dc(double* v, int length) {
+	double mean(double* v, int length) {
 		double sum = 0;
 		for(int i=0; i<length; i++) {
 			sum += v[i];
 		}
 		return sum/static_cast<double>(length);
 	}
-
+	void linspace(double* v, double vi, double vf, int length) {
+		double interval = (vf - vi)/static_cast<double>(length-1);
+		v[0] = vi;
+		for(int i= 1; i<length; i++) {
+			v[i] = vi + static_cast<double>(i)*interval;
+		}
+	}
 	void dc_remove(double* v, int length) {
-		double dc_value = calc_dc(v, length);
+		double dc_value = mean(v, length);
 
 		for(int i=0; i<length; i++) {
 			v[i] = v[i] - dc_value;
 		}
 	}
-
 	void filter(uint16_t* v, int length) {
 		for(int i=1; i<length; i++) {
 			v[i] = 0.8*v[i-1] + 0.2*v[i];
