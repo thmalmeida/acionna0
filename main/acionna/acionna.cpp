@@ -167,6 +167,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			$95:4;			- mark valid;
 			$95:8:[0-1]		- change boot partition;
 			$95:9;			- Start firmware update;
+		$96;				- show chip info;
 		$97;				- Show RAM usage;
 		$98;				- Show reset reason;
 		$99;				- Soft reset system;
@@ -531,7 +532,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux2[3] = command_str[9];		// '0' in uint8_t is 48. ASCII
 						_aux2[4] = '\0';
 						uint32_t pwm_led_frequency = (uint32_t) atoi(_aux2);
-						led_wifi_indicator.pwm_ledc_set_frequency(pwm_led_frequency);
+						led_wifi_indicator.set_frequency(pwm_led_frequency);
 
 						sprintf(buffer, "pwm freq: %lu", pwm_led_frequency);
 					}
@@ -543,7 +544,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux2[3] = command_str[8];		// '0' in uint8_t is 48. ASCII
 						_aux2[4] = '\0';
 						uint32_t pwm_led_duty = (uint32_t) atoi(_aux2);
-						led_wifi_indicator.pwm_ledc_set_duty(pwm_led_duty);
+						led_wifi_indicator.set_duty(pwm_led_duty);
 
 						sprintf(buffer, "pwm duty: %lu", pwm_led_duty);
 					}
@@ -1272,6 +1273,13 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					}
 					break;
 				}
+				case 6: {
+					// $96;
+					if(command_str[3] == ';') {
+						sys_chip_info(buffer);
+					}
+					break;
+				}
 				case 7: {
 					sys_ram_free_(buffer);
 					break;
@@ -1303,7 +1311,7 @@ void Acionna::init() {
 	ESP_LOGI(TAG_ACIONNA, "initialization");
 
 	// Clock time init
-	dt.setDate(2022, 12, 20);
+	dt.setDate(2023, 04, 30);
 	dt.setTime(0, 0, 0, ND);
 	device_clock.set_time(dt.getUnixTime());
 	time_day_sec_ = dt.getHour()*3600 + dt.getMinute()*60 + dt.getSecond();
@@ -1318,10 +1326,13 @@ void Acionna::init() {
 	char buffer_temp[5];
 	uint8_t wifi_mac_[6];
 	wifi_get_mac(&wifi_mac_[0]);
+
+	// 3 mac address listed
 	char mac_table[3][18] = {
 							{"84:cc:a8:69:f6:f0"},	// .31 - test device;
 							{"84:cc:a8:69:97:7c"},	// .32 - poço cacimba;
 							{"84:cc:a8:69:9c:4c"}};	// .33 - irrigação.
+
 	// Converting uint8_t vector mac address to string
 	for(int i=0; i<6; i++) {
 		sprintf(buffer_temp, "%02x", wifi_mac_[i]);
@@ -1330,6 +1341,7 @@ void Acionna::init() {
 			strcat(mac_device, ":");
 		}
 	}
+
 	// Compare the mac and set ip address end byte;
 	if(strcmp(mac_device, &mac_table[0][0]) == 0) {
 		wifi_ip_end = 31;
@@ -1721,6 +1733,31 @@ void Acionna::run(void) {
 
 	operation_mode();	// execution process
 }
+void Acionna::sys_chip_info(char* buffer_str) {
+	/* Print chip information */
+
+	memset(buffer_str, 0, sizeof(*buffer_str));
+	
+	uint32_t flash_size;
+	esp_chip_info_t chip_info;
+	
+	if(esp_flash_get_size(NULL, &flash_size) != ESP_OK) {
+		flash_size = -1;
+	}
+	esp_chip_info(&chip_info);
+
+	unsigned major_rev = chip_info.revision / 100;
+	unsigned minor_rev = chip_info.revision % 100;
+
+	sprintf(buffer_str, "Mod:%d cores:%d rev%d.%d flash:%lu MB type:%s WiFi:%s%s%s\n", static_cast<int>(chip_info.model),
+														chip_info.cores,
+														major_rev, minor_rev, // silicon revision
+														flash_size/ (uint32_t)(1024*1024),
+														(chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "emb" : "ext",
+														(chip_info.features & CHIP_FEATURE_BT) ? "BT" : "",
+														(chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "",
+														(chip_info.features & CHIP_FEATURE_IEEE802154) ? ", 802.15.4 (Zigbee/Thread)" : "");
+}
 void Acionna::sys_fw_change_boot_(void) {
 	ota_change_boot_partition();
 }
@@ -1982,7 +2019,7 @@ void Acionna::sys_wifi_scan_(char* buffer_str) {
 	wifi_ap_record_t *ap_info_ptr = &ap_info[0];
 
 	// char buffer_str[200];
-	char buffer_temp[40];
+	char buffer_temp[62];
 
 	memset(ap_info, 0, sizeof(ap_info));
 	memset(buffer_str, 0, sizeof(*buffer_str));

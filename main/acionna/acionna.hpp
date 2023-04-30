@@ -7,6 +7,9 @@
 
 #include <adc.hpp>
 
+#include "esp_chip_info.h"
+#include "esp_flash.h"
+
 #include <i2c_master.hpp>
 #include "ds3231.hpp"
 #include "rtc_time.hpp"
@@ -33,6 +36,7 @@
 #include "bmp180.hpp"
 #include "aht10.hpp"
 #include "rms.hpp"
+#include "timer.hpp"
 
 #include "helper.hpp"
 #include "convert_char_to_hex.h"
@@ -141,6 +145,8 @@ private:
 	void msg_json_back_(void);
 
 	void parser_(uint8_t* payload_str, int payload_str_len, uint8_t* command_str, int& command_str_len);
+
+	void sys_chip_info(char* buffer_str);
 
 	void sys_fw_change_boot_(void);
 	void sys_fw_info_app_(char* buffer_str);
