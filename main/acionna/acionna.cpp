@@ -12,7 +12,7 @@ static DateTime dt;
 int timeout_sensors;
 int timeout_sensors_cfg = 600;
 
-static pwm_ledc led_wifi_indicator(2, 1, 0, 1);
+// static pwm_ledc led_wifi_indicator(2, 1, 0, 1);
 
 Acionna::Acionna(ADC_driver* adc) : valves1_{&i2c}, pipe1_(adc, 4, 150), pipe2_(adc, 7, 100) {
 // Acionna::Acionna(void) : valves1_{&i2c} {
@@ -532,7 +532,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux2[3] = command_str[9];		// '0' in uint8_t is 48. ASCII
 						_aux2[4] = '\0';
 						uint32_t pwm_led_frequency = (uint32_t) atoi(_aux2);
-						led_wifi_indicator.set_frequency(pwm_led_frequency);
+						// led_wifi.set_frequency(pwm_led_frequency);
 
 						sprintf(buffer, "pwm freq: %lu", pwm_led_frequency);
 					}
@@ -544,7 +544,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux2[3] = command_str[8];		// '0' in uint8_t is 48. ASCII
 						_aux2[4] = '\0';
 						uint32_t pwm_led_duty = (uint32_t) atoi(_aux2);
-						led_wifi_indicator.set_duty(pwm_led_duty);
+						// led_wifi.set_duty(pwm_led_duty);
 
 						sprintf(buffer, "pwm duty: %lu", pwm_led_duty);
 					}
@@ -1321,6 +1321,8 @@ void Acionna::init() {
 	wifi_ip_end = CONFIG_IP_END;
 	wifi_sta_init(wifi_ip_end);
 	#else
+
+	ip_get_mode = ip_get_types::static_ip;
 	// static ip select using the inner mac address.
 	char mac_device[18];
 	char buffer_temp[5];

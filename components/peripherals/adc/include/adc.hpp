@@ -26,6 +26,7 @@
 #define N_CYCLES			2
 #define READ_LENGTH 		POINTS_PER_CYCLE*N_CYCLES*SOC_ADC_DIGI_RESULT_BYTES			// 2 bytes of conversion
 // #define READ_LENGTH 		POINTS_PER_CYCLE*N_CYCLES*SOC_ADC_DIGI_DATA_BYTES_PER_CONV	// 4 bytes of conversion
+#define MAX_NUM_CHANNELS	6		// Max ADC1 channels available on ESP32 with std_board
 
 enum class adc_mode {
 	noption = 0,			// Do not initialize
@@ -45,10 +46,31 @@ public:
 	ADC_driver(adc_mode mode);
 	~ADC_driver(void);
 
+	// ----- For any mode ------
+	void channel_config(int channel, int attenuation, int bitwidth) {
+		pattern_table_current_index++;
+		pattern_table_[pattern_table_current_index].channel = static_cast<adc_channel_t>(channel);
+		pattern_table_[pattern_table_current_index].atten = static_cast<adc_atten_t>(attenuation);
+		pattern_table_[pattern_table_current_index].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
+		pattern_table_[pattern_table_current_index].unit = ADC_UNIT_1;
+		
+		if(mode_ == adc_mode::oneshot) {
+			oneshot_channel_config(channel, attenuation, bitwidth);
+
+		} else if(mode_ == adc_mode::stream) {
+			pattern_table_current_index++;
+			pattern_table_[pattern_table_current_index].channel = static_cast<adc_channel_t>(channel);
+			pattern_table_[pattern_table_current_index].atten = static_cast<adc_atten_t>(attenuation);
+			pattern_table_[pattern_table_current_index].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
+			pattern_table_[pattern_table_current_index].unit = ADC_UNIT_1;
+		}
+	}
+
 	// ----- Single mode setup -----
 	void oneshot_init(void);
-	void deinit_driver_oneshot(void);
-	void channel_config_oneshot(int channel, int attenuation, int bitwidth);
+	void oneshot_deinit(void);
+	void oneshot_channel_config(int channel);
+	void oneshot_channel_config(int channel, int attenuation, int bitwidth);
 	void set_channel(int channel);
 	int read(int channel);
 	int read(int channel, int n_samples) {
@@ -75,7 +97,6 @@ public:
 	// Parameters initizalization
 	// adc_channel_t channels_list[ADC_CHANNELS_NUMBER];	// channels list		
 	// adc_continuous_evt_cbs_t stream_callback;		// Callback structure
-	uint8_t result[READ_LENGTH] = {0};
 
 	void stream_init(void);
 	void stream_callback_config(void); 
@@ -96,8 +117,11 @@ private:
 	{
 		ets_delay_us(microseconds);
 	}
+	
 	// adc parameters
 	adc_mode mode_ = adc_mode::noption;
+	adc_digi_pattern_config_t pattern_table_[MAX_NUM_CHANNELS];
+	int pattern_table_current_index = -1;
 
 	// one shot configuration
 	adc_oneshot_unit_handle_t oneshot_handle_;

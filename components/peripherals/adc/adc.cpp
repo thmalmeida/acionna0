@@ -19,9 +19,9 @@ ADC_driver::ADC_driver(adc_mode mode = adc_mode::oneshot) : mode_{mode} {
 	}
 }
 ADC_driver::~ADC_driver(void) {
-	deinit_driver_oneshot();
+	oneshot_deinit();
 }
-// oneshot functions - ADC single mode
+// Oneshot functions - ADC single mode
 void ADC_driver::oneshot_init(void) {
 	// 1 - Resource Allocation (init)
 	// adc_oneshot_unit_handle_t oneshot_handle_;
@@ -42,14 +42,17 @@ void ADC_driver::oneshot_init(void) {
 void ADC_driver::set_channel(int channel) {
     channel_ = static_cast<adc_channel_t>(channel);
 }
-void ADC_driver::deinit_driver_oneshot(void) {
+void ADC_driver::oneshot_deinit(void) {
 
 	ESP_ERROR_CHECK(adc_oneshot_del_unit(oneshot_handle_));
 	if (do_calibration1) {
 		adc_calibration_deinit(adc1_cali_handle_);
 	}
 }
-void ADC_driver::channel_config_oneshot(int channel, int attenuation, int bitwidth) {
+void ADC_driver::oneshot_channel_config(int channel) {
+	oneshot_channel_config(channel, 0, 12);
+}
+void ADC_driver::oneshot_channel_config(int channel, int attenuation, int bitwidth) {
 	/* This function setup:
 	- channel number;
 	- attenuation;
@@ -114,7 +117,8 @@ void ADC_driver::channel_config_oneshot(int channel, int attenuation, int bitwid
 int ADC_driver::read(int channel) {
 
 	int data_adc_raw;
-	ESP_ERROR_CHECK(adc_oneshot_read(oneshot_handle_, static_cast<adc_channel_t>(channel), &data_adc_raw));
+	// ESP_ERROR_CHECK(adc_oneshot_read(oneshot_handle_, static_cast<adc_channel_t>(channel), &data_adc_raw));
+	adc_oneshot_read(oneshot_handle_, static_cast<adc_channel_t>(channel), &data_adc_raw);
 	// ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ADC1_CHAN0, data_adc_raw);
 	// ESP_ERROR_CHECK(adc_oneshot_read(oneshot_handle_, ADC1_CHAN1, &adc_raw[0][1]));
 	// ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ADC1_CHAN1, adc_raw[0][1]);
@@ -123,8 +127,6 @@ int ADC_driver::read(int channel) {
 }
 // Stream functions - ADC DMA Continuous mode
 void ADC_driver::stream_init(void) {
-
-	memset(result, 0xcc, READ_LENGTH);
 
 	// ----- Resource Allocation -----
 
@@ -193,7 +195,13 @@ void ADC_driver::stream_read(int channel, uint16_t* buffer, int length) {
 
 	uint32_t length_out = 0;
 	int i = 0, j = 0;
+
+	// conversion data raw has 12 bits using 16 bit value. that uses 4 bits to channel identify;
 	uint32_t length_exp = static_cast<uint32_t>(2*length);
+
+	// result should have the double size of buffer of adc data raw
+	uint8_t result[length_exp];
+	// memset(result, 0xcc, READ_LENGTH);
 
 	adc_continuous_read(stream_handle_, result, length_exp, &length_out, 0);
 	
@@ -292,6 +300,10 @@ void ADC_driver::calibrate(void) {
 	// 	ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC1_CHAN1, voltage[0][1]);
 	// }
 }
+
+
+
+
 
 
 // Callback implementation

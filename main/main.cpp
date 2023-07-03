@@ -15,9 +15,12 @@ extern "C" void app_main(void)
 	}
 	ESP_ERROR_CHECK( err );
 
-	// xTaskCreate(&machine_run, "machine_run0", 1024 * 9, NULL, 5, NULL);
+	// xTaskCreate(&test_wifi, "test_wifi0", 1024 * 9, NULL, 5, NULL);
+	xTaskCreate(&machine_run, "machine_run0", 1024 * 9, NULL, 5, NULL);
 	// xTaskCreate(&test_sensors, "test_sensors0", 1024 * 8, NULL, 5, NULL);
 	// xTaskCreate(&test_i2c_to_gpio, "i2c_to_gpio0", 1024 * 8, NULL, 5, NULL);
-	xTaskCreate(&test_adc_dma, "test_adc_dma0", 1024*20, NULL, 5, NULL);
+	// xTaskCreate(&test_adc_dma, "test_adc_dma0", 1024*20, NULL, 5, NULL);
 	// xTaskCreate(&test_adc, "test_adc0", 1024*8, NULL, 5, NULL);
+	// xTaskCreate(&test_timer, "test_timer0", 1024*20, NULL, 5, NULL);
+	
 }

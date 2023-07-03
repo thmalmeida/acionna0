@@ -44,7 +44,7 @@ public:
 //	uint8_t flag_PressureDown = 0;		// flag for pressure down occurrence;
 
 	Pipepvc(ADC_driver *adc, int channel, int sensor_pressure_factory) : sensor_pressure_ref(sensor_pressure_factory), adc_(adc),  channel_(channel) {
-		adc_->channel_config_oneshot(channel_, 0, 12);
+		adc_->oneshot_channel_config(channel_, 0, 12);
 	}
 	void update() {
 		update_pressure_();

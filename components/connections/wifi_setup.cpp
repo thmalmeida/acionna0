@@ -6,7 +6,7 @@
 */
 #include "wifi_setup.hpp"
 
-ip_get_types ip_get_mode = ip_get_types::static_ip;
+ip_get_types ip_get_mode = ip_get_types::dhcp;
 ip_states ip_state = ip_states::ip_not_defined;
 conn_states wifi_state = conn_states::disconnected;
 
@@ -19,8 +19,7 @@ const char *TAG_IP = "IP stuffs";
 static int s_retry_num = 0;
 uint8_t wifi_ip_end = 29;
 
-static pwm_ledc led_wifi(2, 1, 99, 1);
-
+// pwm_ledc led_wifi(2, 1, 99, 1);
 
 void wifi_sta_init(uint8_t ip_end)
 {
@@ -29,12 +28,15 @@ void wifi_sta_init(uint8_t ip_end)
 	ESP_ERROR_CHECK(esp_netif_init());
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 
+	// esp_netif_create_default_wifi_sta();
+
 	// Select ip station mode DHCP or STATIC
 	switch (ip_get_mode)
 	{
 		case ip_get_types::dhcp:
 		{
 			esp_netif_create_default_wifi_sta();
+			ESP_LOGI(TAG_WIFI, "dhcp mode");
 			break;
 		}
 		case ip_get_types::static_ip:
@@ -48,6 +50,7 @@ void wifi_sta_init(uint8_t ip_end)
 			IP4_ADDR(&ip_info.gw, 192, 168, 1, 1);
 			IP4_ADDR(&ip_info.netmask, 255, 255, 255, 0);
 			esp_netif_set_ip_info(my_sta, &ip_info);
+			ESP_LOGI(TAG_WIFI, "static ip mode");
 			break;
 		}
 		default:
@@ -62,28 +65,59 @@ void wifi_sta_init(uint8_t ip_end)
 	esp_event_handler_instance_t instance_got_ip;
 
 	ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_connection_event_handler, NULL, &instance_any_id));
-	ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, ESP_EVENT_ANY_ID, &wifi_connection_event_handler, NULL, &instance_got_ip));
+	// ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, ESP_EVENT_ANY_ID, &wifi_connection_event_handler, NULL, &instance_got_ip));
+	ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_connection_event_handler, NULL, &instance_got_ip));
 
-	wifi_config_t wifi_config;
-	memset(&wifi_config, 0, sizeof(wifi_config));	// Clear all (RESET)
-	// sprintf (reinterpret_cast<char*>(wifi_config.sta.ssid), EXAMPLE_ESP_WIFI_SSID );
-	// sprintf (reinterpret_cast<char*>(wifi_config.sta.password), EXAMPLE_ESP_WIFI_PASS);
-	memcpy(wifi_config.sta.ssid, WIFI_SSID_STA, strlen(WIFI_SSID_STA));
-	memcpy(wifi_config.sta.password, WIFI_PASS, strlen(WIFI_PASS));
+	wifi_config_t wifi_config = {};
+	// memset(&wifi_config, 0, sizeof(wifi_config));	// Clear all (RESET)
+	// sprintf (reinterpret_cast<char*>(wifi_config.sta.ssid), WIFI_SSID_STA );
+	// sprintf (reinterpret_cast<char*>(wifi_config.sta.password), WIFI_PASS);
+	// memset(wifi_config.sta.ssid, 0, sizeof(wifi_config.sta.ssid));
+	// memset(wifi_config.sta.password, 0, sizeof(wifi_config.sta.password));
+	// strcpy(wifi_config.sta.ssid, reinterpret_cast<uint8_t*>WIFI_SSID_STA);
+	// strcpy(wifi_config.sta.password, reinterpret_cast<uint8_t*>WIFI_PASS);
 	// strcpy(wifi_config.ap.ssid, (uint8_t const*)(EXAMPLE_ESP_WIFI_SSID));
 	// strcpy(wifi_config.ap.password, (uint8_t const*)(EXAMPLE_ESP_WIFI_PASS));
-	wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA_WPA2_PSK; 	// or ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD
+
+	ESP_LOGI(TAG_WIFI, "SSID: %s, pwd: %s,", wifi_config.sta.ssid, wifi_config.sta.password);
+	memcpy(&wifi_config.sta.ssid[0], WIFI_SSID_STA, strlen(WIFI_SSID_STA));
+	memcpy(&wifi_config.sta.password[0], WIFI_PASS, strlen(WIFI_PASS));
+	wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA_WPA2_PSK;
+	wifi_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;
+	memcpy(wifi_config.sta.sae_h2e_identifier, H2E_IDENTIFIER, strlen(H2E_IDENTIFIER));
+
+// Routine test to verify strings
+	int a=strlen(WIFI_SSID_STA);
+
+	printf("SSID: ");
+	for(int i=0; i<a; i++)
+	{
+		printf("%c", wifi_config.sta.ssid[i]);
+	}
+	printf("\n");
+
+	a=strlen(WIFI_PASS);
+	printf("PASSWD: ");
+	for(int i=0; i<a; i++)
+	{
+		printf("%c", wifi_config.sta.password[i]);
+	}
+	printf("\n");
+
+	// ESP_LOGI(TAG_WIFI, "SSID: %s, pwd: %s,", wifi_config.sta.ssid, wifi_config.sta.password);
+	// wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA_WPA2_PSK; 	// or ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD
+	// wifi_config.sta.sae_h2e_identifier = EXAMPLE_H2E_IDENTIFIER;	
 	// wifi_config.sta.pmf_cfg.capable = true;
 	// wifi_config.sta.pmf_cfg.required = false;
 
-	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
+	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
-
 	ESP_ERROR_CHECK(esp_wifi_start() );
+	// ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
 
 	// disable any power save mode;
 	#ifndef CONFIG_BT_ENABLE
-    esp_wifi_set_ps(WIFI_PS_NONE);
+    // esp_wifi_set_ps(WIFI_PS_NONE);
 	#endif
 
 	ESP_LOGI(TAG_WIFI, "wifi_sta_init finished!");
@@ -98,27 +132,6 @@ void wifi_sta_init(uint8_t ip_end)
 	// ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP) );
 	// ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config) );
 
-
-
-// Routine test to verify strings
-//	int a=strlen(EXAMPLE_ESP_WIFI_SSID);
-//
-//	printf("SSID: ");
-//	for(int i=0; i<a; i++)
-//	{
-//		printf("%c", wifi_config.sta.ssid[i]);
-//	}
-//	printf("FIM");
-//	printf("\n");
-//
-//	a=strlen(EXAMPLE_ESP_WIFI_PASS);
-//	printf("PASSWD: ");
-//	for(int i=0; i<a; i++)
-//	{
-//		printf("%c", wifi_config.sta.password[i]);
-//	}
-//	printf("FIM");
-//	printf("\n");
 
 /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
 * number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above) */
@@ -317,6 +330,7 @@ void wifi_scan2(uint16_t &number, wifi_ap_record_t* ap_info, uint16_t &ap_count)
 		ESP_LOGI(TAG_WIFI, "Channel \t\t%d\n", ap_info[i].primary);
 	}
 }
+// ISR Handler
 void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
 	if (event_base == WIFI_EVENT)
@@ -337,8 +351,8 @@ void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_bas
 		else if(event_id == WIFI_EVENT_STA_CONNECTED)
 		{
 			wifi_state = conn_states::connected;
-			// led_wifi_indicator.pwm_ledc_set_duty(3);
-			led_wifi.pwm_ledc_set_duty(2);
+			// led_wifi_indicator.set_duty(3);
+			// led_wifi.set_duty(2);
 			ESP_LOGI(TAG_WIFI, "connected to ap SSID:%s password:%s", WIFI_SSID_STA, WIFI_PASS);
 			ESP_LOGI(TAG_WIFI, "ESP32 station connected to AP");
 			// httpd web socket start
@@ -348,15 +362,15 @@ void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_bas
 			// if (s_retry_num < EXAMPLE_ESP_MAXIMUM_RETRY)
 			// {
 			wifi_state = conn_states::disconnected;
-			// led_wifi_indicator.pwm_ledc_set_duty(50);
-			led_wifi.pwm_ledc_set_duty(50);
+			// led_wifi_indicator.set_duty(50);
+			// led_wifi.set_duty(50);
 			ESP_LOGI(TAG_WIFI, "ESP32 station disconnected to AP");
 
-			if((s_retry_num%10) == 0)
-			{
-				ESP_LOGI(TAG_WIFI, "WiFi scan start\n");
-				wifi_scan();
-			}
+			// if((s_retry_num%10) == 0)
+			// {
+			// 	ESP_LOGI(TAG_WIFI, "WiFi scan start\n");
+			// 	wifi_scan();
+			// }
 
 			esp_wifi_connect();
 			s_retry_num++;

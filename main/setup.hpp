@@ -10,10 +10,12 @@
 #include "acionna/acionna.hpp"
 #include "pcy8575.hpp"
 
+void test_adc(void *pvParameter);
+void test_adc_dma(void *pvParameter);
 void test_i2c_to_gpio(void *pvParameter);
 void test_sensors(void *pvParameter);
-void machine_run(void *pvParameter);
-void test_adc_dma(void *pvParameter);
-void test_adc(void *pvParameter);
+void test_timer(void *pvParameter);
+void test_wifi(void *pvParameter);
 
+void machine_run(void *pvParameter);
 #endif

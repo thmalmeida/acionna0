@@ -1,2 +1,2 @@
 # Dependency add
-idf.py add-dependency "espressif/esp_websocket_client^0.0.4"
+idf.py add-dependency "espressif/esp_websocket_client^1.0.0"

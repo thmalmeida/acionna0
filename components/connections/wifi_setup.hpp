@@ -4,8 +4,8 @@
  *  Created on: 2 de nov. de 2021
  *      Author: thmalmeida
  */
-#ifndef WIFI_SETUP_HPP
-#define WIFI_SETUP_HPP
+#ifndef _WIFI_SETUP_HPP__
+#define _WIFI_SETUP_HPP__
 
 #include "esp_system.h"
 #include "esp_event.h"
@@ -13,14 +13,14 @@
 #include "esp_log.h"
 
 #include "esp_wifi.h"
-#include "esp_netif.h"
+// #include "esp_netif.h"
 
 #include "esp_mac.h"
 
 #include "lwip/err.h"
-#include "lwip/sockets.h"
+// #include "lwip/sockets.h"
 #include "lwip/sys.h"
-#include "lwip/netdb.h"
+// #include "lwip/netdb.h"
 
 #include "httpd_setup.hpp"
 #include "ws_client_setup.hpp"
@@ -31,6 +31,7 @@
 
 #define WIFI_SSID_STA	CONFIG_WIFI_SSID
 #define WIFI_PASS		CONFIG_WIFI_PASSWORD
+#define H2E_IDENTIFIER	CONFIG_H2E_IDENTIFIER
 
 // #define WIFI_MAX_RETRY	600				    // CONFIG_ESP_MAXIMUM_RETRY
 // #define WIFI_SSID_AP    "0yd018"
@@ -43,8 +44,8 @@
 #define WIFI_FAIL_BIT      BIT1
 
 enum class ip_get_types {
-	static_ip = 0,
-	dhcp
+	dhcp = 0,
+	static_ip
 };
 
 enum class ip_states {
@@ -52,8 +53,10 @@ enum class ip_states {
 	ip_defined
 };
 
-extern uint8_t wifi_ip_end;
+// extern pwm_ledc led_wifi;
 
+extern uint8_t wifi_ip_end;
+extern ip_get_types ip_get_mode;
 extern ip_states ip_state;
 extern conn_states wifi_state;
 

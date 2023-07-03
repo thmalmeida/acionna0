@@ -2,6 +2,33 @@
 
 const char* TAG_SETUP = "SETUP";
 
+static void test_chip_info(void) {
+	/* Print chip information */
+	esp_chip_info_t chip_info;
+	uint32_t flash_size;
+	esp_chip_info(&chip_info);
+	printf("Model %d chip with %d CPU core(s), WiFi%s%s%s, ",
+		static_cast<int>(chip_info.model),
+		chip_info.cores,
+		(chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
+		(chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "",
+		(chip_info.features & CHIP_FEATURE_IEEE802154) ? ", 802.15.4 (Zigbee/Thread)" : "");
+
+	unsigned major_rev = chip_info.revision / 100;
+	unsigned minor_rev = chip_info.revision % 100;
+	printf("silicon revision v%d.%d, ", major_rev, minor_rev);
+
+	if(esp_flash_get_size(NULL, &flash_size) != ESP_OK) {
+		printf("Get flash size failed");
+		return;
+	}
+
+	printf("%" PRIu32 "MB %s flash\n", flash_size / (uint32_t)(1024 * 1024),
+	(chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
+
+	printf("Minimum free heap size: %" PRIu32 " bytes\n", esp_get_minimum_free_heap_size());
+}
+
 void test_i2c_to_gpio(void *pvParameter) {
 
 	I2C_Master i2c0(I2C_NUM_1, I2C_SCL, I2C_SDA, I2C_NORMAL_SPEED_HZ, 1);
@@ -140,7 +167,7 @@ void test_adc_dma(void *pvParameter) {
 	double iL_rms;
 
 	// some dsp process;
-	rms s0;
+	DSP s0;
 	
 	while(1) {
 
@@ -169,7 +196,7 @@ void test_adc_dma(void *pvParameter) {
 void test_adc(void *pvParameter) {
 	
 	ADC_driver adc0(adc_mode::oneshot);
-	adc0.channel_config_oneshot(0, 3, 12);
+	adc0.oneshot_channel_config(0, 3, 12);
 
 	uint16_t adc_data;
 	uint16_t adc_data_ss;
@@ -185,6 +212,48 @@ void test_adc(void *pvParameter) {
 		// }
 		// printf("\n");
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
+	}
+}
+void test_timer(void *pvParameter) {
+	TIMER_driver tim0(1, 0, 1000000);
+	ADC_driver adc0(adc_mode::oneshot);
+
+	adc0.oneshot_channel_config(0, 3, 12);
+
+	tim0.enable();
+	tim0.start();
+
+	uint64_t timestamp = 0;
+	double Fs = 0;
+	const int n_points = 233;
+	uint16_t adc_buffer[n_points];
+
+	test_chip_info();
+	
+	while(1) {
+
+		tim0.set_count(0);
+		for(int i=0; i<n_points; i++) {
+
+			adc_buffer[i] = adc0.read(0);	// this takes aproximatelly 41 us;
+			delay_us(246);
+		}
+		timestamp = tim0.get_count();
+
+		Fs = 1.0/(static_cast<double>(timestamp)/static_cast<double>(n_points))*1000000;
+		ESP_LOGI(TAG_SETUP, "adc_value: %d, timestamp: %llu us, Fs: %.1lf Samples/s", adc_buffer[0], timestamp, Fs);
+
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+	}
+}
+void test_wifi(void *pvParameter)
+{
+	wifi_sta_init(30);
+
+	int count = 0;
+	while(1) {
+		ESP_LOGI(TAG_SETUP, "Count: %d", count++);
+		vTaskDelay(1000/portTICK_PERIOD_MS);
 	}
 }
 

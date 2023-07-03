@@ -2,12 +2,11 @@
 #define __TIMER_HPP__
 
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
-#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
 #include "driver/gptimer.h"
-
+#include "esp_log.h"
 
 enum class timer_states {
 	disabled = 0,
@@ -73,4 +72,4 @@ private:
 	timer_states timer_state = timer_states::disabled;
 };
 
-#endif /* ADC_HPP__ */
+#endif /* TIMER_DRIVER_HPP__ */

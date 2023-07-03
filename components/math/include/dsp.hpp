@@ -24,8 +24,8 @@ public:
 	double R2 = 40*1000;							// Voltage divisor bottom resistor [Ohms];
 	double V_R2 = R2/(R1+R2)*Vdc;					// Voltage over R2 [V] or Vref for ADC converter [V];
 
-	double Rb1 = 220.0;								// Burden resistor (bias) [Ohms];
-	double Rb2 = 75.0;								// Burden resistor (bias) [Ohms];
+	double Rb1 = 0.0;								// Burden resistor (bias) [Ohms];
+	double Rb2 = 300.0;								// Burden resistor (bias) [Ohms];
 	double N1 = 1;									// Current transformer sensor ration parameters
 	double N2 = 2000;								// Current transformer sensor ration parameters
 
