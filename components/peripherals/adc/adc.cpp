@@ -25,13 +25,16 @@ ADC_driver::~ADC_driver(void) {
 void ADC_driver::oneshot_init(void) {
 	// 1 - Resource Allocation (init)
 	// adc_oneshot_unit_handle_t oneshot_handle_;
-	adc_oneshot_unit_init_cfg_t init_config1 = {
-		.unit_id = unit_,							// ADC select
-		.ulp_mode = ADC_ULP_MODE_DISABLE,
+	// adc_oneshot_unit_init_cfg_t init_config1 = {
+		// .unit_id = unit_,							// ADC select
+		// .ulp_mode = ADC_ULP_MODE_DISABLE,
 		// .clk_src = ADC_RTC_CLK_SRC_DEFAULT
-	};
-
-	// init_config1.clk_src = ADC_DIGI_CLK_SRC_DEFAULT;
+	// };
+	
+	adc_oneshot_unit_init_cfg_t init_config1 = {};
+	init_config1.unit_id = unit_;
+	init_config1.ulp_mode = ADC_ULP_MODE_DISABLE;
+	init_config1.clk_src = ADC_RTC_CLK_SRC_DEFAULT;
 
 	// 1.1 - install driver and ADC instance
 	ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config1, &oneshot_handle_));

@@ -21,7 +21,12 @@ void bt_init(void) {
 	esp_bluedroid_enable();
 	esp_bt_gap_register_callback(esp_bt_gap_cb);
 	esp_spp_register_callback(bt_event_handler);			// Function registration for event handler
-	esp_spp_init(esp_spp_mode);
+	// esp_spp_init(esp_spp_mode);
+
+	esp_spp_cfg_t config = {};
+	config.enable_l2cap_ertm = true;
+	config.mode = ESP_SPP_MODE_CB;
+	esp_spp_enhanced_init(&config);
 
 	#if (CONFIG_BT_SSP_ENABLED == true)
 	/* Set default parameters for Secure Simple Pairing */

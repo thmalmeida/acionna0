@@ -1,5 +1,35 @@
 #include "dsp.hpp"
 
+dsp_data_t dsp_data_esp32 = {
+	2.450,							// Vmax: Maximum voltage ADC can read [V];
+	0.120,							// Vmin: Minimum voltage ADC can read [V];
+	2895,							// d_max: Max decimal value correlated with Vmax on 12 bit range;
+	0.0,							// GND for ADC converter [V];
+	3.3,							// Vdc: Voltage divisor supply [V];
+	56000,							// R1: Voltage divisor top resistor [Ohms];
+	40000,							// R2: Voltage divisor bottom resistor [Ohms];
+
+	0.0,							// Rb1: Burden resistor (bias) [Ohms];
+	300.0,							// Rb2: Burden resistor (bias) [Ohms];
+	1,								// N1: Current transformer sensor ration parameters
+	2000							// N2: Current transformer sensor ration parameters
+};
+
+dsp_data_t dsp_data_stm32 = {
+	3.0,							// Vmax: Maximum voltage ADC can read [V];
+	0.0,							// Vmin: Minimum voltage ADC can read [V];
+	4095,							// d_max: Max decimal value correlated with Vmax on 12 bit range;
+	0.0,							// GND for ADC converter [V];
+	3.3,							// Vdc: Voltage divisor supply [V];
+	68000,							// R1: Voltage divisor top resistor [Ohms];
+	68000,							// R2: Voltage divisor bottom resistor [Ohms];
+
+	0.0,							// Rb1: Burden resistor (bias) [Ohms];
+	300.0,							// Rb2: Burden resistor (bias) [Ohms];
+	1,								// N1: Current transformer sensor ration parameters
+	2000							// N2: Current transformer sensor ration parameters
+};
+
 // float rms::calc_irms(void)//uint8_t channel)//, uint8_t numberOfCycles)
 // {
 // 	int i, j=0;

@@ -84,13 +84,20 @@ static void ota_task(void *pvParameter)
 {
 	ota_info();
 
-    esp_http_client_config_t config = {
-        .url = FIRMWARE_UPGRADE_URL,
-        .cert_pem = (char *)server_cert_pem_start,
-		.timeout_ms = OTA_RECV_TIMEOUT,
-		.event_handler = _http_event_handler,
-        .keep_alive_enable = true,
-    };
+	esp_http_client_config_t config = {};
+	config.url = FIRMWARE_UPGRADE_URL;
+	config.cert_pem = (char *)server_cert_pem_start;
+	config.timeout_ms = OTA_RECV_TIMEOUT;
+	config.event_handler = _http_event_handler;
+	config.keep_alive_enable = true;
+
+    // esp_http_client_config_t config = {
+    //     .url = FIRMWARE_UPGRADE_URL,
+    //     .cert_pem = (char *)server_cert_pem_start,
+	// 	.timeout_ms = OTA_RECV_TIMEOUT,
+	// 	.event_handler = _http_event_handler,
+    //     .keep_alive_enable = true,
+    // };
 
 #ifdef CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL_FROM_STDIN
     char url_buf[OTA_URL_SIZE];

@@ -1,5 +1,4 @@
 idf_component_register(SRCS main.cpp
-							wifi_setup0.c
 							setup.cpp
 							acionna/acionna.cpp
 							acionna/pipepvc.cpp

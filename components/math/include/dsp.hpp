@@ -1,5 +1,5 @@
-#ifndef DSP_HPP__
-#define DSP_HPP__
+#ifndef _DSP_HPP__
+#define _DSP_HPP__
 
 #include <stdio.h>
 #include <stdint.h>
@@ -12,22 +12,47 @@
 	RMS = sqrt(sum(Xi)^2)/n_samples)	
 */
 
+typedef struct dsp_data {
+	double Vmax;								// Maximum voltage ADC can read [V];
+	double Vmin;								// Minimum voltage ADC can read [V];
+	int d_max;									// Max decimal value correlated with Vmax on 12 bit range;
+	double GND;									// gnd for ADC converter [V];
+	double Vdc;									// Voltage divisor supply [V];
+	double R1;									// Voltage divisor top resistor [Ohms];
+	double R2;									// Voltage divisor bottom resistor [Ohms];
+
+	double Rb1;									// Burden resistor (bias) [Ohms];
+	double Rb2;									// Burden resistor (bias) [Ohms];
+	double N1;									// Current transformer sensor ration parameters
+	double N2;									// Current transformer sensor ration parameters	
+}dsp_data_t;
+
+extern dsp_data_t dsp_data_esp32;
+extern dsp_data_t dsp_data_stm32;
+
 class DSP {
 public:
 	// Circuit polarization parameters for currente sensor
-	double Vmax = 2.450;							// Maximum voltage ADC can read [V];
-	double Vmin = 0.120;							// Minimum voltage ADC can read [V];                     
-	int d_max = 2895;                              // Max decimal value correlated with Vmax on 12 bit range;
-	double GND  = 0.0;								// gnd for ADC converter [V];
-	double Vdc = 3.3;								// Voltage divisor supply [V];
-	double R1 = 56*1000;							// Voltage divisor top resistor [Ohms];
-	double R2 = 40*1000;							// Voltage divisor bottom resistor [Ohms];
-	double V_R2 = R2/(R1+R2)*Vdc;					// Voltage over R2 [V] or Vref for ADC converter [V];
+	double Vmax = 2.450;						// Maximum voltage ADC can read [V];
+	double Vmin = 0.120;						// Minimum voltage ADC can read [V];                     
+	int d_max = 2895;							// Max decimal value correlated with Vmax on 12 bit range;
+	double GND  = 0.0;							// gnd for ADC converter [V];
+	double Vdc = 3.3;							// Voltage divisor supply [V];
+	double R1 = 56*1000;						// Voltage divisor top resistor [Ohms];
+	double R2 = 40*1000;						// Voltage divisor bottom resistor [Ohms];
 
-	double Rb1 = 0.0;								// Burden resistor (bias) [Ohms];
-	double Rb2 = 300.0;								// Burden resistor (bias) [Ohms];
-	double N1 = 1;									// Current transformer sensor ration parameters
-	double N2 = 2000;								// Current transformer sensor ration parameters
+	double Rb1 = 0.0;							// Burden resistor (bias) [Ohms];
+	double Rb2 = 300.0;							// Burden resistor (bias) [Ohms];
+	double N1 = 1;								// Current transformer sensor ration parameters
+	double N2 = 2000;							// Current transformer sensor ration parameters	
+
+	double V_R2;
+
+	dsp_data_t* p = &dsp_data_esp32;
+
+	// double V_R2 = R2/(R1+R2)*Vdc;	// Voltage over R2 [V] or Vref for ADC converter [V];
+
+	// double V_R2 = p->R2/(p->R1+p->R2)*p->Vdc;	// Voltage over R2 [V] or Vref for ADC converter [V];
 
 	// ADC sampling parameters. F_clk MHz, internal div = 128, 13 cycles for ADC conversion.
 	// unsigned int n_bits = 12;						// ADC conversion resolution;
@@ -47,7 +72,23 @@ public:
 	// int nb;						// resolution [number of bits]
 	// int Fs;						// sample frequency	[samples/s]
 
-	DSP() {}
+	DSP() {
+		Vmax = p->Vmax;
+		Vmin = p->Vmin;
+		d_max = p->d_max;
+		GND = p->GND;
+		Vdc = p->Vdc;
+		R1 = p->R1;
+		R2 = p->R2;
+
+		Rb1 = p->Rb1;
+		Rb2 = p->Rb2;
+		N1 = p->N1;
+		N2 = p->N2;
+
+		V_R2 = R2/(R1+R2)*Vdc;
+	}
+	~DSP() {}
 	double calc_rms(double *v, int len) {
 		double sum = 0;
 

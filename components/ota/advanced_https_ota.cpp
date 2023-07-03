@@ -114,13 +114,22 @@ void advanced_ota_example_task(void *pvParameter)
     ESP_LOGI(TAG, "Starting Advanced OTA example");
 
     esp_err_t ota_finish_err = ESP_OK;
-    esp_http_client_config_t config = {
-        .url = CONFIG_FIRMWARE_UPGRADE_URL,
-        .cert_pem = (char *)server_cert_pem_start,
-        // .event_handler = _http_event_handler,
-        .timeout_ms = CONFIG_OTA_RECV_TIMEOUT,
-        .keep_alive_enable = true,
-    };
+
+    esp_http_client_config_t config = {};
+
+	config.url = CONFIG_FIRMWARE_UPGRADE_URL;
+	config.cert_pem = (char *)server_cert_pem_start;
+	config.timeout_ms = CONFIG_OTA_RECV_TIMEOUT;
+	config.keep_alive_enable = true;
+
+
+    // esp_http_client_config_t config = {
+    //     .url = CONFIG_FIRMWARE_UPGRADE_URL,
+    //     .cert_pem = (char *)server_cert_pem_start,
+    //     // .event_handler = _http_event_handler,
+    //     .timeout_ms = CONFIG_OTA_RECV_TIMEOUT,
+    //     .keep_alive_enable = true,
+    // };
 
     // esp_http_client_config_t config;
     // memcpy(config.url, CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL, strlen(CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL));
@@ -149,15 +158,21 @@ void advanced_ota_example_task(void *pvParameter)
 #ifdef CONFIG_EXAMPLE_SKIP_COMMON_NAME_CHECK
     config.skip_cert_common_name_check = true;
 #endif
+    esp_https_ota_config_t ota_config = {};
 
-    esp_https_ota_config_t ota_config = {
-        .http_config = &config,
-        .http_client_init_cb = _http_client_init_cb, // Register a callback to be invoked after esp_http_client is initialized
-#ifdef CONFIG_EXAMPLE_ENABLE_PARTIAL_HTTP_DOWNLOAD
-        .partial_http_download = true,
-        .max_http_request_size = CONFIG_EXAMPLE_HTTP_REQUEST_SIZE,
-#endif
-    };
+    ota_config.http_config = &config;
+    ota_config.http_client_init_cb = _http_client_init_cb;
+    ota_config.bulk_flash_erase = true;
+    ota_config.partial_http_download = false;
+
+//     esp_https_ota_config_t ota_config = {
+//         .http_config = &config,
+//         .http_client_init_cb = _http_client_init_cb, // Register a callback to be invoked after esp_http_client is initialized
+// #ifdef CONFIG_EXAMPLE_ENABLE_PARTIAL_HTTP_DOWNLOAD
+//         .partial_http_download = true,
+//         .max_http_request_size = CONFIG_EXAMPLE_HTTP_REQUEST_SIZE,
+// #endif
+//     };
 
     esp_https_ota_handle_t https_ota_handle = NULL;
     esp_err_t err = esp_https_ota_begin(&ota_config, &https_ota_handle);

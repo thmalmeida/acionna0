@@ -28,8 +28,8 @@ httpd_config_t ws_server_config = {
 	4,                      // max_open_sockets
 	8,                      // max_uri_handlers
 	8,                      // max_resp_headers
-	5,                      //backlog_conn
-	true,                 	// lru_purge_enable
+	5,                      // backlog_conn
+	false,                 	// lru_purge_enable
 	5,                      // recv_wait_timeout
 	5,                      // send_wait_timeout
 	NULL,                   // global_user_ctx
@@ -38,9 +38,13 @@ httpd_config_t ws_server_config = {
 	NULL,                   // global_transport_ctx_free_fn
 	true,					// enable/disable linger
 	5,						// linger timeout in seconds
-	NULL,                   // open_fn
-	NULL,                   // close_fn
-	NULL                    // uri_match_fn
+	false,					// keep_alive_enable
+	0,						// keep_alive_idle
+	0,						// keep_alive_interval
+	0,						// keep_alive_count
+	NULL,					// open_fn
+	NULL,					// close_fn
+	NULL					// uri_match_fn
 };
 
 esp_err_t ws_server_event_handler(httpd_req_t *req) {
