@@ -103,6 +103,11 @@ uint32_t pcy8575::uptime(void) {
 	// }
 	return static_cast<uint32_t>((data[3] << 24) | (data[2] << 16) | (data[1] << 8) | (data[0]));
 }
+void pcy8575::i_process(uint8_t mode) {
+	uint8_t data = static_cast<uint8_t>(mode);
+	i2c_->write(PCY8575_ADDR, PCY8575_REG_I_PROCESS, &data, 1, true);
+	// delay_ms(AHT10_DELAY_SOFT_RESET);
+}
 uint16_t pcy8575::irms(void) {
 	uint8_t data[2];
 	i2c_->read(PCY8575_ADDR, PCY8575_REG_IRMS, &data[0], 2, true);
@@ -111,6 +116,47 @@ uint16_t pcy8575::irms(void) {
 	// 	ESP_LOGI(TAG_PCY8575, "data_temp[%d]: 0x%02x", i, data[i]);
 	// }
 	return static_cast<uint16_t>((data[1] << 8) | (data[0]));
+}
+void pcy8575::i_data(void) {
+	int len = N_SAMPLES*2;
+	uint8_t data[len];
+	i2c_->read(PCY8575_ADDR, PCY8575_REG_I_DATA, &data[0], len, true);
+
+	for(int i=0; i<N_SAMPLES; i++) {
+		stream_array_raw[i] = (data[2*i+1] << 8) | (data[2*i]);
+	}
+
+	// memcpy(&stream_array_raw[0], (uint16_t*)&data[0], len/2);
+
+	// printf("adc_array_raw[%d] ", len/2);
+	// for(int i=0; i<len/2; i++) {
+	// 	printf("%u, ", stream_array_raw[i]);
+	// }
+}
+void pcy8575::data_test(void) {
+	uint8_t data[8];
+	uint16_t data16[4];
+
+	i2c_->read(PCY8575_ADDR, PCY8575_REG_TEST, &data[0], 8, true);
+
+
+	memcpy(&data16[0], (uint16_t*)&data[0], 4);
+
+	for(int i=0; i<4; i++) {
+		data16[i] = (data[2*i+1] << 8) | data[2*i];
+	}
+
+	for(int i=0; i<8; i++) {
+		printf("0x%02x, ", data[i]);
+	}
+	printf("\n");
+
+	for(int i=0; i<4; i++) {
+		printf("0x%04x, ", data16[i]);
+	}
+	printf("\n");
+
+	// return static_cast<uint16_t>((data[1] << 8) | data[0]);
 }
 uint8_t pcy8575::reset_reason(void) {
 	uint8_t data;

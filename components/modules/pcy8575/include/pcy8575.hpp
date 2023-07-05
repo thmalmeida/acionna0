@@ -14,15 +14,20 @@
 /* list of I2C addresses */
 #define PCY8575_ADDR					0x53	// device address
 
-/* list of command registers */
-#define PCY8575_REG_PROBE				0x00
-#define PCY8575_REG_SOFT_RESET			0x01
-#define PCY8575_REG_CONFIG				0x02
-#define PCY8575_REG_PUT					0x03
-#define PCY8575_REG_GET					0x04
-#define PCY8575_REG_TEMPERATURE			0x05
-#define PCY8575_REG_UPTIME				0x06
-#define PCY8575_REG_IRMS				0x07
+/* list of command registers - opcodes */
+#define PCY8575_REG_PROBE		0x00
+#define PCY8575_REG_SOFT_RESET	0x01
+#define PCY8575_REG_CONFIG		0x02
+#define PCY8575_REG_PUT			0x03
+#define PCY8575_REG_GET			0x04
+#define PCY8575_REG_TEMPERATURE	0x05
+#define PCY8575_REG_UPTIME		0x06
+#define PCY8575_REG_RST_REASON	0x07
+#define PCY8575_REG_I_PROCESS	0x08
+#define PCY8575_REG_IRMS		0x09
+#define PCY8575_REG_I_DATA		0x0A
+#define PCY8575_REG_TEST		0x0B
+
 
 /* write mode
 
@@ -71,6 +76,7 @@ RST REASON:	write												 Read				8 bits
 Start | ADDR - R/W = 0 | REASON | Stop | ... delay ... | Start | ADDR - R/W = 1 | byte L  | Stop |
 */
 
+#define N_SAMPLES 397
 
 class pcy8575 {
 
@@ -87,8 +93,15 @@ class pcy8575 {
 	uint16_t get(void);
 	uint16_t temperature(void);
 	uint32_t uptime(void);
+	void i_process(uint8_t mode);
 	uint16_t irms(void);
+	void i_data(void);
+	void data_test(void);
 	uint8_t reset_reason(void);
+
+	int n_samples = N_SAMPLES;
+
+	uint16_t stream_array_raw[N_SAMPLES];
 	
 	private:
 

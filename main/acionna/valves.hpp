@@ -36,6 +36,8 @@ public:
 	static const int number_valves = 12;
 	states_flag flag_inverted_sequence = states_flag::disable;
 
+	uint16_t* stream_array;
+
 	Valves(I2C_Master *i2c) : load_{i2c} {
 		init_valve_parameters();
 	}
@@ -256,8 +258,23 @@ public:
 	uint32_t module_uptime(void) {
 		return load_.uptime();
 	}
+	void module_i_process(void) {
+		load_.i_process(0x00);
+	}
 	uint16_t module_irms(void) {
 		return load_.irms();
+	}
+	void module_i_data_transfer(void) {
+		load_.i_data();
+	}
+	int module_adc_array_length(void) {
+		return load_.n_samples;
+	}
+	uint16_t module_read_i_sample(int i) {
+		return load_.stream_array_raw[i];
+	}
+	void module_data_test(void) {
+		load_.data_test();
 	}
 	
 	private:

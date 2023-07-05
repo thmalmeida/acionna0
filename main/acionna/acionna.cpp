@@ -148,7 +148,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$80:v:01:p;			- mostra pressão nominal do setor
 		$84:04F3;			- PCY8575 put 16 bit hex value directly to PCY8575;
 		$85;				- PCY8575 get output
-		$86;				- PCY8575 uptime;
+		$86:x;
+			$86:d;				- PCY8575 get adc stream data;
+			$86:i;				- PCY8575 get Irms;
+			$86:u;				- PCY8575 uptime;
 		$87;				- PCY8575 temperature;
 		$88;				- PCY8574 probe;
 		$89;				- PCY8575 soft reset;
@@ -177,7 +180,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 	int opcode_sub0 = -1;
 	int statusCommand = -1;
 	char _aux[3], _aux2[5];
-	char buffer[400] = "not handled\n";
+	char buffer[2500] = "not handled\n";
 
 	// Getting the opcode0 (operation code)
 	_aux[0] = '0';
@@ -1153,15 +1156,38 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					break;
 				}
 				case 6: {
-					// $86; get module uptime
-					uint32_t uptime_temp = valves1_.module_uptime();
-					sprintf(buffer, "PCY8575 uptime %02u:%02u:%02u d:%d\n", timesec_to_hour(uptime_temp), timesec_to_min(uptime_temp), timesec_to_sec(uptime_temp), timesec_to_day(uptime_temp));
+					// $86:x;
+					if ((command_str[3] == ':') && (command_str[4] == 'd') && (command_str[5] == ';')) {
+						// $86:d;   get adc array data raw;
+						valves1_.module_i_data_transfer();
+						int length = valves1_.module_adc_array_length();
+						memset(buffer, 0, sizeof(buffer));
+						sprintf(buffer, "ADC array size %d: ", length);
+						char buffer_temp[8];
+						for(int i=0; i<length; i++) {
+							sprintf(buffer_temp, "%u, ", valves1_.module_read_i_sample(i));
+							strcat(buffer, buffer_temp);
+						}
+						strcat(buffer, "\n");
+					} else if((command_str[3] == ':') && (command_str[4] == 'i') && (command_str[5] == ';')) {
+						// $86:i;  get Irms solenoids calculated value;
+						sprintf(buffer, "PCY8575 Irms %.3f A\n", static_cast<float>(valves1_.module_irms()/1000.0));
+					} else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == ';')) {
+						// $86:p;  process adc conversion and Irms calculation on pcy8575 module;
+						valves1_.module_i_process();
+						sprintf(buffer, "PCY8575 process");
+					} else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ';')) {
+						// $87;	get module temperature
+						sprintf(buffer, "PCY8575 temperature: 0x%04x\n", valves1_.module_temperature());
+					} else if((command_str[3] == ':') && (command_str[4] == 'u') && (command_str[5] == ';')) {
+						// $86:u; - get module uptime
+						uint32_t uptime_temp = valves1_.module_uptime();
+						sprintf(buffer, "PCY8575 uptime %02u:%02u:%02u d:%d\n", timesec_to_hour(uptime_temp), timesec_to_min(uptime_temp), timesec_to_sec(uptime_temp), timesec_to_day(uptime_temp));
+					} else if((command_str[3] == ':') && (command_str[4] == 'v') && (command_str[5] == ';')) {
+						sprintf(buffer, "PCY8575 data test\n");
+						valves1_.module_data_test();
+					}
 					break;					
-				}
-				case 7: {
-					// $87;	get module temperature
-					sprintf(buffer, "PCY8575 temperature: 0x%04x\n", valves1_.module_temperature());
-					break;
 				}
 				case 8: {
 					// $88;	just probe
