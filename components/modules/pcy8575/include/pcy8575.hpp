@@ -27,6 +27,8 @@
 #define PCY8575_REG_IRMS		0x09
 #define PCY8575_REG_I_DATA		0x0A
 #define PCY8575_REG_TEST		0x0B
+#define PCY8575_REG_I_SET_NP	0x0C
+#define PCY8575_REG_I_GET_NP	0x0D
 
 
 /* write mode
@@ -96,6 +98,8 @@ class pcy8575 {
 	void i_process(uint8_t mode);
 	uint16_t irms(void);
 	void i_data(void);
+	void i_n_points(int length);
+	uint16_t i_n_points(void);
 	void data_test(void);
 	uint8_t reset_reason(void);
 

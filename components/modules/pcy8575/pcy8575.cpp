@@ -133,6 +133,22 @@ void pcy8575::i_data(void) {
 	// 	printf("%u, ", stream_array_raw[i]);
 	// }
 }
+void i_n_points(int length) {
+
+	uint8_t data[2];
+	data[0] = length & 0x00FF;
+	data[1] = (length >> 8) & 0x00FF;
+
+	i2c_->write(PCY8575_ADDR, PCY8575_REG_I_SET_NP, &data[0], 2, true);
+}
+uint16_t i_n_points(void) {
+	uint8_t data[2];
+	i2c_->read(PCY8575_ADDR, PCY8575_REG_I_GET_NP, &data[0], 2, true);
+	// for(int i=0; i<2; i++) {
+	// 	ESP_LOGI(TAG_PCY8575, "data_temp[%d]: 0x%02x", i, data[i]);
+	// }
+	return static_cast<uint16_t>((data[1] << 8) | data[0]);
+}
 void pcy8575::data_test(void) {
 	uint8_t data[8];
 	uint16_t data16[4];
