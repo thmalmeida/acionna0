@@ -117,13 +117,9 @@ uint16_t pcy8575::irms(void) {
 	// }
 	return static_cast<uint16_t>((data[1] << 8) | (data[0]));
 }
-void pcy8575::i_data(void) {
-	
-	n_samples = i_n_points();
-	delay_ms(20);
-		
-	uint8_t data[n_samples];
-	i2c_->read(PCY8575_ADDR, PCY8575_REG_I_DATA, &data[0], n_samples, true);
+void pcy8575::i_data(void) {		
+	uint8_t data[n_samples*2];
+	i2c_->read(PCY8575_ADDR, PCY8575_REG_I_DATA, &data[0], n_samples*2, true);
 
 	for(int i=0; i<n_samples; i++) {
 		stream_array_raw[i] = (data[2*i+1] << 8) | (data[2*i]);
@@ -149,7 +145,8 @@ uint16_t pcy8575::i_n_points(void) {
 	// for(int i=0; i<2; i++) {
 	// 	ESP_LOGI(TAG_PCY8575, "data_temp[%d]: 0x%02x", i, data[i]);
 	// }
-	return static_cast<uint16_t>((data[1] << 8) | data[0]);
+	n_samples = static_cast<uint16_t>((data[1] << 8) | data[0]);
+	return n_samples;
 }
 void pcy8575::data_test(void) {
 	uint8_t data[8];

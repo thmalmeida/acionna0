@@ -103,7 +103,7 @@ class pcy8575 {
 	void data_test(void);
 	uint8_t reset_reason(void);
 
-	int n_samples = N_SAMPLES;
+	uint16_t n_samples = N_SAMPLES;
 
 	uint16_t stream_array_raw[N_SAMPLES];
 	
