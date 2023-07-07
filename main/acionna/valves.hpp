@@ -267,8 +267,12 @@ public:
 	void module_i_data_transfer(void) {
 		load_.i_data();
 	}
-	int module_adc_array_length(void) {
-		return load_.n_samples;
+	void module_i_n_points(int length) {
+		load_.i_n_points(length);
+	}
+	int module_i_n_points(void) {
+		
+		return load_.i_n_points();
 	}
 	uint16_t module_read_i_sample(int i) {
 		return load_.stream_array_raw[i];

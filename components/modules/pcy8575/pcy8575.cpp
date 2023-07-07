@@ -118,11 +118,14 @@ uint16_t pcy8575::irms(void) {
 	return static_cast<uint16_t>((data[1] << 8) | (data[0]));
 }
 void pcy8575::i_data(void) {
-	int len = N_SAMPLES*2;
-	uint8_t data[len];
-	i2c_->read(PCY8575_ADDR, PCY8575_REG_I_DATA, &data[0], len, true);
+	
+	n_samples = i_n_points();
+	delay_ms(20);
+		
+	uint8_t data[n_samples];
+	i2c_->read(PCY8575_ADDR, PCY8575_REG_I_DATA, &data[0], n_samples, true);
 
-	for(int i=0; i<N_SAMPLES; i++) {
+	for(int i=0; i<n_samples; i++) {
 		stream_array_raw[i] = (data[2*i+1] << 8) | (data[2*i]);
 	}
 
@@ -133,15 +136,14 @@ void pcy8575::i_data(void) {
 	// 	printf("%u, ", stream_array_raw[i]);
 	// }
 }
-void i_n_points(int length) {
-
+void pcy8575::i_n_points(int length) {
 	uint8_t data[2];
 	data[0] = length & 0x00FF;
 	data[1] = (length >> 8) & 0x00FF;
 
 	i2c_->write(PCY8575_ADDR, PCY8575_REG_I_SET_NP, &data[0], 2, true);
 }
-uint16_t i_n_points(void) {
+uint16_t pcy8575::i_n_points(void) {
 	uint8_t data[2];
 	i2c_->read(PCY8575_ADDR, PCY8575_REG_I_GET_NP, &data[0], 2, true);
 	// for(int i=0; i<2; i++) {

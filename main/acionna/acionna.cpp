@@ -151,6 +151,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$86:x;
 			$86:d;				- PCY8575 get adc stream data;
 			$86:i;				- PCY8575 get Irms;
+			$86:n:397;			- PCY8575 define the number of points to ADC array (default is 397);
 			$86:u;				- PCY8575 uptime;
 		$87;				- PCY8575 temperature;
 		$88;				- PCY8574 probe;
@@ -1160,7 +1161,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if ((command_str[3] == ':') && (command_str[4] == 'd') && (command_str[5] == ';')) {
 						// $86:d;   get adc array data raw;
 						valves1_.module_i_data_transfer();
-						int length = valves1_.module_adc_array_length();
+						int length = valves1_.module_i_n_points();
 						memset(buffer, 0, sizeof(buffer));
 						sprintf(buffer, "ADC array size %d: ", length);
 						char buffer_temp[8];
@@ -1172,6 +1173,17 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					} else if((command_str[3] == ':') && (command_str[4] == 'i') && (command_str[5] == ';')) {
 						// $86:i;  get Irms solenoids calculated value;
 						sprintf(buffer, "PCY8575 Irms %.3f A\n", static_cast<float>(valves1_.module_irms()/1000.0));
+					} else if((command_str[3] == ':') && (command_str[4] == 'n') && (command_str[5] == ':') && (command_str[9] == ';')) {
+						// $86:n:397;
+						_aux2[0] = '0';
+						_aux2[1] = command_str[6];
+						_aux2[2] = command_str[7];
+						_aux2[3] = command_str[8];		// '0' in uint8_t is 48. ASCII
+						_aux2[4] = '\0';
+						valves1_.module_i_n_points(atoi(_aux2));
+
+						sprintf(buffer, "force time_to_shutdown: %d min\n", pump1_.time_to_shutdown/60);
+
 					} else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == ';')) {
 						// $86:p;  process adc conversion and Irms calculation on pcy8575 module;
 						valves1_.module_i_process();
