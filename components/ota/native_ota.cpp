@@ -192,8 +192,11 @@ static void ota_task(void *pvParameter)
                     if (memcmp(OTA_update.update_app_info.version, OTA_update.running_app_info.version, sizeof(OTA_update.update_app_info.version)) == 0) {
                         ESP_LOGW(TAG_OTA, "Current running version is the same as a new. We will not continue the update.");
                         http_cleanup(client);
+                        esp_ota_abort(update_handle);
+                        (void)vTaskDelete(NULL);
+                        return;
                         // infinite_loop();
-                    }
+                    } 
 #endif
                     image_header_was_checked = true;
 

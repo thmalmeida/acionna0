@@ -1184,11 +1184,11 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						int _n_points = atoi(_aux2);
 						valves1_.module_i_n_points(_n_points);
 
-						sprintf(buffer, "n points to: %d\n", _n_points);
+						sprintf(buffer, "PCY8575 n points to: %d\n", _n_points);
 
 					} else if((command_str[3] == ':') && (command_str[4] == 'n') && (command_str[5] == ';')) {
 						// $86:n;
-						sprintf(buffer, "n points is: %d\n", valves1_.module_i_n_points());
+						sprintf(buffer, "PCY8575 n points is: %d\n", valves1_.module_i_n_points());
 					}
 					 else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == ';')) {
 						// $86:p;  process adc conversion and Irms calculation on pcy8575 module;
@@ -1196,7 +1196,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						sprintf(buffer, "PCY8575 process");
 					} else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ';')) {
 						// $87;	get module temperature
-						sprintf(buffer, "PCY8575 temperature: 0x%04x\n", valves1_.module_temperature());
+						sprintf(buffer, "PCY8575 temp: 0x%04x\n", valves1_.module_temperature());
 					} else if((command_str[3] == ':') && (command_str[4] == 'u') && (command_str[5] == ';')) {
 						// $86:u; - get module uptime
 						uint32_t uptime_temp = valves1_.module_uptime();

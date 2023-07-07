@@ -36,7 +36,7 @@ httpd_config_t ws_server_config = {
 	NULL,                   // global_user_ctx_free_fn
 	NULL,                   // global_transport_ctx
 	NULL,                   // global_transport_ctx_free_fn
-	true,					// enable/disable linger
+	false,					// enable/disable linger
 	5,						// linger timeout in seconds
 	false,					// keep_alive_enable
 	0,						// keep_alive_idle
