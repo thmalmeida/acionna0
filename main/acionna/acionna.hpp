@@ -119,7 +119,7 @@ private:
 	states_flag flag_check_low_level_ = states_flag::disable;
 	states_flag flag_check_period_ = states_flag::disable;
 	states_flag flag_check_pressure_low_ = states_flag::disable;
-	states_flag flag_check_pressure_high_ = states_flag::disable;
+	states_flag flag_check_pressure_high_ = states_flag::enable;		// enable by default to make system more safe;
 	states_flag flag_check_pressure_valve_ = states_flag::disable;
 	states_flag flag_check_thermal_relay_ = states_flag::disable;
 	states_flag flag_start_request_ = states_flag::disable;				// flag request to start motor;
