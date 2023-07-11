@@ -15,12 +15,13 @@ enum class air_detect_states {
 class Pipepvc {
 public:
 	
-	int pressure_max = 70;							// max supported pressure by pipe [m.c.a];
+	int pressure_max = 56;							// max supported pressure by pipe [m.c.a];
 	int pressure_min = 30;							// min threshold pressure for indicate some problem;
 	int sensor_pressure_ref;						// sensor max pressure [psi];
 	int sensor_data_dig = 0;						// readed value from ADC peripheral;
 	int pressure_mca_fi = 0;						// pressure value after dig low pass filter
 	
+	// Variables for low pressure detection algorithm
 	int air_detect_pressure_low_ref = 10;			// after stable, min threshold pressure to find air intake;
 	uint32_t air_detect_timer_increase = 0;
 	uint32_t air_detect_timer_increase_ref = 60;

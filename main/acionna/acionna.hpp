@@ -41,6 +41,16 @@
 #include "helper.hpp"
 #include "convert_char_to_hex.h"
 
+#include <chrono>
+
+// std::chrono::seconds
+
+struct log_valves {
+	uint8_t valve_id;
+	uint32_t start_time;	// start time since epoch [s]
+	uint16_t elapsed_time;	// time on [s]
+};
+
 class Acionna {
 public:
 	// states_period state_period = states_period::redTime;

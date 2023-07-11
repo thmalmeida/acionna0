@@ -1355,7 +1355,7 @@ void Acionna::init() {
 	ESP_LOGI(TAG_ACIONNA, "initialization");
 
 	// Clock time init
-	dt.setDate(2023, 04, 30);
+	dt.setDate(2023, 07, 10);
 	dt.setTime(0, 0, 0, ND);
 	device_clock.set_time(dt.getUnixTime());
 	time_day_sec_ = dt.getHour()*3600 + dt.getMinute()*60 + dt.getSecond();
@@ -1366,9 +1366,10 @@ void Acionna::init() {
 	wifi_sta_init(wifi_ip_end);
 	#else
 
-	ip_get_mode = ip_get_types::static_ip;
 	// static ip select using the inner mac address.
+	ip_get_mode = ip_get_types::static_ip;
 	char mac_device[18];
+
 	char buffer_temp[5];
 	uint8_t wifi_mac_[6];
 	wifi_get_mac(&wifi_mac_[0]);
@@ -1478,6 +1479,7 @@ void Acionna::msg_fetch_(void) {
 	}
 	#endif
 	
+	// this variable is changed on ws_server_event_handler() event function into httpd_setup.cpp
 	if(ws_server_data_flag) {
 		ws_server_data_flag = 0;
 		ws_server_ans_flag_ = states_flag::enable;
@@ -1593,19 +1595,17 @@ void Acionna::operation_motorPeriodDecision() {
 }
 void Acionna::operation_pump_control() {
 	/*
-	* Motor stop conditions
-	*
-	* Reasons to halt the motor.
-	* 0x00 - command line request
-	* 0x01 - time out
-	* 0x02 - high pressure
-	* 0x03 - thermal relay occurs;
-	* 0x04 - contactor not on
-	* 0x05 - low level
-	* 0x06 - low pressure(broken pipe?)
-	* 0x07 - red time
-	* 0x08 - system lock??
-	*/
+	 * Reasons to halt the motor.
+	 * 0x00 - command line request
+	 * 0x01 - time out
+	 * 0x02 - high pressure
+	 * 0x03 - low pressure(broken pipe?)
+	 * 0x04 - thermal relay occurs;
+	 * 0x05 - contactor not on
+	 * 0x06 - low level
+	 * 0x07 - red time
+	 * 0x08 - system lock??
+	 * */
 
 	// time matches occurred into check_time_match(), start motor
 	if(flag_check_time_match_ == states_flag::enable)
@@ -2203,6 +2203,8 @@ void Acionna::update_uptime()
 		// time_day_sec_ ^= time_day_sec_;
 		time_day_sec_ = 0;
 	}
+
+	// ESP_LOGI(TAG_ACIONNA, "uptime: %lu, esp_uptime: %ld", uptime_, static_cast<long int>(esp_timer_get_time() / 1000000);
 	// or
 	// uptime = esp_timer_get_time();
 
