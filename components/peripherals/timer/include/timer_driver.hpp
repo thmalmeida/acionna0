@@ -9,8 +9,8 @@
 #include "esp_log.h"
 
 enum class timer_states {
-	disabled = 0,
-	stopped,				// enable and stopped;
+	disabled = 0,			// disable the peripheral;
+	stopped,				// enable but stopped;
 	running					// enable and running;
 };
 
@@ -70,6 +70,9 @@ private:
 	int frequency_ = 0;
 	int direction_ = 0;
 	timer_states timer_state = timer_states::disabled;
+
+	// ESP32 specifics
+	gptimer_event_callbacks_t cbs_ = {};
 };
 
 #endif /* TIMER_DRIVER_HPP__ */

@@ -28,7 +28,6 @@ static void test_chip_info(void) {
 
 	printf("Minimum free heap size: %" PRIu32 " bytes\n", esp_get_minimum_free_heap_size());
 }
-
 void test_i2c_to_gpio(void *pvParameter) {
 
 	I2C_Master i2c0(I2C_NUM_1, I2C_SCL, I2C_SDA, I2C_NORMAL_SPEED_HZ, 1);
@@ -257,21 +256,20 @@ void test_wifi(void *pvParameter)
 	}
 }
 
-void machine_run(void *pvParameter)
-{
+
+void machine_run(void *pvParameter) {
+
 	ADC_driver adc0(adc_mode::oneshot);
 	Acionna acionna0(&adc0);
 
-	while(1)
-	{
+
+	while(1) {
 		acionna0.run();
+		acionna0.run_every_second();
 
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 }
-
-
-
 
 
 // Sensors type

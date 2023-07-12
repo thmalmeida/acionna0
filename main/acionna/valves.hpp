@@ -79,6 +79,9 @@ public:
 		remove(12);
 		// set_valve_time(12, 0);
 	}
+	void addr_epoch_time(uint32_t* t) {
+		time_epoch = t;
+	}
 	// This functions should be called every 1 second interval
 	void update()
 	{
@@ -89,15 +92,24 @@ public:
 			if(!time_valve_remain)
 			{
 				valve_current = next();
-				if(!valve_current)
-				{
+				if(!valve_current) {
 					stop();
+				} else {
+					// make some log
+
 				}
 			}
 			else
 				time_valve_remain--;
 		}
 		// to implement
+	}
+	void log_open(void) {
+		log_valves[valve_seq].valve_id = valve_current;
+		log_valves[valve_seq].started_time = *time_epoch;
+	}
+	void log_close(void) {
+		log_valves[valve_seq].elapsed_time = valve_seq_elapsed_time;
 	}
 	void set_valve_time(int valve_id, unsigned int value)
 	{
@@ -146,6 +158,7 @@ public:
 	void start()
 	{
 		load_.put(0x0000);		// reset all valves;
+		valve_seq = 0;			// reset valve sequence number;
 		time_valve_remain = 0;	// reset current valve time;
 		time_system_on_ = 0;	// reset valve time system;
 		state_valves = states_valves::automatic_switch;
@@ -280,10 +293,21 @@ public:
 	void module_data_test(void) {
 		load_.data_test();
 	}
-	
+
+	static const int log_n = 12;
+
+	struct {
+		uint8_t valve_id;									// valve id
+		uint32_t started_time;								// start time since epoch [s]
+		uint16_t elapsed_time;								// total time it was on [s]
+	}log_valves[log_n];
+
+	uint8_t valve_seq = 0;									// valve sequence number during the cycle;
+	uint32_t valve_seq_elapsed_time = 0;					// last elapsed time [s];
+
 	private:
 		// GPIO_Basic ac_load_[11];
-		pcy8575 load_;
+		pcy8575 load_;										// connection with i2c_to_gpio module;
 
 		// const std::size_t ac_load_count_ = sizeof(ac_load_) / sizeof(ac_load_[0]);
 
@@ -295,8 +319,10 @@ public:
 			unsigned int time_on_last;						// tempo ligado ou último tempo ligado [s];
 		} valve_[number_valves];
 
-		unsigned int time_system_on_ = 0;					// current time on [s];
+		uint32_t time_system_on_ = 0;						// current time on [s];
 		states_flag flag_valve_found_ = states_flag::disable;
+
+		uint32_t *time_epoch;								// epoch time linked with system;
 
 
 	//	GPIO_Basic drive_kn_[3]={GPIO_Basic{AC_LOAD1},GPIO_Basic{AC_LOAD2},GPIO_Basic{AC_LOAD3}};

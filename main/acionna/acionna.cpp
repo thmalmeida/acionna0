@@ -196,6 +196,8 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 	_aux[2] = '\0';
 	opcode1 = atoi(_aux);
 
+	// ESP_LOGI(TAG_ACIONNA, "Handle msg!");
+
 	switch (opcode0)
 	{
 		case 0: { // $0X; Check status
@@ -241,7 +243,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						char buffer_temp[30];
 						for(int i=0; i<9; i++)
 						{
-							sprintf(buffer_temp, "s%d- %.2d:%.2d m:%d t:%u r:%u\n", i+1, (int)timesec_to_hour(time_match_on_lasts[i]), (int)timesec_to_min(time_match_on_lasts[i]), static_cast<int>(start_mode_lasts[i]), static_cast<uint16_t>(time_on_lasts[i]/60), static_cast<int>(stops_lasts[i]));
+							sprintf(buffer_temp, "s%d- %.2d:%.2d m:%d t:%u r:%u\n", i+1, (int)timesec_to_hour(log_motors_[i].time_start), (int)timesec_to_min(log_motors_[i].time_start), static_cast<int>(log_motors_[i].start_mode), static_cast<uint16_t>(log_motors_[i].time_elapsed_on/60), static_cast<int>(log_motors_[i].stop_reason));
 							strcat(buffer, buffer_temp);
 						}
 						strcat(buffer, "\n");
@@ -331,9 +333,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 																							static_cast<int>(pump1_.state_Rth()),
 																							pipe1_.pressure_mca(),
 																							pipe2_.pressure_mca(),
-																							static_cast<int>(stops_lasts[0]),
-																							static_cast<int>(stops_lasts[1]),
-																							static_cast<int>(stops_lasts[2])
+																							static_cast<int>(log_motors_[0].stop_reason),
+																							static_cast<int>(log_motors_[1].stop_reason),
+																							static_cast<int>(log_motors_[2].stop_reason)
 																							);
 					} // $03;
 					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == '1') && (command_str[6] == ':') && (command_str[9] == ';')) {
@@ -1441,26 +1443,27 @@ void Acionna::init() {
 	// update clock;
 }
 void Acionna::make_history(start_types start_type, uint32_t time_now) {
-	for(int i=(n_log-1);i>0;i--)
+
+	for(int i=(log_n_-1);i>0;i--)
 	{
 		// Start - shift data to right at the end;
-		start_mode_lasts[i] = start_mode_lasts[i-1];
-		time_match_on_lasts[i] = time_match_on_lasts[i-1];
+		log_motors_[i].start_mode = log_motors_[i-1].start_mode;
+		log_motors_[i].time_start = log_motors_[i-1].time_start;
 		
 		// STOP - shift data to right at the end;
-		stops_lasts[i] = stops_lasts[i-1];
-		time_on_lasts[i] = time_on_lasts[i-1];
+		log_motors_[i].stop_reason = log_motors_[i-1].stop_reason;
+		log_motors_[i].time_elapsed_on = log_motors_[i-1].time_elapsed_on;
 	}
-	start_mode_lasts[0] = start_type;
-	time_match_on_lasts[0] = time_now;
+	log_motors_[0].start_mode = start_type;
+	log_motors_[0].time_start = time_now;
 
-	stops_lasts[0] = stop_types::other;
-	time_on_lasts[0] = 0;	
+	log_motors_[0].stop_reason = stop_types::other;
+	log_motors_[0].time_elapsed_on = 0;
 }
-void Acionna::make_history(stop_types stop_type, uint32_t time_on) {
+void Acionna::make_history(stop_types stop_type, uint32_t time_elapsed_on) {
 	
-	stops_lasts[0] = stop_type;
-	time_on_lasts[0] = time_on;
+	log_motors_[0].stop_reason = stop_type;
+	log_motors_[0].time_elapsed_on = time_elapsed_on;
 }
 void Acionna::msg_fetch_(void) {
 
@@ -1536,10 +1539,6 @@ void Acionna::msg_back_(void) {
 		// send ws client back
 		ws_client_send(msg_back_str_);
 	}
-
-	sys_fw_update_ans_async_();
-
-	msg_json_back_();
 }
 void Acionna::msg_json_back_(void) {
 	if(ws_server_client_state == conn_states::connected) {
@@ -1591,8 +1590,6 @@ void Acionna::operation_mode() {
 			break;
 	}
 }
-void Acionna::operation_motorPeriodDecision() {
-}
 void Acionna::operation_pump_control() {
 	/*
 	 * Reasons to halt the motor.
@@ -1628,6 +1625,7 @@ void Acionna::operation_pump_control() {
 			// ESP_LOGI(TAG_ACIONNA, "FLAG TIME MATCH!");
 			if(pump1_.state() == states_motor::off_idle)
 			{
+				// If time match occurs and motor state is idle, turn it on! And make some log;
 				pump1_.start(auto_start_mode[index]);
 				make_history(auto_start_mode[index], time_day_sec_);
 				// If exists time value registered, use it. Else, use default.
@@ -1635,6 +1633,17 @@ void Acionna::operation_pump_control() {
 				{
 					pump1_.time_to_shutdown = time_to_shutdown[index];
 				}
+			}
+		}
+	}
+
+	// check time to shutdown
+	if(flag_check_timer_ == states_flag::enable)
+	{
+		if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_k2) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
+			if(!pump1_.time_to_shutdown) {
+				pump1_.stop(stop_types::timeout);		// stop motor by timeout;
+				make_history(stop_types::timeout, pump1_.time_on());
 			}
 		}
 	}
@@ -1685,17 +1694,6 @@ void Acionna::operation_pump_control() {
 			if(pump1_.state() != states_motor::off_thermal_activated) {
 				pump1_.stop(stop_types::thermal_relay);
 				make_history(stop_types::thermal_relay, pump1_.time_on());
-			}
-		}
-	}
-
-	// check time to shutdown
-	if(flag_check_timer_ == states_flag::enable)
-	{
-		if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_k2) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
-			if(!pump1_.time_to_shutdown) {
-				pump1_.stop(stop_types::timeout);		// stop motor by timeout;
-				make_history(stop_types::timeout, pump1_.time_on());
 			}
 		}
 	}
@@ -1774,6 +1772,11 @@ void Acionna::run(void) {
 	msg_exec_();		// parse and execute the commmand;
 
 	msg_back_();		// send answer back to origin;
+}
+void Acionna::run_every_second(void) {
+	sys_fw_update_ans_async_();
+
+	msg_json_back_();
 
 	update_all();		// update variables and rtc in a 1 second period time;
 

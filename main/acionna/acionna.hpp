@@ -41,15 +41,6 @@
 #include "helper.hpp"
 #include "convert_char_to_hex.h"
 
-#include <chrono>
-
-// std::chrono::seconds
-
-struct log_valves {
-	uint8_t valve_id;
-	uint32_t start_time;	// start time since epoch [s]
-	uint16_t elapsed_time;	// time on [s]
-};
 
 class Acionna {
 public:
@@ -62,13 +53,20 @@ public:
 	uint32_t time_to_shutdown[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};	// time value to shutdown list [s]
 	start_types auto_start_mode[9]; 							// auto turn start type select
 
+	// uint8_t time_match_n = 1;									// turn times range 1-9
+	// struct {
+	// 	uint32_t time_match;									// time clock list [s] should convert to hours and minutes
+	// 	uint32_t time_to_shutdown;								// time value to shutdown list [s]
+	// 	start_types auto_start_mode; 							// auto turn start type select
+	// }time_list[9]={};
+
 	// For make log history operation - Can be ported to inside the pump class?
-	static const int n_log = 9;									// history log size
-	uint32_t time_match_on_lasts[n_log] = {0};
-	start_types start_mode_lasts[n_log];
+	// static const int log_n_ = 9;									// history log size
+	// uint32_t time_started_lasts[log_n_] = {0};
+	// start_types start_mode_lasts[log_n_];
 	
-	uint32_t time_on_lasts[n_log] = {0};
-	stop_types stops_lasts[n_log];
+	// uint32_t time_elapsed_on_lasts[log_n_] = {0};
+	// stop_types stops_lasts[log_n_];
 
 	Acionna(ADC_driver* adc);	// : pipe1_(&adc, 4), pipe2_(&adc, 7) {
 
@@ -76,7 +74,6 @@ public:
 	void init(void);
 
 	// run every second;
-	void operation_motorPeriodDecision();
 	void operation_system_off();
 	void operation_valve_control();
 	void operation_pump_control();
@@ -90,16 +87,18 @@ public:
 	void update_uptime();
 	void update_all();
 	void update_sensors();
+
 	std::string handle_message(uint8_t* command_str);
 	void operation_mode();
 
 	std::string msg_back_str_;
 
 	void make_history(start_types start_type, uint32_t time_now);
-	void make_history(stop_types stop_type, uint32_t time_on);
+	void make_history(stop_types stop_type, uint32_t time_elapsed_on);
 
 	// OS system;
 	void run(void);
+	void run_every_second(void);
 
 private:
 	
@@ -144,6 +143,13 @@ private:
 
 	// Handle message process flags
 	// states_flag flag_enable_decode_ = states_flag::disable;
+	static const int log_n_ = 10;									// history log size
+	struct {
+		start_types start_mode;										// motor start mode;
+		uint32_t time_start;										// started time;
+		uint32_t time_elapsed_on;									// time on;
+		stop_types stop_reason;							// reason to stop;
+	}log_motors_[log_n_]={};
 
 	uint32_t uptime_ = 0;												// uptime in seconds
 	uint32_t time_day_sec_ = 0;
