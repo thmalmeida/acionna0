@@ -647,7 +647,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						char buffer_temp[30];
 						for(int i=0; i<time_match_n; i++)
 						{
-							sprintf(buffer_temp, "h%d:%.2d:%.2d m:%d t:%d\n", i+1, (int)timesec_to_hour(time_match[i]), (int)timesec_to_min(time_match[i]), (int)auto_start_mode[i], static_cast<int>(time_to_shutdown[i]/60));
+							sprintf(buffer_temp, "h%d:%.2d:%.2d m:%d t:%d\n", i+1, (int)timesec_to_hour(time_match_list[i].time_match), (int)timesec_to_min(time_match_list[i].time_match), (int)time_match_list[i].auto_start_mode, static_cast<int>(time_match_list[i].time_to_shutdown/60));
 							strcat(buffer, buffer_temp);
 						}
 						// strcat(buffer, "\n");
@@ -684,9 +684,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux[2] = '\0';
 						time_temp += (static_cast<uint32_t>(atoi(_aux)))*60;
 
-						time_match[index] = time_temp;
+						time_match_list[index].time_match = time_temp;
 
-						sprintf(buffer, "set h%u %.2u:%.2u tm:%lu\n", index+1, timesec_to_hour(time_match[index]), timesec_to_min(time_match[index]), time_match[index]);
+						sprintf(buffer, "set h%u %.2u:%.2u tm:%lu\n", index+1, timesec_to_hour(time_match_list[index].time_match), timesec_to_min(time_match_list[index].time_match), time_match_list[index].time_match);
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'n') && (command_str[5] == ':') && (command_str[7] == ';')) {
 						// set $50:n:4; set n to turn 4 times;
@@ -719,14 +719,14 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 							{
 								for(int i=0; i<9; i++)
 								{
-									auto_start_mode[i] = (start_types)status_set;
+									time_match_list[i].auto_start_mode = (start_types)status_set;
 								}
 								sprintf(buffer, "set all elements\n");
 							}
 							else		// fill one element only
 							{
-								auto_start_mode[index-1] = (start_types)status_set;
-								sprintf(buffer, "set auto start m: %d\n", (int)auto_start_mode[index-1]);
+								time_match_list[index-1].auto_start_mode = (start_types)status_set;
+								sprintf(buffer, "set auto start m: %d\n", static_cast<int>(time_match_list[index-1].auto_start_mode));
 							}
 						}
 					}
@@ -749,14 +749,14 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						{
 							for(int i=0; i<9; i++)
 							{
-								time_to_shutdown[i] = time_temp;
+								time_match_list[i].time_to_shutdown = time_temp;
 							}
 							sprintf(buffer, "set all t:%d\n", static_cast<int>(time_temp));
 						}
 						else		// fill one element only
 						{
-							time_to_shutdown[index-1] = time_temp;
-							sprintf(buffer, "set t2sd[%d]: %d min\n", index, static_cast<int>(time_to_shutdown[index-1]/60.0));
+							time_match_list[index-1].time_to_shutdown = time_temp;
+							sprintf(buffer, "set t2sd[%d]: %d min\n", index, static_cast<int>(time_match_list[index-1].time_to_shutdown/60.0));
 						}
 					}
 					break;
@@ -1610,12 +1610,12 @@ void Acionna::operation_pump_control() {
 		int index = 0;
 		for(int i=0; i<time_match_n; i++)
 		{
-			if(time_match[i] == time_day_sec_)
+			if(time_match_list[i].time_match == time_day_sec_)
 			{
 				flag_time_match_ = states_flag::enable;
 				index = i;
 			}
-			// ESP_LOGI(TAG_ACIONNA, "TM FOR CHECK! tml:%d tds:%d", time_match[i], time_day_sec_);
+			// ESP_LOGI(TAG_ACIONNA, "TM FOR CHECK! tml:%d tds:%d", time_match_list[i].time_match, time_day_sec_);
 		}
 
 		if(flag_time_match_ == states_flag::enable)
@@ -1626,12 +1626,12 @@ void Acionna::operation_pump_control() {
 			if(pump1_.state() == states_motor::off_idle)
 			{
 				// If time match occurs and motor state is idle, turn it on! And make some log;
-				pump1_.start(auto_start_mode[index]);
-				make_history(auto_start_mode[index], time_day_sec_);
+				pump1_.start(time_match_list[index].auto_start_mode);
+				make_history(time_match_list[index].auto_start_mode, time_day_sec_);
 				// If exists time value registered, use it. Else, use default.
-				if(time_to_shutdown[index])
+				if(time_match_list[index].time_to_shutdown)
 				{
-					pump1_.time_to_shutdown = time_to_shutdown[index];
+					pump1_.time_to_shutdown = time_match_list[index].time_to_shutdown;
 				}
 			}
 		}

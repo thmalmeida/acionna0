@@ -48,17 +48,10 @@ public:
 	states_mode state_mode = states_mode::system_idle;
 
 	// group of variables to setup turn on starts
-	uint8_t time_match_n = 1;									// turn times range 1-9
-	uint32_t time_match[9] = {3600, 0, 0, 0, 0, 0, 0, 0, 0};	// time clock list [s] should convert to hours and minutes
-	uint32_t time_to_shutdown[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};	// time value to shutdown list [s]
-	start_types auto_start_mode[9]; 							// auto turn start type select
-
 	// uint8_t time_match_n = 1;									// turn times range 1-9
-	// struct {
-	// 	uint32_t time_match;									// time clock list [s] should convert to hours and minutes
-	// 	uint32_t time_to_shutdown;								// time value to shutdown list [s]
-	// 	start_types auto_start_mode; 							// auto turn start type select
-	// }time_list[9]={};
+	// uint32_t time_match[9] = {3600, 0, 0, 0, 0, 0, 0, 0, 0};	// time clock list [s] should convert to hours and minutes
+	// uint32_t time_to_shutdown[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};	// time value to shutdown list [s]
+	// start_types auto_start_mode[9]; 							// auto turn start type select
 
 	// For make log history operation - Can be ported to inside the pump class?
 	// static const int log_n_ = 9;									// history log size
@@ -150,6 +143,13 @@ private:
 		uint32_t time_elapsed_on;									// time on;
 		stop_types stop_reason;							// reason to stop;
 	}log_motors_[log_n_]={};
+
+	uint8_t time_match_n = 1;									// turn times range 1-9
+	struct {
+		uint32_t time_match;									// time clock list [s] should convert to hours and minutes
+		uint32_t time_to_shutdown;								// time value to shutdown list [s]
+		start_types auto_start_mode; 							// auto turn start type select
+	}time_match_list[9]={};
 
 	uint32_t uptime_ = 0;												// uptime in seconds
 	uint32_t time_day_sec_ = 0;
