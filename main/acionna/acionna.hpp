@@ -154,6 +154,7 @@ private:
 
 	uint32_t uptime_ = 0;												// uptime in seconds
 	uint32_t time_day_sec_ = 0;
+	uint32_t epoch_time_ = 0;
 
 	// communication member functions
 	void msg_fetch_(void);

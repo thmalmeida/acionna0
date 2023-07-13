@@ -16,7 +16,7 @@ volatile uint8_t flag_1sec = 0;
 
 // static pwm_ledc led_wifi_indicator(2, 1, 0, 1);
 
-Acionna::Acionna(ADC_driver* adc) : valves1_{&i2c}, pipe1_(adc, 4, 150), pipe2_(adc, 7, 100) {
+Acionna::Acionna(ADC_driver* adc) : valves1_{&i2c, &epoch_time_}, pipe1_(adc, 4, 150), pipe2_(adc, 7, 100) {
 // Acionna::Acionna(void) : valves1_{&i2c} {
 	// ADC_driver adc0(adc_mode::oneshot);
 	// ADC_driver adc0(adc_mode::oneshot);
@@ -112,50 +112,52 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$62;				- Modo irrigação com controle das válvulas em modo de acionamento automático.
 
 	$7X						- Funções que habilitam ou desabilitam verificações de:
-		$70:rt;
-		$70:rt:[0|1];		- relé térmico;
-		$70:kt;
-		$70:kt:[0|1];		- todos contatores
-		$70:k1;
-		$70:k1:[0|1];		- contator K1 (not implemented);
-		$70:k2;
-		$70:k2:[0|1];		- contator K2 (not implemented);
-		$70:k3;
-		$70:k3:[0|1];		- contator K3 (not implemented);
-		$70:l1:[0|1];		- low pressure detection for on_nominal_k1 state motor using pipe1.
-		$70:l2:[0|1];		- low pressure detection for on_nominal_k2 state motor using pipe2.
-		$70:l4:[0|1];		- low pressure detection for on_nominal_delta state motor using pipe1.
-		$70:ph;
-		$70:ph:1|0;			- desligamento por alta pressão;
-		$70:pl;				- low pressure global flag detection show.
-		$70:pl[0|1];		- Enable/disable low pressure global flag detection.
-		$70:pl:0-9;			- desligamento por pressão baixa em min caso seja diferente de 0;
-		$70:pv;
-		$70:pv:1|0;			- desligamento por pressão alta por válvula;
-		$70:vc;				- Show valve check status;
-		$70:vc:[0|1];		- Enable disable valve check status;
+		$70;				- not implemented
+			$70:rt;
+			$70:rt:[0|1];	- relé térmico;
+			$70:kt;
+			$70:kt:[0|1];	- todos contatores
+			$70:k1;
+			$70:k1:[0|1];	- contator K1 (not implemented);
+			$70:k2;
+			$70:k2:[0|1];	- contator K2 (not implemented);
+			$70:k3;
+			$70:k3:[0|1];	- contator K3 (not implemented);
+			$70:l1:[0|1];	- low pressure detection for on_nominal_k1 state motor using pipe1.
+			$70:l2:[0|1];	- low pressure detection for on_nominal_k2 state motor using pipe2.
+			$70:l4:[0|1];	- low pressure detection for on_nominal_delta state motor using pipe1.
+			$70:ph;
+			$70:ph:1|0;		- desligamento por alta pressão;
+			$70:pl;			- low pressure global flag detection show.
+			$70:pl[0|1];	- Enable/disable low pressure global flag detection.
+			$70:pl:0-9;		- desligamento por pressão baixa em min caso seja diferente de 0;
+			$70:pv;
+			$70:pv:1|0;		- desligamento por pressão alta por válvula;
+			$70:vc;			- Show valve check status;
+			$70:vc:[0|1];	- Enable disable valve check status;
 
 	$8x						- Funções de programação da irrigação;
 		$80;				- show info
-		$80:s:[0|1];		- start/stop valves sequence;
-		$80:d:[0|1];		- 0 sentido direto; 1 - sentido inverso na troca dos setores;
-		$80:n;				- next valve forcing time valve to zero;
-		$80:v:01;			- mostra condições de configuração da válvula 01;
-		$80:v:01:[0|1];		- desaciona|aciona válvula 01;
-		$80:v:01:i;			- insere setor na programação;
-		$80:v:01:r;			- remove setor da programação;
-		$80:v:01:t:120;		- configura o tempo de irrigação [min];
-		$80:v:01:t;			- mostra o tempo de irrigação do setor;
-		$80:v:01:p:68;		- configura pressão nominal do setor [m.c.a.];
-		$80:v:01:p;			- mostra pressão nominal do setor
+			$80:s:[0|1];	- start/stop valves sequence;
+			$80:d:[0|1];	- 0 sentido direto; 1 - sentido inverso na troca dos setores;
+			$80:h;			- show valves history log;
+			$80:n;			- next valve forcing time valve to zero;
+			$80:v:01;		- mostra condições de configuração da válvula 01;
+			$80:v:01:[0|1];	- desaciona|aciona válvula 01;
+			$80:v:01:i;		- insere setor na programação;
+			$80:v:01:r;		- remove setor da programação;
+			$80:v:01:t:120;	- configura o tempo de irrigação [min];
+			$80:v:01:t;		- mostra o tempo de irrigação do setor;
+			$80:v:01:p:68;	- configura pressão nominal do setor [m.c.a.];
+			$80:v:01:p;		- mostra pressão nominal do setor;
 		$84:04F3;			- PCY8575 put 16 bit hex value directly to PCY8575;
 		$85;				- PCY8575 get output
 		$86:x;
-			$86:d;				- PCY8575 get adc stream data;
-			$86:i;				- PCY8575 get Irms;
-			$86:n:397;			- PCY8575 define the number of points to ADC array (default is 397);
-			$86:n;				- PCY8575 ask the current n samples;
-			$86:u;				- PCY8575 uptime;
+			$86:d;			- PCY8575 get adc stream data;
+			$86:i;			- PCY8575 get Irms;
+			$86:n:397;		- PCY8575 define the number of points to ADC array (default is 397);
+			$86:n;			- PCY8575 ask the current n samples;
+			$86:u;			- PCY8575 uptime;
 		$87;				- PCY8575 temperature;
 		$88;				- PCY8574 probe;
 		$89;				- PCY8575 soft reset;
@@ -986,12 +988,12 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 																											timesec_to_min(valves1_.get_time_on()),
 																											timesec_to_sec(valves1_.get_time_on()),
 																											static_cast<int>(valves1_.get_total_time_programmed()/60.0),
-																											valves1_.valve_current,
+																											valves1_.valve_current(),
 																											timesec_to_hour(valves1_.time_valve_remain),
 																											timesec_to_min(valves1_.time_valve_remain),
 																											timesec_to_sec(valves1_.time_valve_remain),
-																											valves1_.get_valve_pressure(valves1_.valve_current),
-																											valves1_.get_valve_time(valves1_.valve_current)																									
+																											valves1_.get_valve_pressure(valves1_.valve_current()),
+																											valves1_.get_valve_time(valves1_.valve_current())																									
 																											);
 					}
 					else if ((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == ':') && (command_str[7] == ';')) {
@@ -1023,6 +1025,25 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 							valves1_.flag_inverted_sequence = states_flag::disable;
 							sprintf(buffer, "sentido %d\n", (int)valves1_.flag_inverted_sequence);
 						}
+					} else if ((command_str[3] == ':') && (command_str[4] == 'h') && (command_str[5] == ';')) {
+					// $80:h;	// show valves sequence history
+
+						char buffer_temp[42] = {};
+						sprintf(buffer, "Valves history: \n");
+						DateTime dt0;
+
+						for(auto i=0; i<valves1_.log_n; i++) {
+							dt0.setUnixTime(valves1_.log_valves[i].started_time);
+							sprintf(buffer_temp, "s%d- v:%d %.2d/%.2d %.2d:%.2d t:%d\n", i,
+																						valves1_.log_valves[i].valve_id,
+																						dt0.getDay(),
+																						dt0.getMonth(),
+																						dt0.getHour(),
+																						dt0.getMinute(),
+																						static_cast<int>(valves1_.log_valves[i].elapsed_time/60.0));
+							strcat(buffer, buffer_temp);
+						}
+						strcat(buffer, "\n");
 					} else if ((command_str[3] == ':') && (command_str[4] == 'n') && (command_str[5] == ';')) {
 					// $80:n;
 						valves1_.next_forced();
@@ -1714,7 +1735,7 @@ void Acionna::operation_pump_valves_irrigation() {
 	// check valves through PCY8575 module. Maybe this part should be inside valves class?
 	if(flag_check_valves_ == states_flag::enable) {
 		if((pump1_.state() == states_motor::on_nominal_delta) && (valves1_.state_valves == states_valves::automatic_switch)) {
-			valves1_.set_valve_state(valves1_.valve_current, 1);
+			valves1_.set_valve_state(valves1_.valve_current(), 1);
 		}
 	}
 
@@ -2151,7 +2172,15 @@ void Acionna::update_all() {
 	// update_sensors();		// test sensors
 }
 void Acionna::update_RTC() {
-	dt.setUnixTime(device_clock.get_time());
+	epoch_time_ = device_clock.get_time();
+	dt.setUnixTime(epoch_time_);
+
+	time_day_sec_++;
+	// compare time_day_sec with whole day seconds 24*60*60 = 86400
+	if(time_day_sec_ == 86400) {
+		// time_day_sec_ ^= time_day_sec_;
+		time_day_sec_ = 0;
+	}
 }
 void Acionna::update_objects() {
 
@@ -2200,15 +2229,6 @@ void Acionna::update_stored_data() {
 void Acionna::update_uptime()
 {
 	uptime_++;
-	time_day_sec_++;
-
-	// compare time_day_sec with whole day seconds 24*60*60 = 86400
-	if(time_day_sec_ == 86400)
-	{
-		// time_day_sec_ ^= time_day_sec_;
-		time_day_sec_ = 0;
-	}
-
 	// ESP_LOGI(TAG_ACIONNA, "uptime: %lu, esp_uptime: %ld", uptime_, static_cast<long int>(esp_timer_get_time() / 1000000);
 	// or
 	// uptime = esp_timer_get_time();
