@@ -15,8 +15,9 @@ extern "C" void app_main(void)
 	}
 	ESP_ERROR_CHECK( err );
 
-	xTaskCreate(&machine_run, "machine_run", 1024 * 8, NULL, 5, NULL);
 
+	xTaskCreate(&machine_run, "machine_run", 1024 * 8, NULL, 5, NULL);
+	// xTaskCreate(&isr_1sec, "isr_1sec_", 1024, NULL, 5, NULL);
 	// xTaskCreate(&machine_run_every_second, "machine_run1", 1024 * 7, NULL, 5, NULL);
 	// xTaskCreate(&test_sensors, "test_sensors0", 1024 * 8, NULL, 5, NULL);
 	// xTaskCreate(&test_i2c_to_gpio, "i2c_to_gpio0", 1024 * 8, NULL, 5, NULL);

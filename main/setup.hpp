@@ -20,5 +20,6 @@ void test_sensors(void *pvParameter);
 void test_timer(void *pvParameter);
 void test_wifi(void *pvParameter);
 
+void isr_1sec(void *pvParameter);
 void machine_run(void *pvParameter);
 #endif

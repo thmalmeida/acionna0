@@ -41,6 +41,7 @@
 #include "helper.hpp"
 #include "convert_char_to_hex.h"
 
+volatile extern uint8_t flag_1sec;
 
 class Acionna {
 public:

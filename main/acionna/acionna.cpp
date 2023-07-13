@@ -12,6 +12,8 @@ static DateTime dt;
 int timeout_sensors;
 int timeout_sensors_cfg = 600;
 
+volatile uint8_t flag_1sec = 0;
+
 // static pwm_ledc led_wifi_indicator(2, 1, 0, 1);
 
 Acionna::Acionna(ADC_driver* adc) : valves1_{&i2c}, pipe1_(adc, 4, 150), pipe2_(adc, 7, 100) {

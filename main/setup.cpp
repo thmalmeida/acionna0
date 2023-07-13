@@ -256,18 +256,28 @@ void test_wifi(void *pvParameter)
 	}
 }
 
-
+void isr_1sec(void *pvParameter) {
+	while(1) {
+		flag_1sec = 1;
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+	}
+}
 void machine_run(void *pvParameter) {
 
 	ADC_driver adc0(adc_mode::oneshot);
 	Acionna acionna0(&adc0);
 
+	xTaskCreate(&isr_1sec, "isr_1sec_", 1024, NULL, 5, NULL);
 
 	while(1) {
 		acionna0.run();
-		acionna0.run_every_second();
 
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		if(flag_1sec) {
+			flag_1sec = 0;
+			acionna0.run_every_second();
+			vTaskDelay(1);
+		}
+		// vTaskDelay(1 / portTICK_PERIOD_MS);
 	}
 }
 
