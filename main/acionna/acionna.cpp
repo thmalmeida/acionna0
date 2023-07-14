@@ -16,7 +16,7 @@ volatile uint8_t flag_1sec = 0;
 
 // static pwm_ledc led_wifi_indicator(2, 1, 0, 1);
 
-Acionna::Acionna(ADC_driver* adc) : valves1_{&i2c, &epoch_time_}, pipe1_(adc, 4, 150), pipe2_(adc, 7, 100) {
+Acionna::Acionna(ADC_driver* adc) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 100), pump1_{&epoch_time_}, valves1_{&i2c, &epoch_time_} {
 // Acionna::Acionna(void) : valves1_{&i2c} {
 	// ADC_driver adc0(adc_mode::oneshot);
 	// ADC_driver adc0(adc_mode::oneshot);
@@ -244,10 +244,19 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3] == ';') {
 						// $01; lasts time on values and reasons to shutdown
 						memset(buffer, 0, sizeof(buffer));
-						char buffer_temp[30];
+						char buffer_temp[60];
+						DateTime dt0;
+						
 						for(int i=0; i<9; i++)
 						{
-							sprintf(buffer_temp, "s%d- %.2d:%.2d m:%d t:%u r:%u\n", i+1, (int)timesec_to_hour(log_motors_[i].time_start), (int)timesec_to_min(log_motors_[i].time_start), static_cast<int>(log_motors_[i].start_mode), static_cast<uint16_t>(log_motors_[i].time_elapsed_on/60), static_cast<int>(log_motors_[i].stop_reason));
+							dt0.setUnixTime(pump1_.log_motors[i].time_start);
+							sprintf(buffer_temp, "s%d- %.2d/%.2d %.2d:%.2d m:%d t:%lu r:%u\n", i+1, dt0.getMonth(),
+																								dt0.getDay(),
+																								dt0.getHour(),
+																								dt0.getMinute(),
+																								static_cast<int>(pump1_.log_motors[i].start_mode),
+																								pump1_.log_motors[i].time_elapsed_on/60,
+																								static_cast<int>(pump1_.log_motors[i].stop_reason));
 							strcat(buffer, buffer_temp);
 						}
 						strcat(buffer, "\n");
@@ -337,9 +346,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 																							static_cast<int>(pump1_.state_Rth()),
 																							pipe1_.pressure_mca(),
 																							pipe2_.pressure_mca(),
-																							static_cast<int>(log_motors_[0].stop_reason),
-																							static_cast<int>(log_motors_[1].stop_reason),
-																							static_cast<int>(log_motors_[2].stop_reason)
+																							static_cast<int>(pump1_.log_motors[0].stop_reason),
+																							static_cast<int>(pump1_.log_motors[1].stop_reason),
+																							static_cast<int>(pump1_.log_motors[2].stop_reason)
 																							);
 					} // $03;
 					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == '1') && (command_str[6] == ':') && (command_str[9] == ';')) {
@@ -570,12 +579,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			switch (opcode1)
 			{
 				case 0: {
-					if(command_str[3]==';')
-					{
+					if(command_str[3]==';') {
+						// $30; turn off by command line
 						pump1_.stop(stop_types::command_line_user);
-						if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_k2) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
-							make_history(stop_types::command_line_user, pump1_.time_on());
-						}
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -584,7 +590,6 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k1);
-						make_history(start_types::direct_k1, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -593,7 +598,6 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k2);
-						make_history(start_types::direct_k2, time_day_sec_);
 						sprintf(buffer, "Motor: pump1_ start request");
 						// sprintf(buffer, "k1: %d, k2: %d, k3: %d\n", static_cast<int>(pump1_.state_k1()), static_cast<int>(pump1_.state_k2()), static_cast<int>(pump1_.state_k3()));
 					}
@@ -603,7 +607,6 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k3);
-						make_history(start_types::direct_k3, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -612,7 +615,6 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::to_delta);
-						make_history(start_types::to_delta, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -621,7 +623,6 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::to_y);
-						make_history(start_types::to_y, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -630,7 +631,6 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::y_delta_req);
-						make_history(start_types::y_delta_req, time_day_sec_);
 						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
@@ -1377,7 +1377,6 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 	return str;
 }
 void Acionna::init() {
-	ESP_LOGI(TAG_ACIONNA, "initialization");
 
 	// Clock time init
 	dt.setDate(2023, 07, 10);
@@ -1393,13 +1392,13 @@ void Acionna::init() {
 
 	// static ip select using the inner mac address.
 	ip_get_mode = ip_get_types::static_ip;
-	char mac_device[18];
+	char mac_device[18] = {};						// must initialize with zeros because the use of strcat();
 
-	char buffer_temp[5];
-	uint8_t wifi_mac_[6];
+	char buffer_temp[5] = {};
+	uint8_t wifi_mac_[6] = {};
 	wifi_get_mac(&wifi_mac_[0]);
 
-	// 3 mac address listed
+	// 3 mac address listed - 18 length + 1 '\0' = 19 
 	char mac_table[3][18] = {
 							{"84:cc:a8:69:f6:f0"},	// .31 - test device;
 							{"84:cc:a8:69:97:7c"},	// .32 - poço cacimba;
@@ -1413,7 +1412,6 @@ void Acionna::init() {
 			strcat(mac_device, ":");
 		}
 	}
-
 	// Compare the mac and set ip address end byte;
 	if(strcmp(mac_device, &mac_table[0][0]) == 0) {
 		wifi_ip_end = 31;
@@ -1424,9 +1422,9 @@ void Acionna::init() {
 	} else {
 		wifi_ip_end = 30;
 	}
+	
 	wifi_sta_init(wifi_ip_end);
 	#endif
-
 
 	// Bluetooth init
 	#ifdef CONFIG_BT_ENABLE
@@ -1464,29 +1462,7 @@ void Acionna::init() {
 
 	// restore parameters;
 	// update clock;
-}
-void Acionna::make_history(start_types start_type, uint32_t time_now) {
-
-	for(int i=(log_n_-1);i>0;i--)
-	{
-		// Start - shift data to right at the end;
-		log_motors_[i].start_mode = log_motors_[i-1].start_mode;
-		log_motors_[i].time_start = log_motors_[i-1].time_start;
-		
-		// STOP - shift data to right at the end;
-		log_motors_[i].stop_reason = log_motors_[i-1].stop_reason;
-		log_motors_[i].time_elapsed_on = log_motors_[i-1].time_elapsed_on;
-	}
-	log_motors_[0].start_mode = start_type;
-	log_motors_[0].time_start = time_now;
-
-	log_motors_[0].stop_reason = stop_types::other;
-	log_motors_[0].time_elapsed_on = 0;
-}
-void Acionna::make_history(stop_types stop_type, uint32_t time_elapsed_on) {
-	
-	log_motors_[0].stop_reason = stop_type;
-	log_motors_[0].time_elapsed_on = time_elapsed_on;
+	ESP_LOGI(TAG_ACIONNA, "initialized!");
 }
 void Acionna::msg_fetch_(void) {
 
@@ -1650,7 +1626,6 @@ void Acionna::operation_pump_control() {
 			{
 				// If time match occurs and motor state is idle, turn it on! And make some log;
 				pump1_.start(time_match_list[index].auto_start_mode);
-				make_history(time_match_list[index].auto_start_mode, time_day_sec_);
 				// If exists time value registered, use it. Else, use default.
 				if(time_match_list[index].time_to_shutdown)
 				{
@@ -1666,7 +1641,6 @@ void Acionna::operation_pump_control() {
 		if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_k2) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
 			if(!pump1_.time_to_shutdown) {
 				pump1_.stop(stop_types::timeout);		// stop motor by timeout;
-				make_history(stop_types::timeout, pump1_.time_on());
 			}
 		}
 	}
@@ -1677,7 +1651,6 @@ void Acionna::operation_pump_control() {
 		if(pipe1_.pressure_mca() > pipe1_.pressure_max) {
 			if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
 				pump1_.stop(stop_types::pressure_high);
-				make_history(stop_types::pressure_high, pump1_.time_on());
 			}
 		}
 	}
@@ -1689,7 +1662,6 @@ void Acionna::operation_pump_control() {
 			// To main waterpump with 3 stages;
 			if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k1, 60)) {
 				pump1_.stop(stop_types::pressure_low);
-				make_history(stop_types::pressure_low, pump1_.time_on());
 			}
 		}
 
@@ -1697,7 +1669,6 @@ void Acionna::operation_pump_control() {
 			// Trying for irrigation. It needs some tests.
 			if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_delta, 60)) {
 				pump1_.stop(stop_types::pressure_low);
-				make_history(stop_types::pressure_low, pump1_.time_on());
 			}
 		}
 
@@ -1705,7 +1676,6 @@ void Acionna::operation_pump_control() {
 			// set pump state and expected pressure
 			if(pipe2_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k2, 60)) {
 				pump1_.stop(stop_types::pressure_low);
-				make_history(stop_types::pressure_low, pump1_.time_on());
 			}
 		}
 	}
@@ -1716,7 +1686,6 @@ void Acionna::operation_pump_control() {
 		if(pump1_.state_Rth() == states_switch::on) {
 			if(pump1_.state() != states_motor::off_thermal_activated) {
 				pump1_.stop(stop_types::thermal_relay);
-				make_history(stop_types::thermal_relay, pump1_.time_on());
 			}
 		}
 	}
@@ -1754,10 +1723,8 @@ void Acionna::operation_pump_valves_irrigation() {
 
 }
 void Acionna::operation_system_off() {
-	if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up))
-	{
+	if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
 		pump1_.stop(stop_types::system_lock);
-		make_history(stop_types::system_lock, pump1_.time_on());
 	}
 }
 void Acionna::operation_valve_control() {

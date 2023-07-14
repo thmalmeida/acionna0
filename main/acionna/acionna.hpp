@@ -1,5 +1,5 @@
-#ifndef ACIONNA_HPP__
-#define ACIONNA_HPP__
+#ifndef _ACIONNA_HPP__
+#define _ACIONNA_HPP__
 
 #include <iostream>
 #include <sstream>
@@ -87,8 +87,8 @@ public:
 
 	std::string msg_back_str_;
 
-	void make_history(start_types start_type, uint32_t time_now);
-	void make_history(stop_types stop_type, uint32_t time_elapsed_on);
+	// void make_log(start_types start_type, uint32_t time_now);
+	// void make_log(stop_types stop_type, uint32_t time_elapsed_on);
 
 	// OS system;
 	void run(void);
@@ -100,10 +100,10 @@ private:
 	well well1_;
 	#endif
 
-	Pump pump1_;
-	Valves valves1_;
 	Pipepvc pipe1_;
 	Pipepvc pipe2_;
+	Pump pump1_;
+	Valves valves1_;
 
 	states_flag flag_check_k1_ = states_flag::disable;
 	states_flag flag_check_k2_ = states_flag::disable;
@@ -126,6 +126,7 @@ private:
 	states_flag flag_check_low_pressure_k1_ = states_flag::disable;
 	states_flag flag_check_low_pressure_k2_ = states_flag::enable;
 	states_flag flag_check_low_pressure_delta_ = states_flag::enable;
+	// states_flag flag_enable_decode_ = states_flag::disable;
 
 	// Flags for communication purpose
 	states_flag ws_server_ans_flag_ = states_flag::disable;
@@ -134,16 +135,6 @@ private:
 	
 	uint8_t command_str_[20];
 	// uint8_t command_str_len_ = 0;
-
-	// Handle message process flags
-	// states_flag flag_enable_decode_ = states_flag::disable;
-	static const int log_n_ = 10;									// history log size
-	struct {
-		start_types start_mode;										// motor start mode;
-		uint32_t time_start;										// started time;
-		uint32_t time_elapsed_on;									// time on;
-		stop_types stop_reason;							// reason to stop;
-	}log_motors_[log_n_]={};
 
 	uint8_t time_match_n = 1;									// turn times range 1-9
 	struct {

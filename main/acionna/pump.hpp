@@ -1,5 +1,5 @@
-#ifndef PUMP_HPP
-#define PUMP_HPP
+#ifndef _PUMP_HPP__
+#define _PUMP_HPP__
 
 #include <adc.hpp>
 #include <gpio.hpp>
@@ -43,9 +43,10 @@ public:
 	unsigned int time_delta_to_y_switch_config = 7;	// speeding up time from delta to Y start [s]
 
 //	Pump() : drive_k1_{AC_LOAD1}, drive_k2_{AC_LOAD2}, drive_k3_{AC_LOAD3}{}
-	Pump() : ac_load_{{AC_LOAD1},{AC_LOAD2},{AC_LOAD3}},
-				gpio_generic_{{GPIO_GENERIC1},{GPIO_GENERIC2},{GPIO_GENERIC3},{GPIO_GENERIC4}}
-	{
+	Pump(uint32_t* epoch_time) :
+								ac_load_{{AC_LOAD1},{AC_LOAD2},{AC_LOAD3}},
+								gpio_generic_{{GPIO_GENERIC1},{GPIO_GENERIC2},{GPIO_GENERIC3},{GPIO_GENERIC4}},
+								epoch_time_{epoch_time} {
 		// pins directions for drive switches;
 		for(std::size_t i = 0; i < ac_load_count_; i++)
 		{
@@ -106,9 +107,14 @@ public:
 	{
 		return state_motor_;
 	}
-	int start(start_types _start_type)
+	int start(start_types _mode)
 	{
-		switch (_start_type)
+		// make some log
+		if(flag_start_y_delta_ == states_flag::disable) {
+			make_log(_mode, *epoch_time_);
+		}
+
+		switch (_mode)
 		{
 			case start_types::direct_k1: {
 				drive_k_(1, 1);
@@ -314,14 +320,20 @@ public:
 
 		return 0;	// ok!
 	}
-	void stop(stop_types reason)
+	void stop(stop_types _reason)
 	{
-		// ESP_LOGI(TAG_PUMP, "stop motor called with reason: %u", static_cast<uint8_t>(reason));
+		// Make some log
+		// if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_k2) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
+			// make_log(stop_types::command_line_user, pump1_.time_on());
+		make_log(_reason, time_on());
+		// }
+
+		// ESP_LOGI(TAG_PUMP, "stop motor called with _reason: %u", static_cast<uint8_t>(_reason));
 		drive_k_(1, 0);
 		drive_k_(2, 0);
 		drive_k_(3, 0);
 
-		// state_stop_reason = reason;
+		// state_stop_reason = _reason;
 		time_wait_power_on = time_wait_power_on_config;
 		flag_check_wait_power_on = states_flag::enable;
 		flag_start_y_delta_ = states_flag::disable;
@@ -335,6 +347,39 @@ public:
 	{
 		return time_off_;
 	}
+
+	void make_log(start_types start_type, uint32_t time_now) {
+
+		for(int i=(log_n-1);i>0;i--)
+		{
+			// Start - shift data to right at the end;
+			log_motors[i].start_mode = log_motors[i-1].start_mode;
+			log_motors[i].time_start = log_motors[i-1].time_start;
+			
+			// STOP - shift data to right at the end;
+			log_motors[i].stop_reason = log_motors[i-1].stop_reason;
+			log_motors[i].time_elapsed_on = log_motors[i-1].time_elapsed_on;
+		}
+		log_motors[0].start_mode = start_type;
+		log_motors[0].time_start = time_now;
+
+		log_motors[0].stop_reason = stop_types::other;
+		log_motors[0].time_elapsed_on = 0;
+	}
+	void make_log(stop_types stop_type, uint32_t time_elapsed_on) {
+		
+		log_motors[0].stop_reason = stop_type;
+		log_motors[0].time_elapsed_on = time_elapsed_on;
+	}
+
+	// log history of turn on/off mode and timers;
+	static const int log_n = 10;					// history log size
+	struct {
+		start_types start_mode;						// motor start mode;
+		uint32_t time_start;						// started time. Epoch format [s];
+		uint32_t time_elapsed_on;					// time on [s];
+		stop_types stop_reason;						// reason to stop;
+	}log_motors[log_n]={};
 
 private:
 
@@ -369,6 +414,9 @@ private:
 	// Motor times
 	uint32_t time_on_ = 0;
 	uint32_t time_off_ = 0;
+
+	// System RTC
+	uint32_t *epoch_time_;									// epoch time linked with system;
 	
 	void update_switches_()
 	{
@@ -471,20 +519,6 @@ private:
 			}
 		}
 	}
-	void check_Rth_() {
-		// if(flag_check_Rth == states_flag::enable)
-		// {
-		// 	if(state_Rth() == states_switch::on) {
-		// 		if((state_motor_ != states_motor::off_thermal_activated)) {
-		// 			stop(stop_types::thermal_relay);
-		// 		}
-		// 	}
-		// }
-	}
-	void check_timer_()
-	{
-
-	}
 	void check_start_req_()
 	{
 		if(flag_start_y_delta_ == states_flag::enable)
@@ -496,10 +530,11 @@ private:
 			}
 
 			if(!time_delta_to_y_switch_) {
+				if(start(start_y_delta_state_)) {
+					ESP_LOGI(TAG_PUMP, "start request %d fail", static_cast<int>(start_y_delta_state_));
+				}
 				flag_start_y_delta_ = states_flag::disable;
 				ESP_LOGI(TAG_PUMP, "start2 type: %d", static_cast<int>(start_y_delta_state_));
-				if(start(start_y_delta_state_))
-					ESP_LOGI(TAG_PUMP, "start request %d fail", static_cast<int>(start_y_delta_state_));
 			} else {
 				time_delta_to_y_switch_--;
 			}
@@ -537,4 +572,28 @@ private:
 	}
 };
 
-#endif /* PUMP_H__ */
+#endif /* PUMP_HPP__ */
+
+
+
+
+
+
+
+
+
+
+	// void check_Rth_() {
+		// if(flag_check_Rth == states_flag::enable)
+		// {
+		// 	if(state_Rth() == states_switch::on) {
+		// 		if((state_motor_ != states_motor::off_thermal_activated)) {
+		// 			stop(stop_types::thermal_relay);
+		// 		}
+		// 	}
+		// }
+	// }
+	// void check_timer_()
+	// {
+
+	// }

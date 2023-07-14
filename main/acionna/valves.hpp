@@ -1,5 +1,5 @@
-#ifndef VALVES_HPP
-#define VALVES_HPP
+#ifndef _VALVES_HPP__
+#define _VALVES_HPP__
 
 #include <adc.hpp>
 #include <gpio.hpp>
@@ -94,7 +94,7 @@ public:
 					stop();
 				} else {
 					// make some log
-					log_open();
+					make_log();
 					time_valve_elapsed_ = 0;
 				}
 			}
@@ -103,14 +103,20 @@ public:
 		}
 		// to implement
 	}
-	void log_open(void) {
+	void make_log(void) {
+
+		// for(int i=(log_n-1);i>0;i--) {
+		// 	log_valves[valve_seq].valve_id = valve_current_;
+		// 	log_valves[valve_seq].started_time = *epoch_time_;
+		// 	log_valves[valve_seq].elapsed_time = time_valve_elapsed_;			
+		// }
 		log_valves[valve_seq].valve_id = valve_current_;
 		log_valves[valve_seq].started_time = *epoch_time_;
 		log_valves[valve_seq].elapsed_time = time_valve_elapsed_;
 	}
-	void log_close(void) {
-		log_valves[valve_seq].elapsed_time = valve_seq_elapsed_time;
-	}
+	// void make_log(void) {
+	// 	log_valves[valve_seq].elapsed_time = valve_seq_elapsed_time;
+	// }
 	void set_valve_time(int valve_id, unsigned int value)
 	{
 		valve_[valve_id-1].time_elapsed_cfg = value*60.0;
