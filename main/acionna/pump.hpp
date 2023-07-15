@@ -66,8 +66,7 @@ public:
 	}
 
 	// public member functions
-	void update()
-	{
+	void update() {
 		update_state_();
 		update_time_();
 
@@ -75,47 +74,37 @@ public:
 
 		check_start_req_();
 	}
-	states_switch state_k1() const // noexcept // const -> não modifica nada na classe
-	{										// noexcept para dizer que não gera exceção
+	states_switch state_k1() const { // noexcept // const -> não modifica nada na classe - noexcept para dizer que não gera exceção
 		return state_k1_;
 	}
-	states_switch state_k2() const // noexcept // const -> não modifica nada na classe
-	{										// noexcept para dizer que não gera exceção
+	states_switch state_k2() const { // noexcept // const -> não modifica nada na classe - noexcept para dizer que não gera exceção
 		return state_k2_;
 	}
-	states_switch state_k3() const // noexcept // const -> não modifica nada na classe
-	{										// noexcept para dizer que não gera exceção
+	states_switch state_k3() const { // noexcept // const -> não modifica nada na classe - noexcept para dizer que não gera exceção
 		return  state_k3_;
 	}
-	states_switch state_k1_pin() const
-	{
+	states_switch state_k1_pin() const {
 		return state_k1_pin_;	
 	}
-	states_switch state_k2_pin() const
-	{
+	states_switch state_k2_pin() const {
 		return state_k2_pin_;	
 	}
-	states_switch state_k3_pin() const
-	{
+	states_switch state_k3_pin() const {
 		return state_k3_pin_;
 	}
-	states_switch state_Rth() const // noexcept // const -> não modifica nada na classe
-	{										// noexcept para dizer que não gera exceção
+	states_switch state_Rth() const { // noexcept // const -> não modifica nada na classe - noexcept para dizer que não gera exceção
 		return state_Rth_;
 	}
-	states_motor state() const
-	{
+	states_motor state() const {
 		return state_motor_;
 	}
-	int start(start_types _mode)
-	{
+	int start(start_types _mode) {
 		// make some log
 		if(flag_start_y_delta_ == states_flag::disable) {
 			make_log(_mode, *epoch_time_);
 		}
 
-		switch (_mode)
-		{
+		switch (_mode) {
 			case start_types::direct_k1: {
 				drive_k_(1, 1);
 
@@ -320,8 +309,7 @@ public:
 
 		return 0;	// ok!
 	}
-	void stop(stop_types _reason)
-	{
+	void stop(stop_types _reason) {
 		// Make some log
 		// if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_k2) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
 			// make_log(stop_types::command_line_user, pump1_.time_on());
@@ -339,19 +327,16 @@ public:
 		flag_start_y_delta_ = states_flag::disable;
 		time_off_ = 0;
 	}
-	uint32_t time_on()
-	{
+	uint32_t time_on() {
 		return time_on_;
 	}
-	uint32_t time_off()
-	{
+	uint32_t time_off() {
 		return time_off_;
 	}
 
 	void make_log(start_types start_type, uint32_t time_now) {
 
-		for(int i=(log_n-1);i>0;i--)
-		{
+		for(int i=(log_n-1); i>0; i--) {
 			// Start - shift data to right at the end;
 			log_motors[i].start_mode = log_motors[i-1].start_mode;
 			log_motors[i].time_start = log_motors[i-1].time_start;
@@ -360,6 +345,7 @@ public:
 			log_motors[i].stop_reason = log_motors[i-1].stop_reason;
 			log_motors[i].time_elapsed_on = log_motors[i-1].time_elapsed_on;
 		}
+
 		log_motors[0].start_mode = start_type;
 		log_motors[0].time_start = time_now;
 

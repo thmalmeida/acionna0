@@ -29,9 +29,9 @@ class Valves {
 public:
 
 	states_valves state_valves = states_valves::system_off;
-	// unsigned int time_total_cfg = 0;	// sum of programmed valves time [s];	
-	unsigned int time_valve_remain = 0;	// valve time elapsed before turn off [s];
-	unsigned int time_valve_change = 0;	// between changes to verify if pressure has been pressure recovered [s];
+	// unsigned int time_total_cfg = 0;					// sum of programmed valves time [s];	
+	unsigned int time_valve_remain = 0;					// valve time elapsed before turn off [s];
+	unsigned int time_valve_change = 0;					// between changes to verify if pressure has been pressure recovered [s];
 	static const int number_valves = 12;
 	states_flag flag_inverted_sequence = states_flag::disable;
 
@@ -80,61 +80,62 @@ public:
 	}
 
 	// This functions should be called every 1 second interval
-	void update()
-	{
-		if(state_valves == states_valves::automatic_switch)
-		{
-			time_system_on_++;
-			time_valve_elapsed_++;
-
-			if(!time_valve_remain)
-			{
-				valve_current_ = next();
-				if(!valve_current_) {
-					stop();
+	void update() {
+		if(state_valves == states_valves::automatic_switch) {
+			if(!time_valve_remain) {					// next() function find new programmed valve_current_ and it's elapsed time (time_valve_ramain).
+				if(next()) {							// algorithm to find next programmed valve sector. Return 0 if finish working cycle.
+					if(time_valve_elapsed_) {
+						make_log_close();
+						time_valve_elapsed_ = 0;		// Clear valve elapsed time [s].
+					}
+					make_log();							// Found programmed valve sector. Make some log.
 				} else {
-					// make some log
-					make_log();
-					time_valve_elapsed_ = 0;
+					make_log_close();
+					stop();								// Couldn't find new programmed valve sector or achieve end cycle. Stop valve switch process.
 				}
-			}
-			else
+			} else
 				time_valve_remain--;
+
+			time_valve_elapsed_++;
+			time_system_on_++;
 		}
 		// to implement
 	}
 	void make_log(void) {
 
-		// for(int i=(log_n-1);i>0;i--) {
-		// 	log_valves[valve_seq].valve_id = valve_current_;
-		// 	log_valves[valve_seq].started_time = *epoch_time_;
-		// 	log_valves[valve_seq].elapsed_time = time_valve_elapsed_;			
-		// }
-		log_valves[valve_seq].valve_id = valve_current_;
-		log_valves[valve_seq].started_time = *epoch_time_;
-		log_valves[valve_seq].elapsed_time = time_valve_elapsed_;
+		// move all elements to next slot
+		for(int i=(log_n-1); i>0; i--) {
+			log_valves[i].valve_id = log_valves[i-1].valve_id;
+			log_valves[i].started_time = log_valves[i-1].started_time;
+	
+			log_valves[i].elapsed_time = log_valves[i-1].elapsed_time;
+		}
+
+		// fill new element on the beginner of structure array.
+		log_valves[0].valve_id = valve_current_;
+		log_valves[0].started_time = *epoch_time_;
+
+		log_valves[0].elapsed_time = 0;
+	}
+	void make_log_close(void) {
+		log_valves[0].elapsed_time = time_valve_elapsed_;
 	}
 	// void make_log(void) {
 	// 	log_valves[valve_seq].elapsed_time = valve_seq_elapsed_time;
 	// }
-	void set_valve_time(int valve_id, unsigned int value)
-	{
+	void set_valve_time(int valve_id, unsigned int value) {
 		valve_[valve_id-1].time_elapsed_cfg = value*60.0;
 	}
-	unsigned int get_valve_time(int valve_id)
-	{
+	unsigned int get_valve_time(int valve_id) {
 		return valve_[valve_id-1].time_elapsed_cfg/60.0;
 	}
-	void set_valve_pressure(int valve_id, unsigned int value)
-	{
+	void set_valve_pressure(int valve_id, unsigned int value) {
 		valve_[valve_id-1].pressure = value;
 	}
-	int get_valve_pressure(int valve_id)
-	{
+	int get_valve_pressure(int valve_id) {
 		return valve_[valve_id-1].pressure;
 	}
-	unsigned int get_total_time_programmed()
-	{
+	unsigned int get_total_time_programmed() {
 		unsigned int _total_time = 0;
 
 		for(int i=0; i<number_valves; i++)
@@ -161,23 +162,21 @@ public:
 		else
 			return states_switch::off;		
 	}
-	void start()
-	{
-		load_.put(0x0000);			// reset all valves;
-		valve_seq = 0;				// reset valve sequence number;
-		time_valve_remain = 0;		// reset current valve time;
-		time_valve_elapsed_ = 0;	// reset time elapsed during on state;
-		time_system_on_ = 0;		// reset valve time system;
-		state_valves = states_valves::automatic_switch;
-		flag_valve_found_ = states_flag::disable;
+	void start(void) {
+		load_.put(0x0000);								// reset all valves;
+		valve_seq = 0;									// reset valve sequence number;
+		time_valve_remain = 0;							// reset current valve time;
+		time_valve_elapsed_ = 0;						// reset time elapsed during on state;
+		time_system_on_ = 0;							// reset working time cycle;
+		state_valves = states_valves::automatic_switch;	// put automatic valve switch state on;
+		flag_valve_found_ = states_flag::disable;		// disable found new programmed valve sector;
 
 		if(flag_inverted_sequence == states_flag::enable)
-			valve_current_ = number_valves+1;
+			valve_current_ = number_valves+1;			// if inverted sequence, start from last valve sector;
 		else
-			valve_current_ = 0;
+			valve_current_ = 0;							// if not, start from the first programmed valve sector.
 	}
-	void stop()
-	{
+	void stop(void) {
 		load_.put(0x0000);		// reset all valves;
 		// for(int n=1; n<number_valves+1; n++)
 		// {
@@ -187,7 +186,7 @@ public:
 		state_valves = states_valves::system_off;
 		valve_current_ = 0;
 	}
-	unsigned int next() {
+	unsigned int next(void) {
 		states_flag flag_valve_found_ = states_flag::disable;
 		set_valve_state(valve_current_, 0);
 
@@ -240,7 +239,6 @@ public:
 
 			} while(flag_valve_found_ == states_flag::disable);
 		}
-
 		return valve_current_;
 	}
 	void next_forced() {
@@ -313,14 +311,13 @@ public:
 		uint16_t elapsed_time;								// total time it was on [s]
 	}log_valves[log_n] = {};
 
-	uint8_t valve_current_ = 0;		// 
+	uint8_t valve_current_ = 0;								// 
 	uint8_t valve_seq = 0;									// valve sequence number during the cycle;
 	uint32_t valve_seq_elapsed_time = 0;					// last elapsed time [s];
 
 private:
 	// GPIO_Basic ac_load_[11];
-	pcy8575 load_;										// connection with i2c_to_gpio module;
-
+	pcy8575 load_;											// connection with i2c_to_gpio module;
 	// const std::size_t ac_load_count_ = sizeof(ac_load_) / sizeof(ac_load_[0]);
 
 	struct {
@@ -332,7 +329,7 @@ private:
 	} valve_[number_valves];
 
 	uint32_t time_system_on_ = 0;							// current time on [s];
-	uint32_t time_valve_elapsed_ = 0;								// reset time elapsed during on state;
+	uint32_t time_valve_elapsed_ = 0;						// reset time elapsed during on state;
 	uint32_t *epoch_time_;									// epoch time linked with system;
 	states_flag flag_valve_found_ = states_flag::disable;
 

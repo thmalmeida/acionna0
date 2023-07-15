@@ -2,7 +2,7 @@
 # CMakeLists in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.16)
 
-set(PROJECT_VER "v1.0.4-20230711-1635")
+set(PROJECT_VER "v1.0.5-20230715-0930")
 
 set(EXTRA_COMPONENT_DIRS
 						components/agro_mesh/modules/clock

@@ -1604,8 +1604,7 @@ void Acionna::operation_pump_control() {
 	 * */
 
 	// time matches occurred into check_time_match(), start motor
-	if(flag_check_time_match_ == states_flag::enable)
-	{
+	if(flag_check_time_match_ == states_flag::enable) {
 		int index = 0;
 		for(int i=0; i<time_match_n; i++)
 		{
@@ -1636,8 +1635,7 @@ void Acionna::operation_pump_control() {
 	}
 
 	// check time to shutdown
-	if(flag_check_timer_ == states_flag::enable)
-	{
+	if(flag_check_timer_ == states_flag::enable) {
 		if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_k2) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
 			if(!pump1_.time_to_shutdown) {
 				pump1_.stop(stop_types::timeout);		// stop motor by timeout;
@@ -1646,8 +1644,7 @@ void Acionna::operation_pump_control() {
 	}
 
 	// check high pressure
-	if(flag_check_pressure_high_ == states_flag::enable)
-	{
+	if(flag_check_pressure_high_ == states_flag::enable) {
 		if(pipe1_.pressure_mca() > pipe1_.pressure_max) {
 			if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
 				pump1_.stop(stop_types::pressure_high);
@@ -1656,8 +1653,7 @@ void Acionna::operation_pump_control() {
 	}
 
 	// check low pressure
-	if(flag_check_pressure_low_ == states_flag::enable)
-	{
+	if(flag_check_pressure_low_ == states_flag::enable) {
 		if(flag_check_low_pressure_k1_ == states_flag::enable) {
 			// To main waterpump with 3 stages;
 			if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k1, 60)) {
@@ -1681,8 +1677,7 @@ void Acionna::operation_pump_control() {
 	}
 
 	// check thermal relay
-	if(flag_check_thermal_relay_ == states_flag::enable)
-	{
+	if(flag_check_thermal_relay_ == states_flag::enable) {
 		if(pump1_.state_Rth() == states_switch::on) {
 			if(pump1_.state() != states_motor::off_thermal_activated) {
 				pump1_.stop(stop_types::thermal_relay);
@@ -1701,13 +1696,18 @@ void Acionna::operation_pump_control() {
 	#endif
 }
 void Acionna::operation_pump_valves_irrigation() {
-	// check valves through PCY8575 module. Maybe this part should be inside valves class?
+	// If PCY8575 module resets, all ports go down and valve stop. To prevent it, keep setting on the current valve.
+	// P.S.: the module has implemented backup registers to keep output buffer even if PCY8575 reset occurs.
+	/*
+		A better function suppose to be implemented checking the current [mA] and valve current state asking PCY8575 module;
+	*/
 	if(flag_check_valves_ == states_flag::enable) {
 		if((pump1_.state() == states_motor::on_nominal_delta) && (valves1_.state_valves == states_valves::automatic_switch)) {
 			valves1_.set_valve_state(valves1_.valve_current(), 1);
 		}
 	}
 
+	// If valves still not working but motor is turned on, start valves working cycle.
 	if(valves1_.state_valves == states_valves::system_off) {
 		if(pump1_.state() == states_motor::on_nominal_delta) {
 			valves1_.start();
@@ -1715,6 +1715,7 @@ void Acionna::operation_pump_valves_irrigation() {
 		}
 	}
 
+	// If valves cycle are working but motor is turne off, stop valves working cycle.
 	if(valves1_.state_valves == states_valves::automatic_switch) {
 		if(pump1_.state() != states_motor::on_nominal_delta) {
 			valves1_.stop();
