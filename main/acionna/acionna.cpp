@@ -168,7 +168,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			$90:1;			- WiFi Scan;
 			$90:2;			- Show mac address;
 		$91;				- show firwmare version;
-		$95:[0-9];			- firmware ota;
+		$95:[0-9];			- OTA firmware update
 			$95:0;			- show ota partitions info;
 			$95:1;			- show ota app info
 			$95:2;			- print sha256;
@@ -1696,7 +1696,7 @@ void Acionna::operation_pump_control() {
 	#endif
 }
 void Acionna::operation_pump_valves_irrigation() {
-	// If PCY8575 module resets, all ports go down and valve stop. To prevent it, keep setting on the current valve.
+	// If PCY8575 module resets, all ports go down and valve stop. To prevent it, keep setting on the current valve every second.
 	// P.S.: the module has implemented backup registers to keep output buffer even if PCY8575 reset occurs.
 	/*
 		A better function suppose to be implemented checking the current [mA] and valve current state asking PCY8575 module;
@@ -1709,27 +1709,23 @@ void Acionna::operation_pump_valves_irrigation() {
 
 	// If valves still not working but motor is turned on, start valves working cycle.
 	if(valves1_.state_valves == states_valves::system_off) {
-		if(pump1_.state() == states_motor::on_nominal_delta) {
+		if((pump1_.state() == states_motor::on_nominal_delta) || pump1_.state() == states_motor::on_speeding_up) {
 			valves1_.start();
-			pump1_.time_to_shutdown = valves1_.get_total_time_programmed()-3;
+			pump1_.time_to_shutdown = valves1_.get_total_time_programmed()-5;	// to last valve keep on a little time to aliviate the pipe line pressure;
 		}
 	}
 
-	// If valves cycle are working but motor is turne off, stop valves working cycle.
-	if(valves1_.state_valves == states_valves::automatic_switch) {
-		if(pump1_.state() != states_motor::on_nominal_delta) {
-			valves1_.stop();
-		}
-	}
+	// If valves cycle are working but motor is turned off, stop valves working cycle.
+	if(valves1_.state_valves == states_valves::automatic_switch)
+		if(pump1_.state() != states_motor::on_nominal_delta)
+			if(pump1_.state() != states_motor::on_speeding_up)
+				valves1_.stop();
 
 }
 void Acionna::operation_system_off() {
 	if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
 		pump1_.stop(stop_types::system_lock);
 	}
-}
-void Acionna::operation_valve_control() {
-
 }
 void Acionna::parser_(uint8_t* payload_str, int payload_str_len, uint8_t *command_str, int& command_str_len)
 {

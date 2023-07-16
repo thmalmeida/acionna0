@@ -69,7 +69,6 @@ public:
 
 	// run every second;
 	void operation_system_off();
-	void operation_valve_control();
 	void operation_pump_control();
 	void operation_pump_valves_irrigation();
 
