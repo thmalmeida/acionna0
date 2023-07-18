@@ -46,6 +46,7 @@ void wifi_sta_init(uint8_t ip_end)
 
 			esp_netif_dhcpc_stop(my_sta);
 			esp_netif_ip_info_t ip_info;
+			// esp_netif_set_ip4_addr();
 			IP4_ADDR(&ip_info.ip, 192, 168, 1, ip_end);
 			IP4_ADDR(&ip_info.gw, 192, 168, 1, 1);
 			IP4_ADDR(&ip_info.netmask, 255, 255, 255, 0);
