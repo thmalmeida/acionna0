@@ -83,6 +83,7 @@ public:
 	void update() {
 		if(state_valves == states_valves::automatic_switch) {
 			if(!time_valve_remain) {					// next() function find new programmed valve_current_ and it's elapsed time (time_valve_ramain).
+				set_valve_state(valve_current_, 0);		// Turn the current valve sector to find another programmed;
 				if(next()) {							// algorithm to find next programmed valve sector. Return 0 if finish working cycle.
 					if(time_valve_elapsed_) {
 						make_log_close();
@@ -98,6 +99,11 @@ public:
 
 			time_valve_elapsed_++;
 			time_system_on_++;
+
+			// if(!time_delay_close_) {
+			// 	flag_valve_close_ = 
+			// 	time_delay_close_ = 
+			// }
 		}
 		// to implement
 	}
@@ -188,7 +194,8 @@ public:
 	}
 	unsigned int next(void) {
 		states_flag flag_valve_found_ = states_flag::disable;
-		set_valve_state(valve_current_, 0);
+
+		valve_last_close_ = valve_current_;					// store the last working valve;
 
 		if(flag_inverted_sequence == states_flag::enable)
 		{
@@ -239,6 +246,9 @@ public:
 
 			} while(flag_valve_found_ == states_flag::disable);
 		}
+
+				set_valve_state(valve_current_, 0);
+
 		return valve_current_;
 	}
 	void next_forced() {
@@ -311,7 +321,8 @@ public:
 		uint16_t elapsed_time;								// total time it was on [s]
 	}log_valves[log_n] = {};
 
-	uint8_t valve_current_ = 0;								// 
+	uint8_t valve_current_ = 0;								// current working valve;
+	uint8_t valve_last_close_ = 0;							// last current valve to close after time_delay_close_
 	uint8_t valve_seq = 0;									// valve sequence number during the cycle;
 	uint32_t valve_seq_elapsed_time = 0;					// last elapsed time [s];
 
@@ -330,8 +341,10 @@ private:
 
 	uint32_t time_system_on_ = 0;							// current time on [s];
 	uint32_t time_valve_elapsed_ = 0;						// reset time elapsed during on state;
+	uint32_t time_delay_close_ = 0;							// delay time to turn solenoide off after sector change on next() function;
 	uint32_t *epoch_time_;									// epoch time linked with system;
 	states_flag flag_valve_found_ = states_flag::disable;
+	states_flag flag_valve_close_ = states_flag::disable;	// flag to close last current valve;
 
 
 	//	GPIO_Basic drive_kn_[3]={GPIO_Basic{AC_LOAD1},GPIO_Basic{AC_LOAD2},GPIO_Basic{AC_LOAD3}};

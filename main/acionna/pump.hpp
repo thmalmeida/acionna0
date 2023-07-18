@@ -99,10 +99,6 @@ public:
 		return state_motor_;
 	}
 	int start(start_types _mode) {
-		// make some log
-		if(flag_start_y_delta_ == states_flag::disable) {
-			make_log(_mode, *epoch_time_);
-		}
 
 		switch (_mode) {
 			case start_types::direct_k1: {
@@ -169,19 +165,17 @@ public:
 				break;
 			}
 			case start_types::to_delta: {
-				// just verify if k3 is on to avoid short circuit with k2
-				if((state_k3() == states_switch::on) || (state_k3_pin() == states_switch::on))
-				{
+				// K3 algorithm to make sure that is of before turn K2 on to avoid short circuit
+				if((state_k3() == states_switch::on) || (state_k3_pin() == states_switch::on)) {
 					ESP_LOGI(TAG_PUMP, "from Y to delta. K3: OFF");						
-					drive_k_(3, 0);
+					drive_k_(3, 0);									// turn k3 off
 					
 					int i = 0;
-					while((state_k3() == states_switch::on) || (state_k3_pin() == states_switch::on))
-					{
-						i++;
-						delay_us(1);
-						update_switches_();
-						if(i == time_switch_k_change*1000)
+					while((state_k3() == states_switch::on) || (state_k3_pin() == states_switch::on)) {
+						i++;										// loop wait count
+						delay_us(1);								// wait 1 millisecond
+						update_switches_();							// update states
+						if(i == time_switch_k_change*1000)			// number of loops is the time delay that k3 takes to switch off
 						{
 							ESP_LOGI(TAG_PUMP, "maybe k3 is lock");
 							drive_k_(1,0);
@@ -192,9 +186,9 @@ public:
 						}
 					}
 					ESP_LOGI(TAG_PUMP, "i: %d", i);
-					delay_ms(time_switch_k_change);
+					delay_ms(time_switch_k_change);					// wait more time to keep system free of k3 and k2 short circuit
 				}
-
+				// K2 algorithm to turn on checking k3 state;
 				if((state_k3() == states_switch::off) && (state_k3_pin() == states_switch::off)) {
 					ESP_LOGI(TAG_PUMP, "K1 and K2: ON");
 					drive_k_(2,1);
@@ -209,47 +203,16 @@ public:
 					ESP_LOGI(TAG_PUMP, "from Y to delta fail on K3 change");
 					return 1;
 				}
-
-				// if((state_k3() == states_switch::off) && (state_k3_pin() == states_switch::off)) {
-				// 	drive_k_(2, 1);
-				// 	update_state_();
-				// 	if((state_k1() == states_switch::off) && (state_k1_pin() == states_switch::off))
-				// 	{
-				// 		drive_k_(1, 1);
-				// 		ESP_LOGI(TAG_PUMP, "from zero to delta start. K1 and K2: ON");
-				// 	}
-				// 	else
-				// 		ESP_LOGI(TAG_PUMP, "from delta????");
-				// } else {
-				// 	drive_k_(3,0);
-				// 	ESP_LOGI(TAG_PUMP, "from Y to delta start. K3: OFF");
-				// 	delay_ms(time_switch_k_change);
-				// 	update_state_();
-				// 	// state_k3() substitute for
-				// 	if((state_k3() == states_switch::off) && (state_k3_pin() == states_switch::off)) {
-				// 		ESP_LOGI(TAG_PUMP, "K2: ON");
-				// 		drive_k_(2,1);
-				// 		drive_k_(1,1);
-				// 	} else {
-				// 		drive_k_(1,0);
-				// 		drive_k_(2,0);
-				// 		drive_k_(3,0);
-				// 		ESP_LOGI(TAG_PUMP, "from Y to delta start fail on K3 change");
-				// 		return 1;
-				// 	}						
-				// }
 				break;
 			}
 			case start_types::to_y: {
 				// just verify if k2 is on to avoid short circuit with k3
-				if((state_k2() == states_switch::on) || (state_k2_pin() == states_switch::on))
-				{
+				if((state_k2() == states_switch::on) || (state_k2_pin() == states_switch::on)) {
 					ESP_LOGI(TAG_PUMP, "from delta to Y. K2: OFF");						
 					drive_k_(2, 0);
+					
 					int i = 0;
-
-					while((state_k2() == states_switch::on) || (state_k2_pin() == states_switch::on))
-					{
+					while((state_k2() == states_switch::on) || (state_k2_pin() == states_switch::on)) {
 						i++;
 						delay_us(1);
 						update_switches_();
@@ -267,6 +230,7 @@ public:
 					delay_ms(time_switch_k_change);
 				}
 
+				// if k2 is off, start k3 and than k1.
 				if((state_k2() == states_switch::off) && (state_k2_pin() == states_switch::off)) {
 					ESP_LOGI(TAG_PUMP, "K1 and K3: ON");
 					drive_k_(3,1);
@@ -304,8 +268,11 @@ public:
 				break;
 		}
 
-		time_on_ = 0;
-		time_to_shutdown = time_to_shutdown_config;
+		if(flag_start_y_delta_ == states_flag::disable) {
+			time_on_ = 0;									// clear timer on to start count
+			time_to_shutdown = time_to_shutdown_config;		// set timer
+			make_log(_mode, *epoch_time_);					// and make some log
+		}
 
 		return 0;	// ok!
 	}
@@ -505,10 +472,9 @@ private:
 			}
 		}
 	}
-	void check_start_req_()
-	{
-		if(flag_start_y_delta_ == states_flag::enable)
-		{
+	void check_start_req_() {
+		// aready passed over start() with delta_to_y_req to enable this following flag
+		if(flag_start_y_delta_ == states_flag::enable) {
 			if(start_y_delta_state_ == start_types::to_y) {
 				ESP_LOGI(TAG_PUMP, "start1 type: %d", static_cast<int>(start_y_delta_state_));
 				if(start(start_y_delta_state_))

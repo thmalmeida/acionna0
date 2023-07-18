@@ -250,8 +250,8 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						for(int i=0; i<9; i++)
 						{
 							dt0.setUnixTime(pump1_.log_motors[i].time_start);
-							sprintf(buffer_temp, "s%d- %.2d/%.2d %.2d:%.2d m:%d t:%lu r:%u\n", i+1, dt0.getMonth(),
-																								dt0.getDay(),
+							sprintf(buffer_temp, "s%d- %.2d/%.2d %.2d:%.2d m:%d t:%lu r:%u\n", i+1, dt0.getDay(),
+																								dt0.getMonth(),
 																								dt0.getHour(),
 																								dt0.getMinute(),
 																								static_cast<int>(pump1_.log_motors[i].start_mode),
@@ -981,7 +981,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 				case 0: {
 					if (command_str[3] == ';') {
 						// $80;
-						sprintf(buffer, "sV:%d d_inv:%d tsOn:%.2d:%.2d:%.2d Tcfg:%d, v:%d tvOn:%.2d:%.2d:%.2d Pcfg:%d tv_cfg:%d, \n",
+						sprintf(buffer, "sV:%d d_inv:%d tsOn:%.2d:%.2d:%.2d Tcfg:%d, v:%.2d tvOn:%.2d:%.2d:%.2d Pcfg:%d tv_cfg:%d, \n",
 																											(int)valves1_.state_valves,
 																											(int)valves1_.flag_inverted_sequence,
 																											timesec_to_hour(valves1_.get_time_on()),
@@ -1711,7 +1711,7 @@ void Acionna::operation_pump_valves_irrigation() {
 	if(valves1_.state_valves == states_valves::system_off) {
 		if((pump1_.state() == states_motor::on_nominal_delta) || pump1_.state() == states_motor::on_speeding_up) {
 			valves1_.start();
-			pump1_.time_to_shutdown = valves1_.get_total_time_programmed()-5;	// to last valve keep on a little time to aliviate the pipe line pressure;
+			pump1_.time_to_shutdown = valves1_.get_total_time_programmed()-2;	// to last valve keep on a little time to aliviate the pipe line pressure;
 		}
 	}
 
