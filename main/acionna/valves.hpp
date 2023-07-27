@@ -84,14 +84,15 @@ public:
 		if(state_valves == states_valves::automatic_switch) {
 			if(!time_valve_remain) {					// next() function find new programmed valve_current_ and it's elapsed time (time_valve_ramain).
 				set_valve_state(valve_current_, 0);		// Turn the current valve sector to find another programmed;
-				if(next()) {							// algorithm to find next programmed valve sector. Return 0 if finish working cycle.
-					if(time_valve_elapsed_) {
-						make_log_close();
+				make_log_update();						// refresh the elapsed time valve on log vector
+				if(time_valve_elapsed_) {
 						time_valve_elapsed_ = 0;		// Clear valve elapsed time [s].
-					}
+				}
+				// algorithm to find next programmed valve sector. 
+				// This function turn on the next programmed valve found and refresh the time_valve_elapsed.
+				if(next()) {							// Return 0 if none is found meaning finish working cycle.
 					make_log();							// Found programmed valve sector. Make some log.
 				} else {
-					make_log_close();
 					stop();								// Couldn't find new programmed valve sector or achieve end cycle. Stop valve switch process.
 				}
 			} else
@@ -99,16 +100,9 @@ public:
 
 			time_valve_elapsed_++;
 			time_system_on_++;
-
-			// if(!time_delay_close_) {
-			// 	flag_valve_close_ = 
-			// 	time_delay_close_ = 
-			// }
 		}
-		// to implement
 	}
 	void make_log(void) {
-
 		// move all elements to next slot
 		for(int i=(log_n-1); i>0; i--) {
 			log_valves[i].valve_id = log_valves[i-1].valve_id;
@@ -123,7 +117,7 @@ public:
 
 		log_valves[0].elapsed_time = 0;
 	}
-	void make_log_close(void) {
+	void make_log_update(void) {
 		log_valves[0].elapsed_time = time_valve_elapsed_;
 	}
 	// void make_log(void) {
@@ -183,22 +177,24 @@ public:
 			valve_current_ = 0;							// if not, start from the first programmed valve sector.
 	}
 	void stop(void) {
-		load_.put(0x0000);		// reset all valves;
 		// for(int n=1; n<number_valves+1; n++)
 		// {
 		// 	set_valve_state(n, 0);
 		// }
-
-		state_valves = states_valves::system_off;
+		load_.put(0x0000);		// reset all valves;	
+		// because sometimes the motor turn off and do not refresh time due the state_valves = states_valves::system_off;
+		if(time_valve_elapsed_) {
+			make_log_update();
+			time_valve_elapsed_ = 0;
+		}
 		valve_current_ = 0;
+		state_valves = states_valves::system_off;		
 	}
 	unsigned int next(void) {
 		states_flag flag_valve_found_ = states_flag::disable;
+		valve_last_close_ = valve_current_;						// store the last working valve;
 
-		valve_last_close_ = valve_current_;					// store the last working valve;
-
-		if(flag_inverted_sequence == states_flag::enable)
-		{
+		if(flag_inverted_sequence == states_flag::enable) {
 			do {
 				valve_current_--;
 				if(valve_current_)
@@ -220,9 +216,8 @@ public:
 				}
 			} while(flag_valve_found_ == states_flag::disable);
 		}
-		else
-		{
-			do{
+		else {
+			do {
 				valve_current_++;
 				if(valve_current_ < number_valves + 1)
 				{
@@ -247,7 +242,7 @@ public:
 			} while(flag_valve_found_ == states_flag::disable);
 		}
 
-				set_valve_state(valve_current_, 0);
+		set_valve_state(valve_current_, 0);
 
 		return valve_current_;
 	}

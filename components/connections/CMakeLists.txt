@@ -2,7 +2,6 @@ idf_component_register(SRCS
 							bt_setup.cpp
 							httpd_setup.cpp
 							wifi_setup.cpp
-							# wifi_setup0.c
                             ws_client_setup.cpp
                             ws_keep_alive.c
 							INCLUDE_DIRS "."

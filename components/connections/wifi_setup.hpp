@@ -23,7 +23,7 @@
 // #include "lwip/netdb.h"
 
 // Added on 20230718
-#include "esp_netif.h"
+// #include "esp_netif.h"
 
 #include "httpd_setup.hpp"
 #include "ws_client_setup.hpp"
