@@ -46,7 +46,7 @@ volatile extern uint8_t flag_1sec;
 class Acionna {
 public:
 	// states_period state_period = states_period::redTime;
-	states_mode state_mode = states_mode::system_idle;
+	states_mode state_mode = states_mode::system_ready;
 
 	// group of variables to setup turn on starts
 	// uint8_t time_match_n = 1;									// turn times range 1-9
@@ -68,9 +68,10 @@ public:
 	void init(void);
 
 	// run every second;
-	void operation_system_off();
-	void operation_pump_control();
-	void operation_pump_valves_irrigation();
+	void operation_system_off(void);
+	void operation_pump_control(void);
+	void operation_pump_valves_irrigation(void);
+	void operation_pump_water_optimized(void);
 
 	uint32_t get_uptime();
 
@@ -125,6 +126,8 @@ private:
 	states_flag flag_check_low_pressure_k1_ = states_flag::disable;
 	states_flag flag_check_low_pressure_k2_ = states_flag::enable;
 	states_flag flag_check_low_pressure_delta_ = states_flag::enable;
+	states_flag flag_check_time_match_optimized_ = states_flag::enable;
+	states_flag flag_time_match_optimized_ = states_flag::enable;
 	// states_flag flag_enable_decode_ = states_flag::disable;
 
 	// Flags for communication purpose
@@ -145,6 +148,20 @@ private:
 	uint32_t uptime_ = 0;												// uptime in seconds
 	uint32_t time_day_sec_ = 0;
 	uint32_t epoch_time_ = 0;
+
+	// Optimized mode
+	struct {
+		uint32_t time_match_start = 0;	// first start time epoch [s]
+		uint32_t time_match_next = 0;	// next time programmed epoch [s];
+		uint32_t time_stop;				// time stopped epoch [s]
+		uint32_t time_delay = 5*60;		// delay time after low pressure dectect before turn on again;
+		uint32_t time_red = 0;			// day time to stop system;
+		states_flag started = states_flag::disable;
+		states_flag flag_time_stop = states_flag::disable;
+		start_types start_mode = start_types::direct_k2;
+		uint32_t time_to_shutdown = 0;
+	}optimized;
+
 
 	// communication member functions
 	void msg_fetch_(void);

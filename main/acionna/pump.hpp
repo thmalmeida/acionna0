@@ -66,7 +66,7 @@ public:
 	}
 
 	// public member functions
-	void update() {
+	void update(void) {
 		update_state_();
 		update_time_();
 
@@ -74,28 +74,28 @@ public:
 
 		check_start_req_();
 	}
-	states_switch state_k1() const { // noexcept // const -> não modifica nada na classe - noexcept para dizer que não gera exceção
+	states_switch state_k1(void) const { // noexcept // const -> não modifica nada na classe - noexcept para dizer que não gera exceção
 		return state_k1_;
 	}
-	states_switch state_k2() const { // noexcept // const -> não modifica nada na classe - noexcept para dizer que não gera exceção
+	states_switch state_k2(void) const { // noexcept // const -> não modifica nada na classe - noexcept para dizer que não gera exceção
 		return state_k2_;
 	}
-	states_switch state_k3() const { // noexcept // const -> não modifica nada na classe - noexcept para dizer que não gera exceção
+	states_switch state_k3(void) const { // noexcept // const -> não modifica nada na classe - noexcept para dizer que não gera exceção
 		return  state_k3_;
 	}
-	states_switch state_k1_pin() const {
+	states_switch state_k1_pin(void) const {
 		return state_k1_pin_;	
 	}
-	states_switch state_k2_pin() const {
+	states_switch state_k2_pin(void) const {
 		return state_k2_pin_;	
 	}
-	states_switch state_k3_pin() const {
+	states_switch state_k3_pin(void) const {
 		return state_k3_pin_;
 	}
-	states_switch state_Rth() const { // noexcept // const -> não modifica nada na classe - noexcept para dizer que não gera exceção
+	states_switch state_Rth(void) const { // noexcept // const -> não modifica nada na classe - noexcept para dizer que não gera exceção
 		return state_Rth_;
 	}
-	states_motor state() const {
+	states_motor state(void) const {
 		return state_motor_;
 	}
 	int start(start_types _mode) {
@@ -293,12 +293,16 @@ public:
 		flag_check_wait_power_on = states_flag::enable;
 		flag_start_y_delta_ = states_flag::disable;
 		time_off_ = 0;
+		time_last_stopped_ = *epoch_time_;
 	}
-	uint32_t time_on() {
+	uint32_t time_on(void) {
 		return time_on_;
 	}
-	uint32_t time_off() {
+	uint32_t time_off(void) {
 		return time_off_;
+	}
+	uint32_t time_last_stopped(void) {
+		return time_last_stopped_;
 	}
 
 	void make_log(start_types start_type, uint32_t time_now) {
@@ -369,9 +373,10 @@ private:
 	uint32_t time_off_ = 0;
 
 	// System RTC
-	uint32_t *epoch_time_;									// epoch time linked with system;
+	uint32_t *epoch_time_;								// epoch time linked with system;
+	uint32_t time_last_stopped_ = 0;					// time of last stopped
 	
-	void update_switches_()
+	void update_switches_(void)
 	{
 		state_k1_pin_ = read_k_pin_(1);
 		state_k2_pin_ = read_k_pin_(2);
@@ -394,12 +399,12 @@ private:
 			state_k3_ = state_k3_dev_;
 		}
 	}
-	void update_state_() {
+	void update_state_(void) {
 		update_switches_();
 
 		if((state_Rth_ == states_switch::on) && (state_motor_ != states_motor::off_thermal_activated))
 		{
-			ESP_LOGI(TAG_PUMP, "pump: off_thermal_activated");
+			ESP_LOGI(TAG_PUMP, "off_thermal_activated");
 			state_motor_ = states_motor::off_thermal_activated;
 		}
 		else
@@ -415,39 +420,39 @@ private:
 				if(state_motor_ != states_motor::off_idle)
 				{
 					state_motor_ = states_motor::off_idle;
-					ESP_LOGI(TAG_PUMP, "pump: off_idle");
+					ESP_LOGI(TAG_PUMP, "off_idle");
 				}
 			}
 			else if((state_k1_ == states_switch::on) && (state_k2_ == states_switch::off) && (state_k3_ == states_switch::off))
 			{
-				ESP_LOGI(TAG_PUMP, "pump: on_nominal_k1");
+				ESP_LOGI(TAG_PUMP, "on_nominal_k1");
 				state_motor_ = states_motor::on_nominal_k1;
 			}
 			else if((state_k1_ == states_switch::off) && (state_k2_ == states_switch::on) && (state_k3_ == states_switch::off))
 			{
-				ESP_LOGI(TAG_PUMP, "pump: on_nominal_k2");
+				ESP_LOGI(TAG_PUMP, "on_nominal_k2");
 				state_motor_ = states_motor::on_nominal_k2;
 			}
 			else if((state_k1_ == states_switch::on) && (state_k2_ == states_switch::off) && (state_k3_ == states_switch::on))
 			{	
 				state_motor_ = states_motor::on_speeding_up;
-				ESP_LOGI(TAG_PUMP, "pump: on_speeding_up");
+				ESP_LOGI(TAG_PUMP, "on_speeding_up");
 			}
 			else if((state_k1_ == states_switch::on) && (state_k2_ == states_switch::on) &&	(state_k3_ == states_switch::off))
 			{
-				ESP_LOGI(TAG_PUMP, "pump: on_nominal_delta");
+				ESP_LOGI(TAG_PUMP, "on_nominal_delta");
 				state_motor_ = states_motor::on_nominal_delta;
 			}
 			else if((state_k1_ == states_switch::off) && ((state_k2_ == states_switch::off) || (state_k3_ == states_switch::on)))
 			{
-				ESP_LOGI(TAG_PUMP, "pump: off_k3_short_circuit");
+				ESP_LOGI(TAG_PUMP, "off_k3_short_circuit");
 				state_motor_ = states_motor::off_k3_short_circuit;
 			}
 			else
 				state_motor_ = states_motor::undefined;
 		}
 	}
-	void update_time_()
+	void update_time_(void)
 	{
 		if((state_motor_ == states_motor::on_nominal_k1) || (state_motor_ == states_motor::on_nominal_k2) || (state_motor_ == states_motor::on_nominal_delta) || (state_motor_ == states_motor::on_speeding_up))
 		{
@@ -472,7 +477,7 @@ private:
 			}
 		}
 	}
-	void check_start_req_() {
+	void check_start_req_(void) {
 		// aready passed over start() with delta_to_y_req to enable this following flag
 		if(flag_start_y_delta_ == states_flag::enable) {
 			if(start_y_delta_state_ == start_types::to_y) {
@@ -508,7 +513,7 @@ private:
 		else
 			return states_switch::off;
 	}
-	states_switch read_Rth_()
+	states_switch read_Rth_(void)
 	{
 		if(!gpio_generic_[3].read())
 			return states_switch::on;

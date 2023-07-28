@@ -97,7 +97,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 	$50:n:X; ou $50:hX:HHMM;
 		$50;				- show all timers to turn on and info;
-		$50:0|1;			- desabilita|habilita auto turn (habilita time match flag);
+		$50:[0|1];			- desabilita|habilita auto turn (habilita time match flag);
 		$50:m:[1|3]			- tipo de partida automática: 1- k1; 3- y-Delta;
 		$50:n;				- mostra a quantidade de vezes que irá ligar;
 		$50:n:9;			- Configura para acionar 9 vezes. Necessário configurar 9 horários;
@@ -106,10 +106,18 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$50:h8:0437;		- Configura o oitavo horário como 04:37 horas;
 		$50:t1:120;			- configura o primeiro horário de partida com tempo de 120 min;
 
+	$51;					- optimized mode;
+		$51:[0|1];			- disable/enable process;
+		$51:h:2300;			- start cycle;
+		$51:e:0600;			- red time beginner;
+		$51:t;				- time delay before next start;
+		$51:t:05;			- time delay in minutes;
+
 	$6X;					- Modos de funcionamento;
 		$60; 				- Sistema Desligado não permite ligar;
 		$61;				- Sistema ocioso esperando um time match automático ou acionamento manual por linha de comando.
 		$62;				- Modo irrigação com controle das válvulas em modo de acionamento automático.
+		$63;				- Pumping all night long mode;
 
 	$7X						- Funções que habilitam ou desabilitam verificações de:
 		$70;				- not implemented
@@ -657,6 +665,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						// strcat(buffer, "\n");
 					}
 					else if((command_str[3] == ':') && (command_str[5] == ';')) {
+						// $50:X;	set auto mode [1|0] ON/OFF;
 						_aux[0] = '0';
 						_aux[1] = command_str[4];		// '0' in uint8_t is 48. ASCII
 						_aux[2] = '\0';
@@ -765,6 +774,46 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					}
 					break;
 				}
+				case 1: { // for optimized
+					if(command_str[3] == ';') {
+						// $51; show tm optimized setup
+						sprintf(buffer, "tm opt flag:%d %.2d:%.2d t:%d\n", static_cast<int>(flag_check_time_match_optimized_), timesec_to_min(optimized.time_match_start), timesec_to_sec(optimized.time_match_start), timesec_to_min(optimized.time_delay));
+					}
+					else if((command_str[3] == ':') && (command_str[5] == ';')) {
+						// $51:X;
+						// $50:X;	set auto mode [1|0] ON/OFF;
+						_aux[0] = '0';
+						_aux[1] = command_str[4];		// '0' in uint8_t is 48. ASCII
+						_aux[2] = '\0';
+						int opcode_sub0 = atoi(_aux);
+
+						if(opcode_sub0)
+							flag_check_time_match_optimized_ = states_flag::enable;
+						else
+							flag_check_time_match_optimized_ = states_flag::disable;
+
+						sprintf(buffer, "set auto tm: %d\n", static_cast<int>(flag_check_time_match_optimized_));
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 'h') && (command_str[5] == ':') && (command_str[10] == ';')) {
+						// $51:h:hhmm;
+						// get the hours, transform to seconds;
+						_aux[0] = command_str[6];
+						_aux[1] = command_str[7];		// '0' in uint8_t is 48. ASCII
+						_aux[2] = '\0';
+						uint32_t _time_temp = (static_cast<uint32_t>(atoi(_aux)))*3600;
+
+						// get the minutes, transform to seconds and sum it;
+						_aux[0] = command_str[8];
+						_aux[1] = command_str[9];		// '0' in uint8_t is 48. ASCII
+						_aux[2] = '\0';
+						_time_temp += (static_cast<uint32_t>(atoi(_aux)))*60;
+
+						optimized.time_match_start = _time_temp;
+
+						sprintf(buffer, "set h %.2u:%.2u tm:%lu\n", timesec_to_hour(optimized.time_match_start), timesec_to_min(optimized.time_match_start), optimized.time_match_start);
+					}
+					break;
+				}
 			}
 			break;
 		}
@@ -782,8 +831,8 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					break;
 				}
 				case 1:	{
-					state_mode = states_mode::system_idle;
-					sprintf(buffer,"state mode: system_idle, s:%d\n", static_cast<int>(state_mode));
+					state_mode = states_mode::system_ready;
+					sprintf(buffer,"state mode: system_ready, s:%d\n", static_cast<int>(state_mode));
 					break;
 				}
 				case 2: {
@@ -791,8 +840,14 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					sprintf(buffer,"state mode: auto irrigation s:%d\n", static_cast<int>(state_mode));
 					break;
 				}
+				case 3: {
+					state_mode = states_mode::water_pump_control_night;
+					sprintf(buffer,"state mode: pumping all night s:%d\n", static_cast<int>(state_mode));
+					break;
+				}
 				default:
-				break;
+					sprintf(buffer,"mode not implemented\n");
+					break;
 			}
 			// sprintf(buffer, "Acionna State2: %d\n", static_cast<int>(state_mode));
 			ESP_LOGI(TAG_ACIONNA,"Acionna State2: %d\n", static_cast<int>(state_mode));
@@ -912,7 +967,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						else
 							flag_check_low_pressure_delta_ = states_flag::disable;
 					
-						sprintf(buffer, "set check k3: %d\n", static_cast<int>(flag_check_low_pressure_delta_));
+						sprintf(buffer, "set check k1k2 %d\n", static_cast<int>(flag_check_low_pressure_delta_));
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == 'h') && (command_str[6] == ';')) {
 					// $70:ph;
@@ -1566,30 +1621,32 @@ void Acionna::msg_json_back_(void) {
 		}
 	}
 }
-void Acionna::operation_mode() {
+void Acionna::operation_mode(void) {
 	switch (state_mode)
 	{
-		case states_mode::system_off:
+		case states_mode::system_off:				// $60;
 			operation_system_off();
 			break;
 
-		case states_mode::system_idle:
+		case states_mode::system_ready:				// $61;
 			operation_pump_control();
 			break;
 
-		case states_mode::irrigation_pump_valves:
+		case states_mode::irrigation_pump_valves:	// $62;
 			operation_pump_control();
 			operation_pump_valves_irrigation();
 			break;
 
-		case states_mode::water_pump_control_night:
+		case states_mode::water_pump_control_night:	// $63;
+			operation_pump_control();
+			operation_pump_water_optimized();
 			break;
 
 		default:
 			break;
 	}
 }
-void Acionna::operation_pump_control() {
+void Acionna::operation_pump_control(void) {
 	/*
 	 * Reasons to halt the motor.
 	 * 0x00 - command line request
@@ -1695,7 +1752,7 @@ void Acionna::operation_pump_control() {
 	}
 	#endif
 }
-void Acionna::operation_pump_valves_irrigation() {
+void Acionna::operation_pump_valves_irrigation(void) {
 	// If PCY8575 module resets, all ports go down and valve stop. To prevent it, keep setting on the current valve every second.
 	// P.S.: the module has implemented backup registers to keep output buffer even if PCY8575 reset occurs.
 	/*
@@ -1706,21 +1763,51 @@ void Acionna::operation_pump_valves_irrigation() {
 			valves1_.set_valve_state(valves1_.valve_current(), 1);
 		}
 	}
-
 	// If valves still not working but motor is turned on, start valves working cycle.
 	if(valves1_.state_valves == states_valves::system_off) {
 		if((pump1_.state() == states_motor::on_nominal_delta) || pump1_.state() == states_motor::on_speeding_up) {
 			valves1_.start();
 			pump1_.time_to_shutdown = valves1_.get_total_time_programmed()-2;	// to last valve keep on a little time to aliviate the pipe line pressure;
+			pump1_.time_to_shutdown_config = valves1_.get_total_time_programmed();
 		}
 	}
-
 	// If valves cycle are working but motor is turned off, stop valves working cycle.
 	if(valves1_.state_valves == states_valves::automatic_switch)
 		if(pump1_.state() != states_motor::on_nominal_delta)
 			if(pump1_.state() != states_motor::on_speeding_up)
 				valves1_.stop();
+}
+void Acionna::operation_pump_water_optimized(void) {
+	// to optimize water pump to reservoir
+	if(flag_check_time_match_optimized_ == states_flag::enable) {
 
+		if((optimized.time_match_start == time_day_sec_) || (optimized.time_match_next == time_day_sec_)) {
+			flag_time_match_optimized_ = states_flag::enable;
+		}
+
+		if(flag_time_match_optimized_ == states_flag::enable) {
+			flag_time_match_optimized_ = states_flag::disable;
+
+			// If time match occurs and motor state is idle, turn it on! And make some log;
+			if(pump1_.state() == states_motor::off_idle) {
+				pump1_.start(optimized.start_mode);
+
+				optimized.flag_time_stop = states_flag::enable;
+
+				if(optimized.time_to_shutdown) {
+					pump1_.time_to_shutdown = optimized.time_to_shutdown;
+				}
+			}
+		}
+
+		if(optimized.flag_time_stop == states_flag::enable) {
+			if(pump1_.state() == states_motor::off_idle) {
+				optimized.flag_time_stop = states_flag::disable;
+				optimized.time_stop = time_day_sec_;
+				optimized.time_match_next = time_day_sec_ + optimized.time_delay;
+			}
+		}
+	}
 }
 void Acionna::operation_system_off() {
 	if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
