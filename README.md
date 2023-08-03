@@ -22,3 +22,15 @@ Acionna is a firmware implementation to control and control and monitoring loads
 - average pressure to specific valve sector to log history
 
 - There is a problem when turn irrigation system off because valves turn off before pump. Pipe line stay pressure and when occurs a new departure the system notice high pressure.
+
+# Valve irrigation process features
+- log history for valves working mode
+- last date time and elapsed working time
+- average pressure while working
+
+# Working modes!
+** Mode 1
+
+** Mode 2 - Irrigation that can control valves switch system;
+
+** Mode 3 - Optimized to control pumping water all night long

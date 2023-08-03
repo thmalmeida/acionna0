@@ -107,6 +107,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$50:t1:120;			- configura o primeiro horário de partida com tempo de 120 min;
 
 	$51;					- optimized mode;
+		$51;				- show optimized configuration
 		$51:[0|1];			- disable/enable process;
 		$51:h:2300;			- start cycle;
 		$51:e:0600;			- red time beginner;
@@ -208,10 +209,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 	_aux[2] = '\0';
 	opcode1 = atoi(_aux);
 
-	// ESP_LOGI(TAG_ACIONNA, "Handle msg!");
-
-	switch (opcode0)
-	{
+	switch (opcode0) {
 		case 0: { // $0X; Check status
 			switch (opcode1) 
 			{
@@ -780,8 +778,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						sprintf(buffer, "tm opt flag:%d %.2d:%.2d t:%d\n", static_cast<int>(flag_check_time_match_optimized_), timesec_to_min(optimized.time_match_start), timesec_to_sec(optimized.time_match_start), timesec_to_min(optimized.time_delay));
 					}
 					else if((command_str[3] == ':') && (command_str[5] == ';')) {
-						// $51:X;
-						// $50:X;	set auto mode [1|0] ON/OFF;
+						// $51:X;	set auto mode [1|0] ON/OFF;
 						_aux[0] = '0';
 						_aux[1] = command_str[4];		// '0' in uint8_t is 48. ASCII
 						_aux[2] = '\0';
@@ -810,7 +807,37 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 						optimized.time_match_start = _time_temp;
 
-						sprintf(buffer, "set h %.2u:%.2u tm:%lu\n", timesec_to_hour(optimized.time_match_start), timesec_to_min(optimized.time_match_start), optimized.time_match_start);
+						sprintf(buffer, "opt set h%.2u:%.2u tm:%lu\n", timesec_to_hour(optimized.time_match_start), timesec_to_min(optimized.time_match_start), optimized.time_match_start);
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 'e') && (command_str[5] == ';')) {
+					// $51:e;		 - show red time;
+						// $51:e:0600;
+						// get the hours, transform to seconds;
+						_aux[0] = command_str[6];
+						_aux[1] = command_str[7];		// '0' in uint8_t is 48. ASCII
+						_aux[2] = '\0';
+						uint32_t _time_temp = (static_cast<uint32_t>(atoi(_aux)))*3600;
+
+						// get the minutes, transform to seconds and sum it;
+						_aux[0] = command_str[8];
+						_aux[1] = command_str[9];		// '0' in uint8_t is 48. ASCII
+						_aux[2] = '\0';
+						optimized.time_red = _time_temp + (static_cast<uint32_t>(atoi(_aux)))*60;
+
+						sprintf(buffer, "opt set h %.2u:%.2u tm:%lu\n", timesec_to_hour(optimized.time_red), timesec_to_min(optimized.time_red), optimized.time_red);
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ';')) {
+					// $51:t;	- time delay before next start in minutes;
+						sprintf(buffer, "opt tdelay:%lu\n", optimized.time_delay/60);
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ':') && (command_str[8] == ';')) {
+					// $51:t:05;	- time delay in minutes;
+						_aux[0] = command_str[6];
+						_aux[1] = command_str[7];
+						_aux[2] = '\0';
+						optimized.time_delay = static_cast<uint32_t>(atoi(_aux))*60;
+
+						sprintf(buffer, "opt tdelay:%lu\n", optimized.time_delay/60);
 					}
 					break;
 				}
@@ -1663,8 +1690,8 @@ void Acionna::operation_pump_control(void) {
 	// time matches occurred into check_time_match(), start motor
 	if(flag_check_time_match_ == states_flag::enable) {
 		int index = 0;
-		for(int i=0; i<time_match_n; i++)
-		{
+		for(int i=0; i<time_match_n; i++) {
+			// compare the list time match with current time day second
 			if(time_match_list[i].time_match == time_day_sec_)
 			{
 				flag_time_match_ = states_flag::enable;
@@ -1778,13 +1805,15 @@ void Acionna::operation_pump_valves_irrigation(void) {
 				valves1_.stop();
 }
 void Acionna::operation_pump_water_optimized(void) {
-	// to optimize water pump to reservoir
+	// if time match optimized enableb, working on it for water pump to reservoir
 	if(flag_check_time_match_optimized_ == states_flag::enable) {
 
+		// if time match with start or next after turn off delay, start it again;
 		if((optimized.time_match_start == time_day_sec_) || (optimized.time_match_next == time_day_sec_)) {
 			flag_time_match_optimized_ = states_flag::enable;
 		}
 
+		// if found time match optimized
 		if(flag_time_match_optimized_ == states_flag::enable) {
 			flag_time_match_optimized_ = states_flag::disable;
 
@@ -1792,21 +1821,27 @@ void Acionna::operation_pump_water_optimized(void) {
 			if(pump1_.state() == states_motor::off_idle) {
 				pump1_.start(optimized.start_mode);
 
+				// this is for algorithm to calculate the next turn on after turn off;
 				optimized.flag_time_stop = states_flag::enable;
 
+				// if does existis programmed shutdown time, use it!
 				if(optimized.time_to_shutdown) {
 					pump1_.time_to_shutdown = optimized.time_to_shutdown;
 				}
 			}
 		}
 
+		// here, we suppose the pump is on
 		if(optimized.flag_time_stop == states_flag::enable) {
+			// if pump turn off, update those values;
 			if(pump1_.state() == states_motor::off_idle) {
 				optimized.flag_time_stop = states_flag::disable;
 				optimized.time_stop = time_day_sec_;
 				optimized.time_match_next = time_day_sec_ + optimized.time_delay;
 			}
 		}
+
+		// if()
 	}
 }
 void Acionna::operation_system_off() {
