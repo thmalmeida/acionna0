@@ -1727,7 +1727,7 @@ void Acionna::operation_pump_control(void) {
 		}
 	}
 
-	// check high pressure
+	// check high pressure (0x02)
 	if(flag_check_pressure_high_ == states_flag::enable) {
 		if(pipe1_.pressure_mca() > pipe1_.pressure_max) {
 			if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
@@ -1736,7 +1736,7 @@ void Acionna::operation_pump_control(void) {
 		}
 	}
 
-	// check low pressure
+	// check low pressure (0x03)
 	if(flag_check_pressure_low_ == states_flag::enable) {
 		if(flag_check_low_pressure_k1_ == states_flag::enable) {
 			// To main waterpump with 3 stages;
@@ -1813,7 +1813,7 @@ void Acionna::operation_pump_water_optimized(void) {
 			flag_time_match_optimized_ = states_flag::enable;
 		}
 
-		// if found time match optimized
+		// if found time match optimized (start time or next)
 		if(flag_time_match_optimized_ == states_flag::enable) {
 			flag_time_match_optimized_ = states_flag::disable;
 
@@ -1822,26 +1822,32 @@ void Acionna::operation_pump_water_optimized(void) {
 				pump1_.start(optimized.start_mode);
 
 				// this is for algorithm to calculate the next turn on after turn off;
-				optimized.flag_time_stop = states_flag::enable;
+				optimized.flag_time_next_config = states_flag::enable;
 
-				// if does existis programmed shutdown time, use it!
+				// if does exists programmed shutdown time, use it!
 				if(optimized.time_to_shutdown) {
 					pump1_.time_to_shutdown = optimized.time_to_shutdown;
 				}
 			}
 		}
 
-		// here, we suppose the pump is on
-		if(optimized.flag_time_stop == states_flag::enable) {
+		// here, we suppose the pump is on after start by time match or time match next
+		if(optimized.flag_time_next_config == states_flag::enable) {
 			// if pump turn off, update those values;
 			if(pump1_.state() == states_motor::off_idle) {
-				optimized.flag_time_stop = states_flag::disable;
+				optimized.flag_time_next_config = states_flag::disable;
 				optimized.time_stop = time_day_sec_;
 				optimized.time_match_next = time_day_sec_ + optimized.time_delay;
 			}
 		}
 
-		// if()
+		// turn system of if red time began
+		if(optimized.time_red > (time_day_sec_ - 10)) {
+			pump1_.stop(stop_types::red_time);
+			optimized.time_match_next = optimized.time_match_start;
+			optimized.flag_time_next_config = states_flag::disable;
+			optimized.time_stop = time_day_sec_;
+		}
 	}
 }
 void Acionna::operation_system_off() {
