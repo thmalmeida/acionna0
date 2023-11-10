@@ -42,6 +42,7 @@
 #include "convert_char_to_hex.h"
 
 volatile extern uint8_t flag_1sec;
+volatile extern uint8_t flag_100ms;
 
 class Acionna {
 public:

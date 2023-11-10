@@ -1066,13 +1066,15 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 				case 0: {
 					if (command_str[3] == ';') {
 						// $80;
-						sprintf(buffer, "sV:%d d_inv:%d tsOn:%.2d:%.2d:%.2d Tcfg:%d, v:%.2d tvOn:%.2d:%.2d:%.2d Pcfg:%d tv_cfg:%d, \n",
+						sprintf(buffer, "sV:%d d_inv:%d tsOn:%.2d:%.2d:%.2d Tcfg:%.2d:%.2d:%.2d, v:%.2d tvOn:%.2d:%.2d:%.2d Pcfg:%d tv_cfg:%d, \n",
 																											(int)valves1_.state_valves,
 																											(int)valves1_.flag_inverted_sequence,
 																											timesec_to_hour(valves1_.get_time_on()),
 																											timesec_to_min(valves1_.get_time_on()),
 																											timesec_to_sec(valves1_.get_time_on()),
-																											static_cast<int>(valves1_.get_total_time_programmed()/60.0),
+																											timesec_to_hour(valves1_.get_total_time_programmed()),
+																											timesec_to_min(valves1_.get_total_time_programmed()),
+																											timesec_to_sec(valves1_.get_total_time_programmed()),
 																											valves1_.valve_current(),
 																											timesec_to_hour(valves1_.time_valve_remain),
 																											timesec_to_min(valves1_.time_valve_remain),
