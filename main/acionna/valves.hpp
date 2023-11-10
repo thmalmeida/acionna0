@@ -83,17 +83,18 @@ public:
 	void update() {
 		if(state_valves == states_valves::automatic_switch) {
 			if(!time_valve_remain) {					// next() function find new programmed valve_current_ and it's elapsed time (time_valve_ramain).
-				set_valve_state(valve_current_, 0);		// Turn the current valve sector to find another programmed;
+				set_valve_state(valve_current_, 0);		// Turn off the current valve sector to find another programmed;
 				make_log_update();						// refresh the elapsed time valve on log vector
 				if(time_valve_elapsed_) {
 						time_valve_elapsed_ = 0;		// Clear valve elapsed time [s].
 				}
-				// algorithm to find next programmed valve sector. 
-				// This function turn on the next programmed valve found and refresh the time_valve_elapsed.
-				if(next()) {							// Return 0 if none is found meaning finish working cycle.
-					make_log();							// Found programmed valve sector. Make some log.
+
+				// Algorithm to find next programmed valve sector:
+				// 	This function turn on the next programmed valve found and refresh the time_valve_elapsed.
+				if(next()) {		// Ruturn true if some next programmed sector was found. Else return 0 if none is found meaning finish working cycle.
+					make_log();		// Found programmed valve sector. Make some log.
 				} else {
-					stop();								// Couldn't find new programmed valve sector or achieve end cycle. Stop valve switch process.
+					stop();			// Couldn't find new programmed valve sector or achieve end cycle. Stop valve switch process.
 				}
 			} else
 				time_valve_remain--;
@@ -171,10 +172,13 @@ public:
 		state_valves = states_valves::automatic_switch;	// put automatic valve switch state on;
 		flag_valve_found_ = states_flag::disable;		// disable found new programmed valve sector;
 
+		// Set a kind of pointer to next() function find the next valve
 		if(flag_inverted_sequence == states_flag::enable)
 			valve_current_ = number_valves+1;			// if inverted sequence, start from last valve sector;
 		else
 			valve_current_ = 0;							// if not, start from the first programmed valve sector.
+
+		// the update will call the next() function and find the next programmed valve.	
 	}
 	void stop(void) {
 		// for(int n=1; n<number_valves+1; n++)
@@ -204,10 +208,7 @@ public:
 						flag_valve_found_ = states_flag::enable;
 						time_valve_remain = get_valve_time(valve_current_)*60.0;
 						set_valve_state(valve_current_, 1);
-						// set_valve_state(valve_current_+1, 0);
 					}
-					// else
-					// 	valve_current_--;
 				}
 				else
 				{
@@ -226,10 +227,7 @@ public:
 						flag_valve_found_ = states_flag::enable;
 						time_valve_remain = get_valve_time(valve_current_)*60.0;
 						set_valve_state(valve_current_, 1);
-						// set_valve_state(valve_current_-1, 0);
 					}
-					// else
-						// valve_current_++;
 				}
 				else
 				{
@@ -242,7 +240,7 @@ public:
 			} while(flag_valve_found_ == states_flag::disable);
 		}
 
-		set_valve_state(valve_current_, 0);
+		// set_valve_state(valve_current_, 0);
 
 		return valve_current_;
 	}
@@ -261,6 +259,11 @@ public:
 	unsigned int get_time_on() {
 		return time_system_on_;
 	}
+	uint8_t valve_current(void) {
+		return valve_current_;
+	}
+
+	// Test routines
 	unsigned int valves_test_routine() {
 		/*
 		turn all drives off;
@@ -275,9 +278,7 @@ public:
 		*/
 		return 0;
 	}
-	uint8_t valve_current(void) {
-		return valve_current_;
-	}
+
 
 	// Functions directly to PCY8575
 	int module_probe(void) {

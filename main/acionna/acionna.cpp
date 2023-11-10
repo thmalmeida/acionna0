@@ -1795,6 +1795,7 @@ void Acionna::operation_pump_valves_irrigation(void) {
 			valves1_.set_valve_state(valves1_.valve_current(), 1);
 		}
 	}
+
 	// If valves still not working but motor is turned on, start valves working cycle.
 	if(valves1_.state_valves == states_valves::system_off) {
 		if((pump1_.state() == states_motor::on_nominal_delta) || pump1_.state() == states_motor::on_speeding_up) {
@@ -1803,11 +1804,14 @@ void Acionna::operation_pump_valves_irrigation(void) {
 			pump1_.time_to_shutdown_config = valves1_.get_total_time_programmed();
 		}
 	}
+
 	// If valves cycle are working but motor is turned off, stop valves working cycle.
-	if(valves1_.state_valves == states_valves::automatic_switch)
+	if(valves1_.state_valves == states_valves::automatic_switch) {
 		if(pump1_.state() != states_motor::on_nominal_delta)
 			if(pump1_.state() != states_motor::on_speeding_up)
 				valves1_.stop();
+	}
+
 }
 void Acionna::operation_pump_water_optimized(void) {
 	// if time match optimized enableb, working on it for water pump to reservoir
