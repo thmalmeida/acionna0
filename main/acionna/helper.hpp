@@ -19,7 +19,8 @@ enum class states_switch {
 };
 enum class states_valves {
 	system_off = 0,
-	automatic_switch
+	automatic_switch,
+	auto_test
 };
 enum class states_motor {
 	off_idle = 0,

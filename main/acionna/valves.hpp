@@ -261,7 +261,20 @@ public:
 	unsigned int get_time_on() {
 		return time_system_on_;
 	}
-	
+	unsigned int valves_test_routine() {
+		/*
+		turn all drives off;
+
+		wait a moment;
+
+		turn the first driver ON;
+		wait a momemnt;
+		read adc
+		calculate
+		
+		*/
+		return 0;
+	}
 	uint8_t valve_current(void) {
 		return valve_current_;
 	}
@@ -314,6 +327,9 @@ public:
 		uint8_t valve_id;									// valve id
 		uint32_t started_time;								// start time since epoch [s]
 		uint16_t elapsed_time;								// total time it was on [s]
+		int max_pressure;
+		int min_pressure;
+		int avg_pressure;
 	}log_valves[log_n] = {};
 
 	uint8_t valve_current_ = 0;								// current working valve;
@@ -328,8 +344,9 @@ private:
 
 	struct {
 		int pressure = 0;									// pressão nominal daquele setor [m.c.a.];
+		int pressure_avg = 0;									// average pressure while on state;
 		// states_switch state = states_switch::off;		// estado da válvula;
-		states_flag programmed = states_flag::enable;		// se entra para a jornada ou não. enable or disable;
+		states_flag programmed = states_flag::enable;		// enable or disable to schedule list;
 		unsigned int time_elapsed_cfg = 0;					// tempo que o setor ficará ligado [s];
 		unsigned int time_on_last = 0;						// tempo ligado ou último tempo ligado [s];
 	} valve_[number_valves];

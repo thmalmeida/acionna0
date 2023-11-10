@@ -262,6 +262,13 @@ void isr_1sec(void *pvParameter) {
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 }
+void isr_100ms(void *pvParameter) {
+	while(1) {
+		flag_100ms = 1;
+		vTaskDelay(100 / portTICK_PERIOD_MS);
+	}
+}
+
 void machine_run(void *pvParameter) {
 
 	ADC_driver adc0(adc_mode::oneshot);
@@ -292,7 +299,6 @@ voltage
 current
 temperature
 */
-
 // typedef struct ws_Pkt {
 // 	uint8_t id;
 // 	uint8_t code;
@@ -300,7 +306,6 @@ temperature
 // 	uint8_t sensor_type:4;
 // 	uint32_t value;
 // };
-
 // void pkt_create(void)
 // {
 // }

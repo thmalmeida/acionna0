@@ -13,6 +13,7 @@ int timeout_sensors;
 int timeout_sensors_cfg = 600;
 
 volatile uint8_t flag_1sec = 0;
+volatile uint8_t flag_100ms = 0;
 
 // static pwm_ledc led_wifi_indicator(2, 1, 0, 1);
 
@@ -159,6 +160,8 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			$80:v:01:t;		- mostra o tempo de irrigação do setor;
 			$80:v:01:p:68;	- configura pressão nominal do setor [m.c.a.];
 			$80:v:01:p;		- mostra pressão nominal do setor;
+			$80:t;			- test all solenoid drivers;
+
 		$84:04F3;			- PCY8575 put 16 bit hex value directly to PCY8575;
 		$85;				- PCY8575 get output
 		$86:x;
@@ -1882,20 +1885,21 @@ void Acionna::parser_(uint8_t* payload_str, int payload_str_len, uint8_t *comman
 }
 void Acionna::run(void) {
 
-	msg_fetch_();		// fetch for a new command;
+	msg_fetch_();					// fetch for a new command;
 
-	msg_exec_();		// parse and execute the commmand;
+	msg_exec_();					// parse and execute the commmand;
 
-	msg_back_();		// send answer back to origin;
+	msg_back_();					// send answer back to origin;
 }
 void Acionna::run_every_second(void) {
-	sys_fw_update_ans_async_();
 
-	msg_json_back_();
+	sys_fw_update_ans_async_();		// return msg when firmware is in upgrade process;
 
-	update_all();		// update variables and rtc in a 1 second period time;
+	msg_json_back_();				// return json msg when request auto refresh mode;
 
-	operation_mode();	// execution process
+	update_all();					// update variables and rtc in a 1 second period time;
+
+	operation_mode();				// execution process
 }
 void Acionna::sys_chip_info(char* buffer_str) {
 	/* Print chip information */
