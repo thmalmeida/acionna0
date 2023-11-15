@@ -150,7 +150,7 @@ private:
 	uint32_t uptime_ = 0;										// uptime in seconds
 	uint32_t time_day_sec_ = 0;									// time of day in seconds
 	uint32_t epoch_time_ = 0;									// epoch system time
-	int pressure_mca = 0;										// pressure variable to bring from pipe to valve
+	int pressure_ = 0;											// pressure variable to bring from pipe to valve
 
 	// Optimized mode
 	struct {

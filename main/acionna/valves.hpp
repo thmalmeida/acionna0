@@ -37,7 +37,7 @@ public:
 
 	// uint16_t* stream_array;
 
-	Valves(I2C_Master* i2c, uint32_t* epoch_time, int* pressure) : load_{i2c}, epoch_time_{epoch_time} {
+	Valves(I2C_Master* i2c, uint32_t* epoch_time, int* pressure) : load_{i2c}, epoch_time_{epoch_time}, pressure_mca_{pressure} {
 		init_valve_parameters();
 	}
 	// Valves() : ac_load_{{VALVE_01},{VALVE_02},{VALVE_03},{VALVE_04},{VALVE_05},{VALVE_06},{VALVE_07},{VALVE_08},{VALVE_09},{VALVE_10},{VALVE_11}} {
@@ -124,6 +124,23 @@ public:
 	// void make_log(void) {
 	// 	log_valves[valve_seq].elapsed_time = valve_seq_elapsed_time;
 	// }
+	int pressure_avg(void) {
+		// find current valve on;
+
+		// 
+		for(int i=(press_vec_n_-2); i>=0; i--) {
+			press_vec_[i+1] = press_vec_[i];
+		}
+
+		press_vec_[0] = *pressure_mca_;
+
+		int p_avg = 0;
+		for(int i=0; i<press_vec_n_; i++) {
+			p_avg += press_vec_[i];
+		}
+
+		return p_avg/press_vec_n_;
+	}
 	void set_valve_time(int valve_id, unsigned int value) {
 		valve_[valve_id-1].time_elapsed_cfg = value*60.0;
 	}
@@ -356,10 +373,14 @@ private:
 		int last_test_irms = 0;								// last current found on test
 	} valve_[number_valves];
 
+	static const int press_vec_n_ = 10;
+	int press_vec_[press_vec_n_];
+
 	uint32_t time_system_on_ = 0;							// current time on [s];
 	uint32_t time_valve_elapsed_ = 0;						// reset time elapsed during on state;
 	uint32_t time_delay_close_ = 0;							// delay time to turn solenoide off after sector change on next() function;
 	uint32_t *epoch_time_;									// epoch time linked with system;
+	int *pressure_mca_;										// pipe pressure from pointer to valves class;
 	states_flag flag_valve_found_ = states_flag::disable;
 	states_flag flag_valve_close_ = states_flag::disable;	// flag to close last current valve;
 

@@ -47,10 +47,12 @@ public:
 	Pipepvc(ADC_driver *adc, int channel, int sensor_pressure_factory) : sensor_pressure_ref(sensor_pressure_factory), adc_(adc),  channel_(channel) {
 		adc_->oneshot_channel_config(channel_, 0, 12);
 	}
-	void update() {
+	void update(void) {
 		update_pressure_();
 	}
-	int pressure_mca()
+	/* Return the last current pipe pressure found
+	*/
+	int pressure_mca(void)
 	{
 		return pressure_mca_;
 	}

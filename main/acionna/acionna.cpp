@@ -17,7 +17,7 @@ volatile uint8_t flag_100ms = 0;
 
 // static pwm_ledc led_wifi_indicator(2, 1, 0, 1);
 
-Acionna::Acionna(ADC_driver* adc) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 180), pump1_{&epoch_time_}, valves1_{&i2c, &epoch_time_, &pressure_mca} {
+Acionna::Acionna(ADC_driver* adc) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 180), pump1_{&epoch_time_}, valves1_{&i2c, &epoch_time_, &pressure_} {
 // Acionna::Acionna(void) : valves1_{&i2c} {
 	// ADC_driver adc0(adc_mode::oneshot);
 	// ADC_driver adc0(adc_mode::oneshot);
@@ -1811,6 +1811,9 @@ void Acionna::operation_pump_valves_irrigation(void) {
 		if(pump1_.state() != states_motor::on_nominal_delta)
 			if(pump1_.state() != states_motor::on_speeding_up)
 				valves1_.stop();
+
+		// This variable makes the interconnection between pipe pressure and valve class to make average sector pressure.
+		pressure_ = pipe1_.pressure_mca();
 	}
 
 }
