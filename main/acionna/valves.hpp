@@ -37,7 +37,7 @@ public:
 
 	// uint16_t* stream_array;
 
-	Valves(I2C_Master* i2c, uint32_t* epoch_time) : load_{i2c}, epoch_time_{epoch_time} {
+	Valves(I2C_Master* i2c, uint32_t* epoch_time, int* pressure) : load_{i2c}, epoch_time_{epoch_time} {
 		init_valve_parameters();
 	}
 	// Valves() : ac_load_{{VALVE_01},{VALVE_02},{VALVE_03},{VALVE_04},{VALVE_05},{VALVE_06},{VALVE_07},{VALVE_08},{VALVE_09},{VALVE_10},{VALVE_11}} {
@@ -192,7 +192,7 @@ public:
 			time_valve_elapsed_ = 0;
 		}
 		valve_current_ = 0;
-		state_valves = states_valves::system_off;		
+		state_valves = states_valves::system_off;	
 	}
 	unsigned int next(void) {
 		states_flag flag_valve_found_ = states_flag::disable;
@@ -265,17 +265,20 @@ public:
 
 	// Test routines
 	unsigned int valves_test_routine() {
-		/*
-		turn all drives off;
-
-		wait a moment;
-
-		turn the first driver ON;
-		wait a momemnt;
-		read adc
-		calculate
 		
-		*/
+		// for(int i=0; i<number_valves; i++) {
+
+		// }
+		// turn all drives off (wait a moment)
+
+		// turn the first driver ON (wait a momemnt)
+
+		// read adc and calculate
+
+		// store on a vector
+		// valves.last_test_irms
+		// valves[]
+
 		return 0;
 	}
 
@@ -345,11 +348,12 @@ private:
 
 	struct {
 		int pressure = 0;									// pressão nominal daquele setor [m.c.a.];
-		int pressure_avg = 0;									// average pressure while on state;
+		int pressure_avg = 0;								// average pressure while on state;
 		// states_switch state = states_switch::off;		// estado da válvula;
 		states_flag programmed = states_flag::enable;		// enable or disable to schedule list;
 		unsigned int time_elapsed_cfg = 0;					// tempo que o setor ficará ligado [s];
 		unsigned int time_on_last = 0;						// tempo ligado ou último tempo ligado [s];
+		int last_test_irms = 0;								// last current found on test
 	} valve_[number_valves];
 
 	uint32_t time_system_on_ = 0;							// current time on [s];

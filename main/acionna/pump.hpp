@@ -203,6 +203,11 @@ public:
 					ESP_LOGI(TAG_PUMP, "from Y to delta fail on K3 change");
 					return 1;
 				}
+
+				if(flag_start_y_delta_ == states_flag::enable) {
+					return 0;	// ok!
+				}
+
 				break;
 			}
 			case start_types::to_y: {
@@ -262,17 +267,16 @@ public:
 			case start_types::y_delta_req: {
 				flag_start_y_delta_ = states_flag::enable;
 				start_y_delta_state_ = start_types::to_y;
+				return 0;	// ok!
 				break;
 			}
 			default:
 				break;
 		}
 
-		if(flag_start_y_delta_ == states_flag::disable) {
-			time_on_ = 0;									// clear timer on to start count
-			time_to_shutdown = time_to_shutdown_config;		// set timer
-			make_log(_mode, *epoch_time_);					// and make some log
-		}
+		time_on_ = 0;									// clear timer on to start count
+		time_to_shutdown = time_to_shutdown_config;		// set timer
+		make_log(_mode, *epoch_time_);					// and make some log
 
 		return 0;	// ok!
 	}

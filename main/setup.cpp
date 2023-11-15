@@ -284,6 +284,11 @@ void machine_run(void *pvParameter) {
 			acionna0.run_every_second();
 			vTaskDelay(1);
 		}
+		
+		// if(flag_100ms) {
+			// flag_100ms = 0;
+			// acionna0.run_every_100ms();
+		// }
 		// vTaskDelay(1 / portTICK_PERIOD_MS);
 	}
 }

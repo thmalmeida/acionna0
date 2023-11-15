@@ -139,6 +139,7 @@ private:
 	uint8_t command_str_[20];
 	// uint8_t command_str_len_ = 0;
 
+	// time match struct array
 	uint8_t time_match_n = 1;									// turn times range 1-9
 	struct {
 		uint32_t time_match;									// time clock list [s] should convert to hours and minutes
@@ -146,9 +147,10 @@ private:
 		start_types auto_start_mode; 							// auto turn start type select
 	}time_match_list[9]={};
 
-	uint32_t uptime_ = 0;												// uptime in seconds
-	uint32_t time_day_sec_ = 0;
-	uint32_t epoch_time_ = 0;
+	uint32_t uptime_ = 0;										// uptime in seconds
+	uint32_t time_day_sec_ = 0;									// time of day in seconds
+	uint32_t epoch_time_ = 0;									// epoch system time
+	int pressure_mca = 0;										// pressure variable to bring from pipe to valve
 
 	// Optimized mode
 	struct {
