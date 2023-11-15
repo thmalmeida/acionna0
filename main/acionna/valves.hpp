@@ -82,6 +82,7 @@ public:
 	// This functions should be called every 1 second interval
 	void update() {
 		if(state_valves == states_valves::automatic_switch) {
+
 			if(!time_valve_remain) {					// next() function find new programmed valve_current_ and it's elapsed time (time_valve_ramain).
 				set_valve_state(valve_current_, 0);		// Turn off the current valve sector to find another programmed;
 				make_log_update();						// refresh the elapsed time valve on log vector
@@ -110,6 +111,9 @@ public:
 			log_valves[i].started_time = log_valves[i-1].started_time;
 	
 			log_valves[i].elapsed_time = log_valves[i-1].elapsed_time;
+			log_valves[i].pressure_avg = log_valves[i-1].pressure_avg;
+			log_valves[i].pressure_min = log_valves[i-1].pressure_min;
+			log_valves[i].pressure_min = log_valves[i-1].pressure_max;
 		}
 
 		// fill new element on the beginner of structure array.
@@ -117,9 +121,25 @@ public:
 		log_valves[0].started_time = *epoch_time_;
 
 		log_valves[0].elapsed_time = 0;
+
+		// maybe this starting values suppose to take after some seconds of valves on state.
+		log_valves[0].pressure_avg = pressure_avg();
+		log_valves[0].pressure_min = pressure_avg();
+		log_valves[0].pressure_max = pressure_avg();
 	}
 	void make_log_update(void) {
 		log_valves[0].elapsed_time = time_valve_elapsed_;
+
+		log_valves[0].pressure_avg = pressure_avg();
+
+
+		if(*pressure_mca_ < log_valves[0].pressure_min) {
+			log_valves[0].pressure_min = *pressure_mca_;
+		}
+
+		if(*pressure_mca_ > log_valves[0].pressure_max) {
+			log_valves[0].pressure_max = *pressure_mca_;
+		}
 	}
 	// void make_log(void) {
 	// 	log_valves[valve_seq].elapsed_time = valve_seq_elapsed_time;
@@ -148,10 +168,10 @@ public:
 		return valve_[valve_id-1].time_elapsed_cfg/60.0;
 	}
 	void set_valve_pressure(int valve_id, unsigned int value) {
-		valve_[valve_id-1].pressure = value;
+		valve_[valve_id-1].pressure_exp = value;
 	}
 	int get_valve_pressure(int valve_id) {
-		return valve_[valve_id-1].pressure;
+		return valve_[valve_id-1].pressure_exp;
 	}
 	unsigned int get_total_time_programmed() {
 		unsigned int _total_time = 0;
@@ -348,9 +368,9 @@ public:
 		uint8_t valve_id;									// valve id
 		uint32_t started_time;								// start time since epoch [s]
 		uint16_t elapsed_time;								// total time it was on [s]
-		int max_pressure;
-		int min_pressure;
-		int avg_pressure;
+		int pressure_max;
+		int pressure_min;
+		int pressure_avg;									// average pressure while on state;
 	}log_valves[log_n] = {};
 
 	uint8_t valve_current_ = 0;								// current working valve;
@@ -364,8 +384,7 @@ private:
 	// const std::size_t ac_load_count_ = sizeof(ac_load_) / sizeof(ac_load_[0]);
 
 	struct {
-		int pressure = 0;									// pressão nominal daquele setor [m.c.a.];
-		int pressure_avg = 0;								// average pressure while on state;
+		int pressure_exp = 0;								// pressão nominal esperada daquele setor [m.c.a.];
 		// states_switch state = states_switch::off;		// estado da válvula;
 		states_flag programmed = states_flag::enable;		// enable or disable to schedule list;
 		unsigned int time_elapsed_cfg = 0;					// tempo que o setor ficará ligado [s];

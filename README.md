@@ -6,7 +6,11 @@ Acionna is a firmware implementation to control and control and monitoring loads
 
 
 # Features
+## Pump
 	- intake air detect;
+
+##Valves
+    - valves class can make last pressure avg of each sector;
 
 # TODO list:
 - FSM valves needs works jointly with FSM machine control;

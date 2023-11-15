@@ -50,13 +50,13 @@ public:
 	states_mode state_mode = states_mode::system_ready;
 
 	// group of variables to setup turn on starts
-	// uint8_t time_match_n = 1;									// turn times range 1-9
-	// uint32_t time_match[9] = {3600, 0, 0, 0, 0, 0, 0, 0, 0};	// time clock list [s] should convert to hours and minutes
-	// uint32_t time_to_shutdown[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};	// time value to shutdown list [s]
-	// start_types auto_start_mode[9]; 							// auto turn start type select
+	// uint8_t time_match_n = 1;										// turn times range 1-9
+	// uint32_t time_match[9] = {3600, 0, 0, 0, 0, 0, 0, 0, 0};			// time clock list [s] should convert to hours and minutes
+	// uint32_t time_to_shutdown[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};		// time value to shutdown list [s]
+	// start_types auto_start_mode[9]; 									// auto turn start type select
 
 	// For make log history operation - Can be ported to inside the pump class?
-	// static const int log_n_ = 9;									// history log size
+	// static const int log_n_ = 9;										// history log size
 	// uint32_t time_started_lasts[log_n_] = {0};
 	// start_types start_mode_lasts[log_n_];
 	
@@ -140,27 +140,27 @@ private:
 	// uint8_t command_str_len_ = 0;
 
 	// time match struct array
-	uint8_t time_match_n = 1;									// turn times range 1-9
+	uint8_t time_match_n = 1;											// turn times range 1 to 9
 	struct {
-		uint32_t time_match;									// time clock list [s] should convert to hours and minutes
-		uint32_t time_to_shutdown;								// time value to shutdown list [s]
-		start_types auto_start_mode; 							// auto turn start type select
+		uint32_t time_match;											// time clock list [s] should convert to hours and minutes
+		uint32_t time_to_shutdown;										// time value to shutdown list [s]
+		start_types auto_start_mode; 									// auto turn start type select
 	}time_match_list[9]={};
 
-	uint32_t uptime_ = 0;										// uptime in seconds
-	uint32_t time_day_sec_ = 0;									// time of day in seconds
-	uint32_t epoch_time_ = 0;									// epoch system time
-	int pressure_ = 0;											// pressure variable to bring from pipe to valve
+	uint32_t uptime_ = 0;												// uptime in seconds
+	uint32_t time_day_sec_ = 0;											// time of day in seconds
+	uint32_t epoch_time_ = 0;											// epoch system time
+	int pressure_ = 0;													// pressure variable from pipe to valve through pointer
 
 	// Optimized mode
 	struct {
-		uint32_t time_match_start = 0;	// first start time epoch [s]
-		uint32_t time_match_next = 0;	// next time programmed epoch [s];
-		uint32_t time_stop;				// time stopped epoch [s]
-		uint32_t time_delay = 5*60;		// delay time after low pressure dectect before turn on again;
-		uint32_t time_red = 6*3600;		// day time to stop system;
+		uint32_t time_match_start = 0;									// first start time epoch [s]
+		uint32_t time_match_next = 0;									// next time programmed epoch [s];
+		uint32_t time_stop = 0;											// time stopped epoch [s]
+		uint32_t time_delay = 5*60;										// delay time after low pressure dectect before turn on again;
+		uint32_t time_red = 6*3600;										// day time to stop system;
 		states_flag started = states_flag::disable;
-		states_flag flag_time_next_config = states_flag::disable;	// will enable when motor start into optimized cycle to enable next time setup when it turn off
+		states_flag flag_time_next_config = states_flag::disable;		// will enable when motor start into optimized cycle to enable next time setup when it turn off
 		start_types start_mode = start_types::direct_k2;
 		uint32_t time_to_shutdown = 0;
 	}optimized;

@@ -114,6 +114,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$51:e:0600;			- red time beginner;
 		$51:t;				- time delay before next start;
 		$51:t:05;			- time delay in minutes;
+		$51:1:m3:2:120;		- Cycle 1 can turn m3 mode on for 2 trys for the maximum of 120 minuntes each one (not implemented yet);
 
 	$6X;					- Modos de funcionamento;
 		$60; 				- Sistema Desligado não permite ligar;
@@ -150,7 +151,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$80;				- show info
 			$80:s:[0|1];	- start/stop valves sequence;
 			$80:d:[0|1];	- 0 sentido direto; 1 - sentido inverso na troca dos setores;
-			$80:h;			- show valves history log;
+			$80:h;			- show valves history log. Time on, elapsed time, avg pressure;
 			$80:n;			- next valve forcing time valve to zero;
 			$80:v:01;		- mostra condições de configuração da válvula 01;
 			$80:v:01:[0|1];	- desaciona|aciona válvula 01;
@@ -249,7 +250,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					} // $00:[0|1]; 
 					break;
 				}
-				case 1: {
+				case 1: { // $01
 					if(command_str[3] == ';') {
 						// $01; lasts time on values and reasons to shutdown
 						memset(buffer, 0, sizeof(buffer));
@@ -494,9 +495,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					}
 					break;
 				}
-				default:
+				default:{
 					sprintf(buffer, "command not implemented\n");
 					break;
+				}
 			}
 			break;
 		}
@@ -1121,13 +1123,16 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 						for(auto i=0; i<valves1_.log_n; i++) {
 							dt0.setUnixTime(valves1_.log_valves[i].started_time);
-							sprintf(buffer_temp, "s%d- v:%d %.2d/%.2d %.2d:%.2d t:%d\n", i,
+							sprintf(buffer_temp, "s%d- v:%d %.2d/%.2d %.2d:%.2d t:%d p:%d [%d-%d]\n", i,
 																						valves1_.log_valves[i].valve_id,
 																						dt0.getDay(),
 																						dt0.getMonth(),
 																						dt0.getHour(),
 																						dt0.getMinute(),
-																						static_cast<int>(valves1_.log_valves[i].elapsed_time/60.0));
+																						static_cast<int>(valves1_.log_valves[i].elapsed_time/60.0),
+																						valves1_.log_valves[i].pressure_avg,
+																						valves1_.log_valves[i].pressure_min,
+																						valves1_.log_valves[i].pressure_max);
 							strcat(buffer, buffer_temp);
 						}
 						strcat(buffer, "\n");
