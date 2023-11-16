@@ -1117,13 +1117,13 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					} else if ((command_str[3] == ':') && (command_str[4] == 'h') && (command_str[5] == ';')) {
 					// $80:h;	// show valves sequence history
 
-						char buffer_temp[42] = {};
+						char buffer_temp[85] = {};
 						sprintf(buffer, "Valves history: \n");
 						DateTime dt0;
 
 						for(auto i=0; i<valves1_.log_n; i++) {
 							dt0.setUnixTime(valves1_.log_valves[i].started_time);
-							sprintf(buffer_temp, "s%d- v:%d %.2d/%.2d %.2d:%.2d t:%d p:%d [%d-%d]\n", i,
+							sprintf(buffer_temp, "s%d- v:%d %.2d/%.2d %.2d:%.2d t:%d pa:%d [%d:%d]\n", i,
 																						valves1_.log_valves[i].valve_id,
 																						dt0.getDay(),
 																						dt0.getMonth(),

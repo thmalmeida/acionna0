@@ -83,23 +83,25 @@ public:
 	void update() {
 		if(state_valves == states_valves::automatic_switch) {
 
-			if(!time_valve_remain) {					// next() function find new programmed valve_current_ and it's elapsed time (time_valve_ramain).
-				set_valve_state(valve_current_, 0);		// Turn off the current valve sector to find another programmed;
-				make_log_update();						// refresh the elapsed time valve on log vector
+			if(!time_valve_remain) {				// next() function find new programmed valve_current_ and it's elapsed time (time_valve_ramain).
+				set_valve_state(valve_current_, 0);	// Turn off the current valve sector to find another programmed;
+				
 				if(time_valve_elapsed_) {
-						time_valve_elapsed_ = 0;		// Clear valve elapsed time [s].
+						time_valve_elapsed_ = 0;	// Clear valve elapsed time [s].
 				}
 
 				// Algorithm to find next programmed valve sector:
 				// 	This function turn on the next programmed valve found and refresh the time_valve_elapsed.
-				if(next()) {		// Ruturn true if some next programmed sector was found. Else return 0 if none is found meaning finish working cycle.
-					make_log();		// Found programmed valve sector. Make some log.
+				if(next()) {						// Ruturn true if some next programmed sector was found. Else return 0 if none is found meaning finish working cycle.
+					make_log();						// Found programmed valve sector. Make some log.
 				} else {
-					stop();			// Couldn't find new programmed valve sector or achieve end cycle. Stop valve switch process.
+					stop();							// Couldn't find new programmed valve sector or achieve end cycle. Stop valve switch process.
 				}
-			} else
+			} else {
 				time_valve_remain--;
+			}
 
+			make_log_update();						// refresh the elapsed time valve on log vector
 			time_valve_elapsed_++;
 			time_system_on_++;
 		}
@@ -393,7 +395,7 @@ private:
 	} valve_[number_valves];
 
 	static const int press_vec_n_ = 10;
-	int press_vec_[press_vec_n_];
+	int press_vec_[press_vec_n_] = {0};
 
 	uint32_t time_system_on_ = 0;							// current time on [s];
 	uint32_t time_valve_elapsed_ = 0;						// reset time elapsed during on state;
