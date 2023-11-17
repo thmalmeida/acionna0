@@ -51,6 +51,8 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			$03:m;			- Just show the speeding up time;
 			$03:t:400;		- Set 400 milliseconds to wait K3 go off before start K2;
 			$03:t;			- Just show the time switch;
+			$03:u;			- show k time logs;
+
 		$04;				- Verifica detalhes do nível de água no poço e referência 10 bits;
 			$04:0;			- Interrompe o envio continuo das variáveis de pressão e nível;
 			$04:1;			- Envia continuamente valores de pressão e nível;
@@ -406,7 +408,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						pump1_.time_switch_k_change = atoi(_aux2);
 
 						sprintf(buffer, "set time_switch: %d\n", pump1_.time_switch_k_change);
-					} // $03:t:900;	- Set 500 milliseconds to wait K3 go off before start K2;
+					} // $03:t:900;	- Set 900 milliseconds to wait K3 go off before start K2;
 					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ';')) {
 						sprintf(buffer, "time_switch: %d\n", pump1_.time_switch_k_change);
 					} // $03:t; - show time K3 wait to turn on;
@@ -441,6 +443,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					else if((command_str[3] == ':') && (command_str[4] == 'b') && (command_str[5] == '2') && (command_str[6] == ';')) {
 						sprintf(buffer, "State:%d, count:%lu \n", pipe2_.air_intake_detect_state(), pipe2_.air_detect_count_increase);
 					} //	$03:b; - show intake air variables;
+					else if((command_str[3] == ':') && (command_str[4] == 'u') && (command_str[5] == ';')) {	
+						sprintf(buffer, "k1_on:%d, k1_off:%d\nk2_on:%d, k2_off:%d\nk3_on:%d, k3_off:%d\n", pump1_.time_k1_on_, pump1_.time_k1_off_, pump1_.time_k2_on_, pump1_.time_k2_off_, pump1_.time_k3_on_, pump1_.time_k3_off_);
+					} // $03:u; show k time switches;
 					break;
 				// 	$03:v:32;	- Set pressure for valve load turn on and fill reservoir;
 				// 	$03:p:150;	- Set sensor max pressure ref to change the scale [psi];

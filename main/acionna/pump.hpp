@@ -42,6 +42,15 @@ public:
 	unsigned int time_delta_to_y_switch_ = 0;		// speeding up time from delta to Y start [s]
 	unsigned int time_delta_to_y_switch_config = 7;	// speeding up time from delta to Y start [s]
 
+	// Technical parameters for debug purpose
+	int time_k1_on_ = 0;							// time take to k1 switch from off to on
+	int time_k2_on_ = 0;
+	int time_k3_on_ = 0;
+	int time_k1_off_ = 0;							// time take to k1 switch from on to off
+	int time_k2_off_ = 0;
+	int time_k3_off_ = 0;
+
+
 //	Pump() : drive_k1_{AC_LOAD1}, drive_k2_{AC_LOAD2}, drive_k3_{AC_LOAD3}{}
 	Pump(uint32_t* epoch_time) :
 								ac_load_{{AC_LOAD1},{AC_LOAD2},{AC_LOAD3}},
@@ -119,6 +128,7 @@ public:
 						return 1;
 					}
 				}
+				time_k1_on_ = i;
 				ESP_LOGI(TAG_PUMP, "k1 on");
 				break;
 			}
@@ -140,6 +150,7 @@ public:
 						return 1;
 					}
 				}
+				time_k2_on_ = i;
 				ESP_LOGI(TAG_PUMP, "k2 on");
 				break;
 			}
@@ -161,6 +172,7 @@ public:
 						return 1;
 					}
 				}
+				time_k3_on_ = i;
 				ESP_LOGI(TAG_PUMP, "k3 on");
 				break;
 			}
@@ -288,9 +300,30 @@ public:
 		// }
 
 		// ESP_LOGI(TAG_PUMP, "stop motor called with _reason: %u", static_cast<uint8_t>(_reason));
+
+		int k = 0, k1 = 0, k2 = 0, k3 = 0;
+
 		drive_k_(1, 0);
 		drive_k_(2, 0);
 		drive_k_(3, 0);
+
+		while((state_k1() == states_switch::on) || (state_k2() == states_switch::on) || (state_k3() == states_switch::on)) {
+			if(state_k1() != states_switch::off) {
+				k1++;
+			}
+
+			if(state_k2() != states_switch::off) {
+				k2++;
+			}
+
+			if(state_k3() != states_switch::off) {
+				k3++;
+			}
+
+			k++;
+			update_switches_();
+			delay_us(1);
+		}
 
 		// state_stop_reason = _reason;
 		time_wait_power_on = time_wait_power_on_config;
@@ -365,6 +398,8 @@ private:
 	states_switch state_k2_dev_ = states_switch::off;
 	states_switch state_k3_dev_ = states_switch::off;
 	states_switch state_Rth_ = states_switch::off;		// thermal relay output
+
+
 
 	// motor start variables used on y-delta start process
 	start_types start_y_delta_state_ = start_types::y_delta_req;
