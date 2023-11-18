@@ -320,9 +320,13 @@ public:
 				k3++;
 			}
 
-			k++;
 			update_switches_();
 			delay_us(1);
+			k++;
+			
+			if(k > 800*1000) {
+				break;
+			}
 		}
 
 		// state_stop_reason = _reason;
