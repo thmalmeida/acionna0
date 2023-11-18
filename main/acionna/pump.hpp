@@ -323,11 +323,15 @@ public:
 			update_switches_();
 			delay_us(1);
 			k++;
-			
+
 			if(k > 800*1000) {
 				break;
 			}
 		}
+
+		time_k1_off_ = k1;
+		time_k2_off_ = k2;
+		time_k3_off_ = k3;
 
 		// state_stop_reason = _reason;
 		time_wait_power_on = time_wait_power_on_config;
