@@ -1128,7 +1128,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 						for(auto i=0; i<valves1_.log_n; i++) {
 							dt0.setUnixTime(valves1_.log_valves[i].started_time);
-							sprintf(buffer_temp, "s%d- v:%d %.2d/%.2d %.2d:%.2d t:%d pa:%d [%d:%d]\n", i,
+							sprintf(buffer_temp, "%d- v%d %.2d/%.2d %.2d:%.2d t:%d p:%d [%d:%d]\n", i,
 																						valves1_.log_valves[i].valve_id,
 																						dt0.getDay(),
 																						dt0.getMonth(),
