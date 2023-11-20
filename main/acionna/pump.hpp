@@ -301,8 +301,20 @@ public:
 
 		// ESP_LOGI(TAG_PUMP, "stop motor called with _reason: %u", static_cast<uint8_t>(_reason));
 
+		// prepare for debug purposes
 		int k = 0, k1 = 0, k2 = 0, k3 = 0;
+		int k1_en = 0, k2_en = 0, k3_en = 0;
+		if(state_k1() == states_switch::on) {
+			k1_en = 1;
+		}
+		if(state_k2() == states_switch::on) {
+			k2_en = 1;
+		}
+		if(state_k3() == states_switch::on) {
+			k3_en = 1;
+		}
 
+		// Turn off all switches;
 		drive_k_(1, 0);
 		drive_k_(2, 0);
 		drive_k_(3, 0);
@@ -329,10 +341,18 @@ public:
 			}
 		}
 
-		time_k1_off_ = k1;
-		time_k2_off_ = k2;
-		time_k3_off_ = k3;
+		// refresh times release to switch off
+		if(k1_en) {
+			time_k1_off_ = k1;
+		}
+		if(k2_en) {
+			time_k2_off_ = k2;
+		}
+		if(k3_en) {
+			time_k3_off_ = k3;
+		}
 
+		// reset some variables and timers
 		// state_stop_reason = _reason;
 		time_wait_power_on = time_wait_power_on_config;
 		flag_check_wait_power_on = states_flag::enable;
