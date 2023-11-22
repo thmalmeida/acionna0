@@ -1667,40 +1667,35 @@ void Acionna::operation_mode(void) {
 	switch (state_mode)
 	{
 		case states_mode::system_off:				// $60;
-			operation_system_off();
+			operation_lock_down();
+			operation_pump_check_stop();
 			break;
 
 		case states_mode::system_ready:				// $61;
-			operation_pump_control();
+			operation_pump_start_match();
+			operation_pump_check_stop();
 			break;
 
 		case states_mode::irrigation_pump_valves:	// $62;
-			operation_pump_control();
-			operation_pump_valves_irrigation();
+			operation_pump_start_match();
+			operation_pump_check_stop();
+
+			operation_pump_valves();
 			break;
 
 		case states_mode::water_pump_control_night:	// $63;
-			operation_pump_control();
-			operation_pump_water_optimized();
+			operation_pump_check_start_opt();
+			operation_pump_check_stop();
+
+			operation_pump_optimized();
 			break;
 
 		default:
+			operation_lock_down();
 			break;
 	}
 }
-void Acionna::operation_pump_control(void) {
-	/*
-	 * Reasons to halt the motor.
-	 * 0x00 - command line request
-	 * 0x01 - time out
-	 * 0x02 - high pressure
-	 * 0x03 - low pressure(broken pipe?)
-	 * 0x04 - thermal relay occurs;
-	 * 0x05 - contactor not on
-	 * 0x06 - low level
-	 * 0x07 - red time
-	 * 0x08 - system lock??
-	 * */
+void Acionna::operation_pump_check_start_match(void) {
 
 	// time matches occurred into check_time_match(), start motor
 	if(flag_check_time_match_ == states_flag::enable) {
@@ -1733,6 +1728,21 @@ void Acionna::operation_pump_control(void) {
 			}
 		}
 	}
+
+}
+void Acionna::operation_pump_check_stop(void) {
+	/*
+	 * Reasons to halt the motor.
+	 * 0x00 - command line request
+	 * 0x01 - time out
+	 * 0x02 - high pressure
+	 * 0x03 - low pressure(broken pipe?)
+	 * 0x04 - thermal relay occurs;
+	 * 0x05 - contactor not on
+	 * 0x06 - low level
+	 * 0x07 - red time
+	 * 0x08 - system lock??
+	 * */
 
 	// check time to shutdown
 	if(flag_check_timer_ == states_flag::enable) {
@@ -1795,43 +1805,16 @@ void Acionna::operation_pump_control(void) {
 	}
 	#endif
 }
-void Acionna::operation_pump_valves_irrigation(void) {
-	// If PCY8575 module resets, all ports go down and valve stop. To prevent it, keep setting on the current valve every second.
-	// P.S.: the module has implemented backup registers to keep output buffer even if PCY8575 reset occurs.
-	/*
-		A better function suppose to be implemented checking the current [mA] and valve current state asking PCY8575 module;
-	*/
-	if(flag_check_valves_ == states_flag::enable) {
-		if((pump1_.state() == states_motor::on_nominal_delta) && (valves1_.state_valves == states_valves::automatic_switch)) {
-			valves1_.set_valve_state(valves1_.valve_current(), 1);
-		}
+void Acionna::operation_pump_lock_down(void) {
+	if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
+		pump1_.stop(stop_types::system_lock);
 	}
-
-	// If valves still not working but motor is turned on, start valves working cycle.
-	if(valves1_.state_valves == states_valves::system_off) {
-		if((pump1_.state() == states_motor::on_nominal_delta) || pump1_.state() == states_motor::on_speeding_up) {
-			valves1_.start();
-			pump1_.time_to_shutdown = valves1_.get_total_time_programmed()-2;	// to last valve keep on a little time to aliviate the pipe line pressure;
-			pump1_.time_to_shutdown_config = valves1_.get_total_time_programmed();
-		}
-	}
-
-	// If valves cycle are working but motor is turned off, stop valves working cycle.
-	if(valves1_.state_valves == states_valves::automatic_switch) {
-		if(pump1_.state() != states_motor::on_nominal_delta)
-			if(pump1_.state() != states_motor::on_speeding_up)
-				valves1_.stop();
-
-		// This variable makes the interconnection between pipe pressure and valve class to make average sector pressure.
-		pressure_ = pipe1_.pressure_mca();
-	}
-
 }
-void Acionna::operation_pump_water_optimized(void) {
+void Acionna::operation_pump_optimized(void) {
 	// if time match optimized enable, working on it for pump the water to reservoir
 	if(flag_check_time_match_optimized_ == states_flag::enable) {
 
-		// if time match with start or next after turn off delay, enable start motor now!
+		// if time match start or next start after turn off delay, enable start motor now!
 		if((optimized.time_match_start == time_day_sec_) || (optimized.time_match_next == time_day_sec_)) {
 			flag_time_match_optimized_ = states_flag::enable;
 		}
@@ -1883,10 +1866,37 @@ void Acionna::operation_pump_water_optimized(void) {
 		}
 	}
 }
-void Acionna::operation_system_off() {
-	if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
-		pump1_.stop(stop_types::system_lock);
+void Acionna::operation_pump_valves(void) {
+	// If PCY8575 module resets, all ports go down and valve stop. To prevent it, keep setting on the current valve every second.
+	// P.S.: the module has implemented backup registers to keep output buffer even if PCY8575 reset occurs.
+	/*
+		A better function suppose to be implemented checking the current [mA] and valve current state asking PCY8575 module;
+	*/
+	if(flag_check_valves_ == states_flag::enable) {
+		if((pump1_.state() == states_motor::on_nominal_delta) && (valves1_.state_valves == states_valves::automatic_switch)) {
+			valves1_.set_valve_state(valves1_.valve_current(), 1);
+		}
 	}
+
+	// If valves still not working but motor is turned on, start valves working cycle.
+	if(valves1_.state_valves == states_valves::system_off) {
+		if((pump1_.state() == states_motor::on_nominal_delta) || pump1_.state() == states_motor::on_speeding_up) {
+			valves1_.start();
+			pump1_.time_to_shutdown = valves1_.get_total_time_programmed()-2;	// to last valve keep on a little time to aliviate the pipe line pressure;
+			pump1_.time_to_shutdown_config = valves1_.get_total_time_programmed();
+		}
+	}
+
+	// If valves cycle are working but motor is turned off, stop valves working cycle.
+	if(valves1_.state_valves == states_valves::automatic_switch) {
+		if(pump1_.state() != states_motor::on_nominal_delta)
+			if(pump1_.state() != states_motor::on_speeding_up)
+				valves1_.stop();
+
+		// This variable makes the interconnection between pipe pressure and valve class to make average sector pressure.
+		pressure_ = pipe1_.pressure_mca();
+	}
+
 }
 void Acionna::parser_(uint8_t* payload_str, int payload_str_len, uint8_t *command_str, int& command_str_len)
 {
