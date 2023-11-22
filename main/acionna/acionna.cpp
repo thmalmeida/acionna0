@@ -1828,10 +1828,10 @@ void Acionna::operation_pump_valves_irrigation(void) {
 
 }
 void Acionna::operation_pump_water_optimized(void) {
-	// if time match optimized enableb, working on it for water pump to reservoir
+	// if time match optimized enable, working on it for pump the water to reservoir
 	if(flag_check_time_match_optimized_ == states_flag::enable) {
 
-		// if time match with start or next after turn off delay, start it again;
+		// if time match with start or next after turn off delay, enable start motor now!
 		if((optimized.time_match_start == time_day_sec_) || (optimized.time_match_next == time_day_sec_)) {
 			flag_time_match_optimized_ = states_flag::enable;
 		}
@@ -1840,9 +1840,19 @@ void Acionna::operation_pump_water_optimized(void) {
 		if(flag_time_match_optimized_ == states_flag::enable) {
 			flag_time_match_optimized_ = states_flag::disable;
 
-			// If time match occurs and motor state is idle, turn it on! And make some log;
+			// If a new time match occurs and motor state is idle, turn it on! And make some log;
 			if(pump1_.state() == states_motor::off_idle) {
-				pump1_.start(optimized.start_mode);
+
+				// find an event programmed with it's cycle moment
+				do {
+					if(optimized.event0[optimized.event0_n].cycle_n < optimized.event0[optimized.event0_n].cycle_n_max) {
+						pump1_.start(optimized.event0[optmized.event0_n].start_mode);
+						optimized.event0[optimized.event0_n].cycles_n++;
+					} else {
+						optimized.event0_n++;
+					}
+				} while((optimized.event0_n < optimized.event0_n_max) || );
+
 
 				// this is for algorithm to calculate the next turn on after turn off;
 				optimized.flag_time_next_config = states_flag::enable;
