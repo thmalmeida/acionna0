@@ -112,17 +112,19 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 	$51;					- optimized mode;
 		$51;				- show optimized configuration
 		$51:[0|1];			- disable/enable process;
-		$51:h:2300;			- start cycle;
-		$51:e:0600;			- red time beginner;
+		$51:h;				- first time start show
+		$51:h:2300;			- time to the first start cycle;
+		$51:e;				- red time show
+		$51:e:0600;			- red time beginner (time to stop all process);
 		$51:t;				- time delay before next start;
-		$51:t:05;			- time delay in minutes;
-		$51:1:m3:2:120;		- Cycle 1 can turn m3 mode on for 2 trys for the maximum of 120 minuntes each one (not implemented yet);
+		$51:t:05;			- time delay in minutes between stop and the new start;
+		$51:1:m3:2:120;		- Event [1] can turn motor into [m3] mode for the maximum of [2] cycles for 120 minuntes each one (not implemented yet);
 
 	$6X;					- Modos de funcionamento;
 		$60; 				- Sistema Desligado não permite ligar;
 		$61;				- Sistema ocioso esperando um time match automático ou acionamento manual por linha de comando.
 		$62;				- Modo irrigação com controle das válvulas em modo de acionamento automático.
-		$63;				- Pumping all night long mode;
+		$63;				- Pumping all night long mode (optimized mode);
 
 	$7X						- Funções que habilitam ou desabilitam verificações de:
 		$70;				- not implemented
@@ -1684,7 +1686,7 @@ void Acionna::operation_mode(void) {
 			break;
 
 		case states_mode::water_pump_control_night:	// $63;
-			operation_pump_check_start_opt();
+			operation_pump_check_start_match_optimized();
 			operation_pump_check_stop();
 
 			operation_pump_optimized();
@@ -1728,6 +1730,9 @@ void Acionna::operation_pump_check_start_match(void) {
 			}
 		}
 	}
+
+}
+void Acionna::operation_pump_check_start_match_optimized(void) {
 
 }
 void Acionna::operation_pump_check_stop(void) {
