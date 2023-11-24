@@ -69,10 +69,14 @@ public:
 	void init(void);
 
 	// run every second;
-	void operation_system_off(void);
-	void operation_pump_control(void);
-	void operation_pump_valves_irrigation(void);
-	void operation_pump_water_optimized(void);
+	// void operation_pump_control(void);
+	void operation_pump_start_match(void);
+	void operation_pump_start_match_optimized(void);
+	void operation_pump_stop_check(void);
+	void operation_pump_lock_down(void);
+	void operation_pump_optimized(void);
+	void operation_pump_valves(void);
+	
 
 	uint32_t get_uptime();
 
@@ -115,12 +119,9 @@ private:
 	states_flag flag_check_pressure_low_ = states_flag::disable;
 	states_flag flag_check_pressure_high_ = states_flag::enable;		// enable by default to make system more safe;
 	states_flag flag_check_pressure_valve_ = states_flag::disable;
-	states_flag flag_check_thermal_relay_ = states_flag::disable;
-	states_flag flag_start_request_ = states_flag::disable;				// flag request to start motor;
 	states_flag flag_check_time_match_ = states_flag::disable;
-	states_flag flag_time_match_ = states_flag::disable;				// flag when turn on time occurs;
+	states_flag flag_check_thermal_relay_ = states_flag::disable;
 	states_flag flag_check_timer_ = states_flag::enable;
-	states_flag flag_json_data_back_ = states_flag::disable;			// Continuously send data back. ws server mode.
 	states_flag flag_check_valves_ = states_flag::disable;				// continuously check valves through PCY8575 module
 	states_flag flag_check_valves_time_match_ = states_flag::disable;
 	states_flag flag_check_low_pressure_ = states_flag::enable;			// global flag
@@ -128,7 +129,12 @@ private:
 	states_flag flag_check_low_pressure_k2_ = states_flag::enable;
 	states_flag flag_check_low_pressure_delta_ = states_flag::enable;
 	states_flag flag_check_time_match_optimized_ = states_flag::enable;
+
 	states_flag flag_time_match_optimized_ = states_flag::enable;
+	states_flag flag_start_request_ = states_flag::disable;				// flag request to start motor;
+	states_flag flag_time_match_ = states_flag::disable;				// flag when turn on time occurs;
+	states_flag flag_json_data_back_ = states_flag::disable;			// Continuously send data back. ws server mode.
+
 	// states_flag flag_enable_decode_ = states_flag::disable;
 
 	// Flags for communication purpose

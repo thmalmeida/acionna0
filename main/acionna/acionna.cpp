@@ -98,7 +98,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$4:f:64:03;			- fill page 64 with 3 value;
 		$4:e:64;			- erase page 64;
 
-	$50:n:X; ou $50:hX:HHMM;
+	$50:n:X; $50:hX:HHMM;	- Time match cycles and array for auto start mode
 		$50;				- show all timers to turn on and info;
 		$50:[0|1];			- desabilita|habilita auto turn (habilita time match flag);
 		$50:m:[1|3]			- tipo de partida automática: 1- k1; 3- y-Delta;
@@ -112,13 +112,13 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 	$51;					- optimized mode;
 		$51;				- show optimized configuration
 		$51:[0|1];			- disable/enable process;
+		$51:d;				- time delay before next start;
+		$51:d:05;			- time delay in minutes between stop and the new start;
 		$51:h;				- first time start show
 		$51:h:2300;			- time to the first start cycle;
-		$51:e;				- red time show
-		$51:e:0600;			- red time beginner (time to stop all process);
-		$51:t;				- time delay before next start;
-		$51:t:05;			- time delay in minutes between stop and the new start;
-		$51:1:m3:2:120;		- Event [1] can turn motor into [m3] mode for the maximum of [2] cycles for 120 minuntes each one (not implemented yet);
+		$51:r;				- red time show
+		$51:r:0600;			- red time beginner (time to stop all process);
+		$51:e1:m3:2:120;	- Event [1] can turn motor into [m3] mode for the maximum of [2] cycles for 120 minuntes each one (not implemented yet);
 
 	$6X;					- Modos de funcionamento;
 		$60; 				- Sistema Desligado não permite ligar;
@@ -1669,73 +1669,134 @@ void Acionna::operation_mode(void) {
 	switch (state_mode)
 	{
 		case states_mode::system_off:				// $60;
-			operation_lock_down();
-			operation_pump_check_stop();
+			operation_pump_lock_down();
+			operation_pump_stop_check();
 			break;
 
 		case states_mode::system_ready:				// $61;
 			operation_pump_start_match();
-			operation_pump_check_stop();
+			operation_pump_stop_check();
 			break;
 
 		case states_mode::irrigation_pump_valves:	// $62;
 			operation_pump_start_match();
-			operation_pump_check_stop();
+			operation_pump_stop_check();
 
 			operation_pump_valves();
 			break;
 
 		case states_mode::water_pump_control_night:	// $63;
-			operation_pump_check_start_match_optimized();
-			operation_pump_check_stop();
+			operation_pump_start_match_optimized();
+			operation_pump_stop_check();
 
 			operation_pump_optimized();
 			break;
 
 		default:
-			operation_lock_down();
+			operation_pump_lock_down();
 			break;
 	}
 }
-void Acionna::operation_pump_check_start_match(void) {
+void Acionna::operation_pump_start_match(void) {
 
 	// time matches occurred into check_time_match(), start motor
 	if(flag_check_time_match_ == states_flag::enable) {
-		int index = 0;
+
+		int index_found = 0;
 		// sweep vector programmed time and check each one with current time.
 		for(int i=0; i<time_match_n; i++) {
 			// compare the list time match with current time day second
 			if(time_match_list[i].time_match == time_day_sec_)
 			{
 				flag_time_match_ = states_flag::enable;
-				index = i;
+				index_found = i;
+				break;
 			}
 			// ESP_LOGI(TAG_ACIONNA, "TM FOR CHECK! tml:%d tds:%d", time_match_list[i].time_match, time_day_sec_);
 		}
 
-		if(flag_time_match_ == states_flag::enable)
-		{
+
+		if(flag_time_match_ == states_flag::enable) {
 			flag_time_match_ = states_flag::disable;
 
 			// ESP_LOGI(TAG_ACIONNA, "FLAG TIME MATCH!");
-			if(pump1_.state() == states_motor::off_idle)
-			{
+			if(pump1_.state() == states_motor::off_idle) {
 				// If time match occurs and motor state is idle, turn it on! And make some log;
-				pump1_.start(time_match_list[index].auto_start_mode);
+				pump1_.start(time_match_list[index_found].auto_start_mode);
 				// If exists time value registered, use it. Else, use default.
-				if(time_match_list[index].time_to_shutdown)
-				{
-					pump1_.time_to_shutdown = time_match_list[index].time_to_shutdown;
+				if(time_match_list[index_found].time_to_shutdown) {
+					pump1_.time_to_shutdown = time_match_list[index_found].time_to_shutdown;
 				}
 			}
 		}
 	}
-
 }
-void Acionna::operation_pump_check_start_match_optimized(void) {
+void Acionna::operation_pump_start_match_optimized(void) {
+	// global enable flag. If time match optimized enable, working on it for pump the water to reservoir
+	if(flag_check_time_match_optimized_ == states_flag::enable) {
 
+		// if match with start time or with next time, enable start motor
+		if((optimized.time_match_start == time_day_sec_) || (optimized.time_match_next == time_day_sec_)) {
+			flag_time_match_optimized_ = states_flag::enable;
+		}
+
+		// if found time match optimized (from start time or next)
+		if(flag_time_match_optimized_ == states_flag::enable) {
+			flag_time_match_optimized_ = states_flag::disable;
+
+			// If a new time match occurs and motor state is idle, turn it on! And make some log;
+			if(pump1_.state() == states_motor::off_idle) {
+
+				// find an event programmed with it's cycle moment
+				do {
+					if(optimized.cycles_n < optimized.event0[optimized.event0_n].cycles_n_max) {
+						pump1_.start(optimized.event0[optimized.event0_n].start_mode);
+				
+						// this is for algorithm to calculate the next turn on after turn off;
+						optimized.flag_time_next_config = states_flag::enable;
+				
+						// increment the cycle into the same event.
+						optimized.cycles_n++;
+					} else {
+						
+						// go to next event
+						optimized.event0_n++;
+
+						// if does not exists more events programmed, finish the process.
+						if(optimized.event0_n > optimized.event0_n_max) {
+							break;
+						}
+					}
+				} while((optimized.event0_n < optimized.event0_n_max));
+
+
+				// if does exists programmed shutdown time, use it!
+				if(optimized.time_to_shutdown) {
+					pump1_.time_to_shutdown = optimized.time_to_shutdown;
+				}
+			}
+		}
+
+		// here, we suppose the pump is on after start by time match or time match next
+		if(optimized.flag_time_next_config == states_flag::enable) {
+			// if pump turn off, update those values;
+			if(pump1_.state() == states_motor::off_idle) {
+				optimized.flag_time_next_config = states_flag::disable;
+				optimized.time_stop = time_day_sec_;
+				optimized.time_match_next = time_day_sec_ + optimized.time_delay;
+			}
+		}
+
+		// turn system off when red time began. End of process.
+		if(optimized.time_red > (time_day_sec_ - 10)) {
+			pump1_.stop(stop_types::red_time);
+			optimized.time_match_next = optimized.time_match_start;
+			optimized.flag_time_next_config = states_flag::disable;
+			optimized.time_stop = time_day_sec_;
+		}
+	}
 }
-void Acionna::operation_pump_check_stop(void) {
+void Acionna::operation_pump_stop_check(void) {
 	/*
 	 * Reasons to halt the motor.
 	 * 0x00 - command line request
@@ -1816,60 +1877,7 @@ void Acionna::operation_pump_lock_down(void) {
 	}
 }
 void Acionna::operation_pump_optimized(void) {
-	// if time match optimized enable, working on it for pump the water to reservoir
-	if(flag_check_time_match_optimized_ == states_flag::enable) {
 
-		// if time match start or next start after turn off delay, enable start motor now!
-		if((optimized.time_match_start == time_day_sec_) || (optimized.time_match_next == time_day_sec_)) {
-			flag_time_match_optimized_ = states_flag::enable;
-		}
-
-		// if found time match optimized (start time or next)
-		if(flag_time_match_optimized_ == states_flag::enable) {
-			flag_time_match_optimized_ = states_flag::disable;
-
-			// If a new time match occurs and motor state is idle, turn it on! And make some log;
-			if(pump1_.state() == states_motor::off_idle) {
-
-				// find an event programmed with it's cycle moment
-				do {
-					if(optimized.event0[optimized.event0_n].cycle_n < optimized.event0[optimized.event0_n].cycle_n_max) {
-						pump1_.start(optimized.event0[optmized.event0_n].start_mode);
-						optimized.event0[optimized.event0_n].cycles_n++;
-					} else {
-						optimized.event0_n++;
-					}
-				} while((optimized.event0_n < optimized.event0_n_max) || );
-
-
-				// this is for algorithm to calculate the next turn on after turn off;
-				optimized.flag_time_next_config = states_flag::enable;
-
-				// if does exists programmed shutdown time, use it!
-				if(optimized.time_to_shutdown) {
-					pump1_.time_to_shutdown = optimized.time_to_shutdown;
-				}
-			}
-		}
-
-		// here, we suppose the pump is on after start by time match or time match next
-		if(optimized.flag_time_next_config == states_flag::enable) {
-			// if pump turn off, update those values;
-			if(pump1_.state() == states_motor::off_idle) {
-				optimized.flag_time_next_config = states_flag::disable;
-				optimized.time_stop = time_day_sec_;
-				optimized.time_match_next = time_day_sec_ + optimized.time_delay;
-			}
-		}
-
-		// turn system of if red time began
-		if(optimized.time_red > (time_day_sec_ - 10)) {
-			pump1_.stop(stop_types::red_time);
-			optimized.time_match_next = optimized.time_match_start;
-			optimized.flag_time_next_config = states_flag::disable;
-			optimized.time_stop = time_day_sec_;
-		}
-	}
 }
 void Acionna::operation_pump_valves(void) {
 	// If PCY8575 module resets, all ports go down and valve stop. To prevent it, keep setting on the current valve every second.

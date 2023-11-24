@@ -13,9 +13,9 @@
 static const char *TAG_VALVES = "VALVES";
 
 // Pressures of each sector in [m.c.a.]
-#define valve01_nominal_pressure 57	//20230305	//62 20220809
-#define valve02_nominal_pressure 59
-#define valve03_nominal_pressure 58
+#define valve01_nominal_pressure 56	// 20231123 //62 20220809
+#define valve02_nominal_pressure 59 // 20231123
+#define valve03_nominal_pressure 61 // 20231123
 #define valve04_nominal_pressure 62
 #define valve05_nominal_pressure 62
 #define valve06_nominal_pressure 66
@@ -23,7 +23,7 @@ static const char *TAG_VALVES = "VALVES";
 #define valve08_nominal_pressure 62
 #define valve09_nominal_pressure 62
 #define valve10_nominal_pressure 62
-#define valve11_nominal_pressure 62	// 20230325
+#define valve11_nominal_pressure 63	// 20231123
 
 class Valves {
 public:
