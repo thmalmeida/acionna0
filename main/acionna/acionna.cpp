@@ -1771,11 +1771,20 @@ void Acionna::operation_pump_start_match(void) {
 	}
 }
 void Acionna::operation_pump_start_match_optimized(void) {
+
 	// global enable flag. If time match optimized enable, working on it for pump the water to reservoir
 	if(flag_check_time_match_optimized_ == states_flag::enable) {
 
 		// if match with start time or with next time, enable start motor
-		if((optimized.time_match_start == time_day_sec_) || (optimized.time_match_next == time_day_sec_)) {
+		if(optimized.time_match_start == time_day_sec_) {
+			flag_time_match_optimized_ = states_flag::enable;
+
+			// Reset counter parameters for next event cycle.
+			optimized.event_i = 0;
+			optimized.cycles_n++;
+		}
+
+		if(optimized.time_match_next == time_day_sec_) {
 			flag_time_match_optimized_ = states_flag::enable;
 		}
 
@@ -1829,7 +1838,7 @@ void Acionna::operation_pump_start_match_optimized(void) {
 		// turn system off when red time began. End of process.
 		if(optimized.time_red > (time_day_sec_ - 10)) {
 			pump1_.stop(stop_types::red_time);
-			optimized.time_match_next = optimized.time_match_start;
+			// optimized.time_match_next = optimized.time_match_start;
 			optimized.flag_time_next_config = states_flag::disable;
 			// optimized.time_stop = time_day_sec_;
 		}
