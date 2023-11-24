@@ -162,19 +162,19 @@ private:
 	struct {
 		uint32_t time_match_start = 0;									// first start time epoch [s]
 		uint32_t time_match_next = 0;									// next time programmed epoch [s];
-		uint32_t time_stop = 0;											// time stopped epoch [s]
+		// uint32_t time_stop = 0;											// time stopped epoch [s]
 		uint32_t time_delay = 5*60;										// delay time after low pressure dectect before turn on again;
 		uint32_t time_red = 6*3600;										// day time to stop system;
-		states_flag started = states_flag::disable;
+		// states_flag started = states_flag::disable;
 		states_flag flag_time_next_config = states_flag::disable;		// will enable when motor start into optimized cycle to enable next time setup when it turn off
-		uint32_t time_to_shutdown = 0;
 		int event0_n = 0;												// the current event (type of start mode)
 		int event0_n_max = 2;											// the current event (type of start mode)
-
 		int cycles_n = 0;												// counter for number o cycles for each event
+		int event_i = 0;												// current event on process
 
 		struct {
 			start_types start_mode = start_types::direct_k2;
+			uint32_t time_to_shutdown = 0;
 			int cycles_n_max = 1;
 		}event0[9];
 

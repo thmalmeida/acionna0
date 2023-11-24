@@ -787,7 +787,11 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 				case 1: { // for optimized
 					if(command_str[3] == ';') {
 						// $51; show tm optimized setup
-						sprintf(buffer, "tm opt flag:%d %.2d:%.2d t:%d\n", static_cast<int>(flag_check_time_match_optimized_), timesec_to_min(optimized.time_match_start), timesec_to_sec(optimized.time_match_start), timesec_to_min(optimized.time_delay));
+						sprintf(buffer, "tm opt auto:%d %.2d:%.2d td:%d\n",
+																		static_cast<int>(flag_check_time_match_optimized_),
+																		timesec_to_min(optimized.time_match_start),
+																		timesec_to_sec(optimized.time_match_start),
+																		timesec_to_min(optimized.time_delay));
 					}
 					else if((command_str[3] == ':') && (command_str[5] == ';')) {
 						// $51:X;	set auto mode [1|0] ON/OFF;
@@ -802,6 +806,19 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 							flag_check_time_match_optimized_ = states_flag::disable;
 
 						sprintf(buffer, "set auto tm: %d\n", static_cast<int>(flag_check_time_match_optimized_));
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 'd') && (command_str[5] == ';')) {
+					// $51:t;	- time delay before next start in minutes;
+						sprintf(buffer, "opt tdelay:%lu\n", optimized.time_delay/60);
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 'd') && (command_str[5] == ':') && (command_str[8] == ';')) {
+					// $51:t:05;	- time delay in minutes;
+						_aux[0] = command_str[6];
+						_aux[1] = command_str[7];
+						_aux[2] = '\0';
+						optimized.time_delay = static_cast<uint32_t>(atoi(_aux))*60;
+
+						sprintf(buffer, "opt tdelay:%lu\n", optimized.time_delay/60);
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'h') && (command_str[5] == ':') && (command_str[10] == ';')) {
 						// $51:h:hhmm;
@@ -821,9 +838,13 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 						sprintf(buffer, "opt set h%.2u:%.2u tm:%lu\n", timesec_to_hour(optimized.time_match_start), timesec_to_min(optimized.time_match_start), optimized.time_match_start);
 					}
-					else if((command_str[3] == ':') && (command_str[4] == 'e') && (command_str[5] == ';')) {
+					else if((command_str[3] == ':') && (command_str[4] == 'r') && (command_str[5] == ';')) {
+						// $51:r;
+						sprintf(buffer, "opt red time %.2u:%.2u\n", timesec_to_hour(optimized.time_red), timesec_to_min(optimized.time_red));
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 'r') && (command_str[5] == ':') && (command_str[10] == ';')) {
 					// $51:e;		 - show red time;
-						// $51:e:0600;
+						// $51:r:0600;
 						// get the hours, transform to seconds;
 						_aux[0] = command_str[6];
 						_aux[1] = command_str[7];		// '0' in uint8_t is 48. ASCII
@@ -838,18 +859,36 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 						sprintf(buffer, "opt set h %.2u:%.2u tm:%lu\n", timesec_to_hour(optimized.time_red), timesec_to_min(optimized.time_red), optimized.time_red);
 					}
-					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ';')) {
-					// $51:t;	- time delay before next start in minutes;
-						sprintf(buffer, "opt tdelay:%lu\n", optimized.time_delay/60);
-					}
-					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ':') && (command_str[8] == ';')) {
-					// $51:t:05;	- time delay in minutes;
-						_aux[0] = command_str[6];
-						_aux[1] = command_str[7];
-						_aux[2] = '\0';
-						optimized.time_delay = static_cast<uint32_t>(atoi(_aux))*60;
+					else if((command_str[3] == ':') && (command_str[4] == 'e') && (command_str[6] == ':') && (command_str[7] == 'm')  && (command_str[9] == ':') && (command_str[11] == ':') && (command_str[15] == ';')) {
+						// $51:e1:m3:2:120;
 
-						sprintf(buffer, "opt tdelay:%lu\n", optimized.time_delay/60);
+						// event number
+						_aux[0] = '0';
+						_aux[1] = command_str[5];
+						_aux[2] = '\0';
+						int index = static_cast<int>(atoi(_aux));
+
+						// motor start type (must convert to enum class)
+						_aux[0] = '0';
+						_aux[1] = command_str[8];
+						_aux[2] = '\0';
+						optimized.event0[index].start_mode = static_cast<start_types>(atoi(_aux));
+
+						// number of cycles for this specific event
+						_aux[0] = '0';
+						_aux[1] = command_str[10];
+						_aux[2] = '\0';
+						optimized.event0[index].cycles_n_max = static_cast<int>(atoi(_aux));
+
+						// maximum time it can be on after start
+						_aux2[0] = '0';
+						_aux2[1] = command_str[12];
+						_aux2[2] = command_str[13];
+						_aux2[3] = command_str[14];
+						_aux2[4] = '\0';
+						optimized.event0[index].time_to_shutdown = static_cast<uint32_t>(atoi(_aux2));
+
+						sprintf(buffer, "updated\n");
 					}
 					break;
 				}
@@ -1752,11 +1791,17 @@ void Acionna::operation_pump_start_match_optimized(void) {
 					if(optimized.cycles_n < optimized.event0[optimized.event0_n].cycles_n_max) {
 						pump1_.start(optimized.event0[optimized.event0_n].start_mode);
 				
-						// this is for algorithm to calculate the next turn on after turn off;
-						optimized.flag_time_next_config = states_flag::enable;
-				
 						// increment the cycle into the same event.
 						optimized.cycles_n++;
+
+						// this is for algorithm to calculate the next turn on after turn off;
+						optimized.flag_time_next_config = states_flag::enable;
+
+						// if does exists programmed shutdown time, use it!
+						if(optimized.event0[optimized.event_i].time_to_shutdown) {
+							pump1_.time_to_shutdown = optimized.event0[optimized.event_i].time_to_shutdown;
+						}
+
 					} else {
 						
 						// go to next event
@@ -1768,12 +1813,6 @@ void Acionna::operation_pump_start_match_optimized(void) {
 						}
 					}
 				} while((optimized.event0_n < optimized.event0_n_max));
-
-
-				// if does exists programmed shutdown time, use it!
-				if(optimized.time_to_shutdown) {
-					pump1_.time_to_shutdown = optimized.time_to_shutdown;
-				}
 			}
 		}
 
@@ -1782,7 +1821,7 @@ void Acionna::operation_pump_start_match_optimized(void) {
 			// if pump turn off, update those values;
 			if(pump1_.state() == states_motor::off_idle) {
 				optimized.flag_time_next_config = states_flag::disable;
-				optimized.time_stop = time_day_sec_;
+				// optimized.time_stop = time_day_sec_;
 				optimized.time_match_next = time_day_sec_ + optimized.time_delay;
 			}
 		}
@@ -1792,7 +1831,7 @@ void Acionna::operation_pump_start_match_optimized(void) {
 			pump1_.stop(stop_types::red_time);
 			optimized.time_match_next = optimized.time_match_start;
 			optimized.flag_time_next_config = states_flag::disable;
-			optimized.time_stop = time_day_sec_;
+			// optimized.time_stop = time_day_sec_;
 		}
 	}
 }
