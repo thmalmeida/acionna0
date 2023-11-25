@@ -30,173 +30,175 @@ uint32_t Acionna::get_uptime() {
 }
 std::string Acionna::handle_message(uint8_t* command_str) {
 	/*
-	$0X;					- Verificar detalhes - Detalhes simples (tempo).
-		$00;				- Detalhes simples (tempo).
-		$00:[0|1];			- Json send back 1, stop 0;
-		$01;				- Verifica histórico de quando ligou e desligou;
-		$02;				- Mostra tempo que falta para ligar;
-			$02:w;			- Zera o tempo;
-			$02:w:30;		- Ajusta novo tempo para 30 min;
-			$02:s:090;		- Tempo máximo ligado para 90 min. Para não utilizar, colocar zero;
-			$02:f:045;		- Força o contador de tempo ligado para 45 min;
-		$03;				- Verifica detalhes do motor, pressão e sensor termico;
-			$03:s[1|2]:72;	- Set max pressure ref for pipe [m.c.a.];
-			$03:s[1|2];		- show max pressure configured;
-			$03:p[1|2]:150;	- Set sensor max pressure ref to change the scale [psi];
-			$03:p[1|2];		- Show sensor max pressure [psi];
-			$03:v:32;		- Set pressure for valve load turn on and fill reservoir;
-			$03:b2;			- Show pipepvc intake air variables
-			$03:b:85;		- Set to 85% the pressure min bellow the current pressure to avoid pipe broken;
-			$03:m:3;		- Set 3 seconds while K1 and K3 are ON into delta tri start;
-			$03:m;			- Just show the speeding up time;
-			$03:t:400;		- Set 400 milliseconds to wait K3 go off before start K2;
-			$03:t;			- Just show the time switch;
-			$03:u;			- show k time logs;
+	$0X;						- Verificar detalhes - Detalhes simples (tempo).
+		$00;					- Detalhes simples (tempo).
+		$00:[0|1];				- Json send back 1, stop 0;
+		$01;					- Verifica histórico de quando ligou e desligou;
+		$02;					- Mostra tempo que falta para ligar;
+			$02:w;				- Zera o tempo;
+			$02:w:30;			- Ajusta novo tempo para 30 min;
+			$02:s:090;			- Tempo máximo ligado para 90 min. Para não utilizar, colocar zero;
+			$02:f:045;			- Força o contador de tempo ligado para 45 min;
+		$03;					- Verifica detalhes do motor, pressão e sensor termico;
+			$03:s[1|2]:72;		- Set max pressure ref for pipe [m.c.a.];
+			$03:s[1|2];			- show max pressure configured;
+			$03:p[1|2]:150;		- Set sensor max pressure ref to change the scale [psi];
+			$03:p[1|2];			- Show sensor max pressure [psi];
+			$03:v:32;			- Set pressure for valve load turn on and fill reservoir;
+			$03:b2;				- Show pipepvc intake air variables
+			$03:b:85;			- Set to 85% the pressure min bellow the current pressure to avoid pipe broken;
+			$03:m:3;			- Set 3 seconds while K1 and K3 are ON into delta tri start;
+			$03:m;				- Just show the speeding up time;
+			$03:t:400;			- Set 400 milliseconds to wait K3 go off before start K2;
+			$03:t;				- Just show the time switch;
+			$03:u;				- show k time logs;
 
-		$04;				- Verifica detalhes do nível de água no poço e referência 10 bits;
-			$04:0;			- Interrompe o envio continuo das variáveis de pressão e nível;
-			$04:1;			- Envia continuamente valores de pressão e nível;
-			$04:s:0900;		- Adiciona nova referência para os sensores de nível. Valor de 0 a 1023;
-		$05;				- Mostra os horários que liga no modo $62;
-		$06;				- Tempo ligado e tempo desligado;
-		$07;				- Show low pressure algorithm variables
-			$07:l1;			- show threshold low pressure to slope machine;
-			$07:l1:20; 		- set threshold low pressure to slope machine;
-			$07:l2;			- show threshold low pressure to slope machine;
-			$07:l2:10; 		- set threshold low pressure to slope machine;
-			$07:0;			- ADC reference change; AREF
-			$07:1;			- AVCC with external cap at AREF pin
-			$07:2;			- Internal 1.1 Voltage reference.
+		$04;					- Verifica detalhes do nível de água no poço e referência 10 bits;
+			$04:0;				- Interrompe o envio continuo das variáveis de pressão e nível;
+			$04:1;				- Envia continuamente valores de pressão e nível;
+			$04:s:0900;			- Adiciona nova referência para os sensores de nível. Valor de 0 a 1023;
+		$05;					- Mostra os horários que liga no modo $62;
+		$06;					- Tempo ligado e tempo desligado;
+		$07;					- Show low pressure algorithm variables
+			$07:l1;				- show threshold low pressure to slope machine;
+			$07:l1:20; 			- set threshold low pressure to slope machine;
+			$07:l2;				- show threshold low pressure to slope machine;
+			$07:l2:10; 			- set threshold low pressure to slope machine;
+			$07:0;				- ADC reference change; AREF
+			$07:1;				- AVCC with external cap at AREF pin
+			$07:2;				- Internal 1.1 Voltage reference.
 
-	$10:h:HHMMSS;			- Ajustes do calendário;
-		$10:h:HHMMSS;		- Ajusta o horário do sistema;
-		$10:h:123040;		- E.g. ajusta a hora para 12:30:40
-		$10:d:DDMMAAAA;		- Ajusta a data do sistema no formato dia/mês/ano(4 dígitos);
-		$10:d:04091986;		- E.g. Altera a data para 04/09/1986;
-		$10:c;				- Shows the LSI current prescaler value;
-		$10:c:40123;		- Set new prescaler value;
+	$10:h:HHMMSS;				- Ajustes do calendário;
+		$10:h:HHMMSS;			- Ajusta o horário do sistema;
+		$10:h:123040;			- E.g. ajusta a hora para 12:30:40
+		$10:d:DDMMAAAA;			- Ajusta a data do sistema no formato dia/mês/ano(4 dígitos);
+		$10:d:04091986;			- E.g. Altera a data para 04/09/1986;
+		$10:c;					- Shows the LSI current prescaler value;
+		$10:c:40123;			- Set new prescaler value;
 
-	$2X;					(not implemented)
-		$20:DevName;		- Change bluetooth name;
+	$2X;						(not implemented)
+		$20:DevName;			- Change bluetooth name;
 		$20:n:
-		$21:i:30;			- lo;		- Altera o nome do bluetooth para "Vassalo";
-		$21:d:099			- pwm: change duty cicle [%];
-		$21:f:0001			- pwm: change frequency [Hz];
+		$21:i:30;				- lo;		- Altera o nome do bluetooth para "Vassalo";
+		$21:d:099				- pwm: change duty cicle [%];
+		$21:f:0001				- pwm: change frequency [Hz];
 
-	$3X;					- Acionamento do motor;
-		$30;				- desliga todos contatores;
-		$31;				- ligar contator K1;
-		$32;				- ligar contator K2;
-		$33;				- ligar contator K3;
-		$34;				- direto para partida delta;
-		$35;				- direto para partida Y;
-		$36;				- liga motor com partida Y delta;
+	$3X;						- Acionamento do motor;
+		$30;					- desliga todos contatores;
+		$31;					- ligar contator K1;
+		$32;					- ligar contator K2;
+		$33;					- ligar contator K3;
+		$34;					- direto para partida delta;
+		$35;					- direto para partida Y;
+		$36;					- liga motor com partida Y delta;
 	
-	$4:x:					(not implemented) - Is this applied fo stm32f10xxx series only;
-		$4:r:07;			- Read address 0x07 * 2 of currently page;
-		$4:w:07:03;			- Write variable 3 on address 7 of currently page;
-		$4:f:64:03;			- fill page 64 with 3 value;
-		$4:e:64;			- erase page 64;
+	$4:x:						(not implemented) - Is this applied fo stm32f10xxx series only;
+		$4:r:07;				- Read address 0x07 * 2 of currently page;
+		$4:w:07:03;				- Write variable 3 on address 7 of currently page;
+		$4:f:64:03;				- fill page 64 with 3 value;
+		$4:e:64;				- erase page 64;
 
-	$50:n:X; $50:hX:HHMM;	- Time match cycles and array for auto start mode
-		$50;				- show all timers to turn on and info;
-		$50:[0|1];			- desabilita|habilita auto turn (habilita time match flag);
-		$50:m:[1|3]			- tipo de partida automática: 1- k1; 3- y-Delta;
-		$50:n;				- mostra a quantidade de vezes que irá ligar;
-		$50:n:9;			- Configura para acionar 9 vezes. Necessário configurar 9 horários;
-		$50:n:1;			- Configura o sistema para acionar uma única vez;
-		$50:h1:2130;		- Configura o primeiro horário como 21:30 horas;
-		$50:h8:0437;		- Configura o oitavo horário como 04:37 horas;
-		$50:t1:120;			- configura o primeiro horário de partida com tempo de 120 min;
+	$5X
+		$50:n:X; 				- Time match cycles and array for auto start mode
+			$50;				- show all timers to turn on and info;
+			$50:s:[0|1];		- desabilita|habilita auto turn (habilita time match flag);
+			$50:m:[1|3]			- tipo de partida automática: 1- k1; 3- y-Delta;
+			$50:n;				- mostra a quantidade de vezes que irá ligar;
+			$50:n:9;			- Configura para acionar 9 vezes. Necessário configurar 9 horários;
+			$50:n:1;			- Configura o sistema para acionar uma única vez;
+			$50:h1:2130;		- Configura o primeiro horário como 21:30 horas $50:hX:HHMM;
+			$50:h8:0437;		- Configura o oitavo horário como 04:37 horas;
+			$50:t1:120;			- configura o primeiro horário de partida com tempo de 120 min;
 
-	$51;					- optimized mode;
-		$51;				- show optimized configuration
-		$51:[0|1];			- disable/enable process;
-		$51:d;				- time delay before next start;
-		$51:d:05;			- time delay in minutes between stop and the new start;
-		$51:h;				- first time start show
-		$51:h:2300;			- time to the first start cycle;
-		$51:r;				- red time show
-		$51:r:0600;			- red time beginner (time to stop all process);
-		$51:e1:m3:2:120;	- Event [1] can turn motor into [m3] mode for the maximum of [2] cycles for 120 minuntes each one (not implemented yet);
+		$51;					- optimized mode;
+			$51;				- show optimized configuration
+			$51:s:[0|1];		- disable/enable process;
+			$51:d;				- time delay before next start;
+			$51:d:05;			- time delay in minutes between stop and the new start;
+			$51:h;				- first time start show
+			$51:h:2300;			- time to the first start cycle;
+			$51:n:[1-9];		- set the number of events to run;
+			$51:r;				- red time show
+			$51:r:0600;			- red time beginner (time to stop all process);
+			$51:e1:m3:2:120;	- Event [1] can turn motor into [m3] mode for [2] cycles on the maximum of 120 minuntes each one (not implemented yet);
 
-	$6X;					- Modos de funcionamento;
-		$60; 				- Sistema Desligado não permite ligar;
-		$61;				- Sistema ocioso esperando um time match automático ou acionamento manual por linha de comando.
-		$62;				- Modo irrigação com controle das válvulas em modo de acionamento automático.
-		$63;				- Pumping all night long mode (optimized mode);
+	$6X;						- Modos de funcionamento;
+		$60; 					- Sistema Desligado não permite ligar;
+		$61;					- Sistema ocioso esperando um time match automático ou acionamento manual por linha de comando.
+		$62;					- Modo irrigação com controle das válvulas em modo de acionamento automático.
+		$63;					- Pumping all night long mode (optimized mode);
 
-	$7X						- Funções que habilitam ou desabilitam verificações de:
-		$70;				- not implemented
+	$7X							- Funções que habilitam ou desabilitam verificações de:
+		$70;					- not implemented
 			$70:rt;
-			$70:rt:[0|1];	- relé térmico;
+			$70:rt:[0|1];		- relé térmico;
 			$70:kt;
-			$70:kt:[0|1];	- todos contatores
+			$70:kt:[0|1];		- todos contatores
 			$70:k1;
-			$70:k1:[0|1];	- contator K1 (not implemented);
+			$70:k1:[0|1];		- contator K1 (not implemented);
 			$70:k2;
-			$70:k2:[0|1];	- contator K2 (not implemented);
+			$70:k2:[0|1];		- contator K2 (not implemented);
 			$70:k3;
-			$70:k3:[0|1];	- contator K3 (not implemented);
-			$70:l1:[0|1];	- low pressure detection for on_nominal_k1 state motor using pipe1.
-			$70:l2:[0|1];	- low pressure detection for on_nominal_k2 state motor using pipe2.
-			$70:l4:[0|1];	- low pressure detection for on_nominal_delta state motor using pipe1.
+			$70:k3:[0|1];		- contator K3 (not implemented);
+			$70:l1:[0|1];		- low pressure detection for on_nominal_k1 state motor using pipe1.
+			$70:l2:[0|1];		- low pressure detection for on_nominal_k2 state motor using pipe2.
+			$70:l4:[0|1];		- low pressure detection for on_nominal_delta state motor using pipe1.
 			$70:ph;
-			$70:ph:1|0;		- desligamento por alta pressão;
-			$70:pl;			- low pressure global flag detection show.
-			$70:pl[0|1];	- Enable/disable low pressure global flag detection.
-			$70:pl:0-9;		- desligamento por pressão baixa em min caso seja diferente de 0;
+			$70:ph:1|0;			- desligamento por alta pressão;
+			$70:pl;				- low pressure global flag detection show.
+			$70:pl[0|1];		- Enable/disable low pressure global flag detection.
+			$70:pl:0-9;			- desligamento por pressão baixa em min caso seja diferente de 0;
 			$70:pv;
-			$70:pv:1|0;		- desligamento por pressão alta por válvula;
-			$70:vc;			- Show valve check status;
-			$70:vc:[0|1];	- Enable disable valve check status;
+			$70:pv:1|0;			- desligamento por pressão alta por válvula;
+			$70:vc;				- Show valve check status;
+			$70:vc:[0|1];		- Enable disable valve check status;
 
-	$8x						- Funções de programação da irrigação;
-		$80;				- show info
-			$80:s:[0|1];	- start/stop valves sequence;
-			$80:d:[0|1];	- 0 sentido direto; 1 - sentido inverso na troca dos setores;
-			$80:h;			- show valves history log. Time on, elapsed time, avg pressure;
-			$80:n;			- next valve forcing time valve to zero;
-			$80:v:01;		- mostra condições de configuração da válvula 01;
-			$80:v:01:[0|1];	- desaciona|aciona válvula 01;
-			$80:v:01:i;		- insere setor na programação;
-			$80:v:01:r;		- remove setor da programação;
-			$80:v:01:t:120;	- configura o tempo de irrigação [min];
-			$80:v:01:t;		- mostra o tempo de irrigação do setor;
-			$80:v:01:p:68;	- configura pressão nominal do setor [m.c.a.];
-			$80:v:01:p;		- mostra pressão nominal do setor;
-			$80:t;			- test all solenoid drivers;
+	$8x							- Funções de programação da irrigação;
+		$80;					- show info
+			$80:s:[0|1];		- start/stop valves sequence;
+			$80:d:[0|1];		- 0 sentido direto; 1 - sentido inverso na troca dos setores;
+			$80:h;				- show valves history log. Time on, elapsed time, avg pressure;
+			$80:n;				- next valve forcing time valve to zero;
+			$80:v:01;			- mostra condições de configuração da válvula 01;
+			$80:v:01:[0|1];		- desaciona|aciona válvula 01;
+			$80:v:01:i;			- insere setor na programação;
+			$80:v:01:r;			- remove setor da programação;
+			$80:v:01:t:120;		- configura o tempo de irrigação [min];
+			$80:v:01:t;			- mostra o tempo de irrigação do setor;
+			$80:v:01:p:68;		- configura pressão nominal do setor [m.c.a.];
+			$80:v:01:p;			- mostra pressão nominal do setor;
+			$80:t;				- test all solenoid drivers;
 
-		$84:04F3;			- PCY8575 put 16 bit hex value directly to PCY8575;
-		$85;				- PCY8575 get output
+		$84:04F3;				- PCY8575 put 16 bit hex value directly to PCY8575;
+		$85;					- PCY8575 get output
 		$86:x;
-			$86:d;			- PCY8575 get adc stream data;
-			$86:i;			- PCY8575 get Irms;
-			$86:n:397;		- PCY8575 define the number of points to ADC array (default is 397);
-			$86:n;			- PCY8575 ask the current n samples;
-			$86:u;			- PCY8575 uptime;
-		$87;				- PCY8575 temperature;
-		$88;				- PCY8574 probe;
-		$89;				- PCY8575 soft reset;
+			$86:d;				- PCY8575 get adc stream data;
+			$86:i;				- PCY8575 get Irms;
+			$86:n:397;			- PCY8575 define the number of points to ADC array (default is 397);
+			$86:n;				- PCY8575 ask the current n samples;
+			$86:u;				- PCY8575 uptime;
+		$87;					- PCY8575 temperature;
+		$88;					- PCY8574 probe;
+		$89;					- PCY8575 soft reset;
 
-	$9X;					- System administration
-		$90:[0-9];			- WiFi
-			$90:0;			- WiFi AP info;
-			$90:1;			- WiFi Scan;
-			$90:2;			- Show mac address;
-		$91;				- show firwmare version;
-		$95:[0-9];			- OTA firmware update
-			$95:0;			- show ota partitions info;
-			$95:1;			- show ota app info
-			$95:2;			- print sha256;
-			$94:3:			- mark invalid;
-			$95:4;			- mark valid;
-			$95:8:[0-1]		- change boot partition;
-			$95:9;			- Start firmware update;
-		$96;				- show chip info;
-		$97;				- Show RAM usage;
-		$98;				- Show reset reason;
-		$99;				- Soft reset system;
+	$9X;						- System administration
+		$90:[0-9];				- WiFi
+			$90:0;				- WiFi AP info;
+			$90:1;				- WiFi Scan;
+			$90:2;				- Show mac address;
+		$91;					- show firwmare version;
+		$95:[0-9];				- OTA firmware update
+			$95:0;				- show ota partitions info;
+			$95:1;				- show ota app info
+			$95:2;				- print sha256;
+			$94:3:				- mark invalid;
+			$95:4;				- mark valid;
+			$95:8:[0-1]			- change boot partition;
+			$95:9;				- Start firmware update;
+		$96;					- show chip info;
+		$97;					- Show RAM usage;
+		$98;					- Show reset reason;
+		$99;					- Soft reset system;
 */
 	int opcode0 = -1;
 	int opcode1 = -1;
@@ -275,22 +277,6 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						}
 						strcat(buffer, "\n");
 					}
-					// if(sInstr[2]==':' && sInstr[3]=='c') {
-					// 	if(sInstr[4] == ';')
-					// 	{
-					// 		flag_waitPowerOn = 0;
-					// 		waitPowerOn_min = 0;
-					// 		waitPowerOn_sec = 0;
-					// 	}
-					// 	else if(sInstr[4] ==':' && sInstr[7] == ';')
-					// 	{
-					// 		aux[0] = sInstr[5];
-					// 		aux[1] = sInstr[6];
-					// 		aux[2] = '\0';
-					// 		waitPowerOn_min_standBy = (uint8_t) atoi(aux);
-					// 	}
-					// }
-
 					break;
 				}
 				case 2: { // $02:c; time motor 
@@ -674,10 +660,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						}
 						// strcat(buffer, "\n");
 					}
-					else if((command_str[3] == ':') && (command_str[5] == ';')) {
+					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == ':') && (command_str[7] == ';')) {
 						// $50:X;	set auto mode [1|0] ON/OFF;
 						_aux[0] = '0';
-						_aux[1] = command_str[4];		// '0' in uint8_t is 48. ASCII
+						_aux[1] = command_str[6];		// '0' in uint8_t is 48. ASCII
 						_aux[2] = '\0';
 						int opcode_sub0 = atoi(_aux);
 
@@ -787,13 +773,26 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 				case 1: { // for optimized
 					if(command_str[3] == ';') {
 						// $51; show tm optimized setup
-						sprintf(buffer, "tm opt auto:%d %.2d:%.2d td:%d\n",
+
+						memset(buffer, 0, sizeof(buffer));
+						char buffer_temp[60];
+
+						sprintf(buffer_temp, "tm opt auto:%d %.2d:%.2d td:%d\n",
 																		static_cast<int>(flag_check_time_match_optimized_),
 																		timesec_to_min(optimized.time_match_start),
 																		timesec_to_sec(optimized.time_match_start),
 																		timesec_to_min(optimized.time_delay));
+						
+						for(int i=0; i<optimized.event0_n_max; i++) {
+							sprintf(buffer_temp, "%d- m:%d t:%lu c:%d\n", i+1,
+																		static_cast<int>(optimized.event0[i].start_mode),
+																		optimized.event0[i].time_to_shutdown,
+																		optimized.event0[i].cycles_n_max);
+							strcat(buffer, buffer_temp);
+						}
+						strcat(buffer, "\n");	
 					}
-					else if((command_str[3] == ':') && (command_str[5] == ';')) {
+					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == ':') && (command_str[7] == ';')) {
 						// $51:X;	set auto mode [1|0] ON/OFF;
 						_aux[0] = '0';
 						_aux[1] = command_str[4];		// '0' in uint8_t is 48. ASCII
@@ -805,20 +804,20 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						else
 							flag_check_time_match_optimized_ = states_flag::disable;
 
-						sprintf(buffer, "set auto tm: %d\n", static_cast<int>(flag_check_time_match_optimized_));
+						sprintf(buffer, "set optz tm: %d\n", static_cast<int>(flag_check_time_match_optimized_));
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'd') && (command_str[5] == ';')) {
-					// $51:t;	- time delay before next start in minutes;
-						sprintf(buffer, "opt tdelay:%lu\n", optimized.time_delay/60);
+					// $51:d;	- time delay before next start in minutes;
+						sprintf(buffer, "HeloW! optz delay:%lu\n", optimized.time_delay/60);
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'd') && (command_str[5] == ':') && (command_str[8] == ';')) {
-					// $51:t:05;	- time delay in minutes;
+					// $51:d:05;	- time delay in minutes;
 						_aux[0] = command_str[6];
 						_aux[1] = command_str[7];
 						_aux[2] = '\0';
 						optimized.time_delay = static_cast<uint32_t>(atoi(_aux))*60;
 
-						sprintf(buffer, "opt tdelay:%lu\n", optimized.time_delay/60);
+						sprintf(buffer, "set optz delay:%lu min\n", optimized.time_delay/60);
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'h') && (command_str[5] == ':') && (command_str[10] == ';')) {
 						// $51:h:hhmm;
