@@ -777,7 +777,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						memset(buffer, 0, sizeof(buffer));
 						char buffer_temp[60];
 
-						sprintf(buffer_temp, "tm opt auto:%d %.2d:%.2d td:%d\n",
+						sprintf(buffer, "tm opt auto:%d %.2d:%.2d td:%d\n",
 																		static_cast<int>(flag_check_time_match_optimized_),
 																		timesec_to_min(optimized.time_match_start),
 																		timesec_to_sec(optimized.time_match_start),
