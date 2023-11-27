@@ -777,7 +777,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						memset(buffer, 0, sizeof(buffer));
 						char buffer_temp[60];
 
-						sprintf(buffer, "tm opt flag:%d h:%.2d:%.2d td:%d ns:%.2d:%.2d r:%.2d:%.2d\n",
+						sprintf(buffer, "tm opt flag:%d h:%.2d:%.2d td:%d ns:%.2d:%.2d r:%.2d:%.2d ev:%d cy:%d\n",
 																		static_cast<int>(flag_check_time_match_optimized_),
 																		timesec_to_hour(optimized.time_match_start),
 																		timesec_to_min(optimized.time_match_start),
@@ -785,7 +785,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 																		timesec_to_hour(optimized.time_match_next),
 																		timesec_to_min(optimized.time_match_next),
 																		timesec_to_hour(optimized.time_red),
-																		timesec_to_min(optimized.time_red));
+																		timesec_to_min(optimized.time_red),
+																		optimized.event0_i,
+																		optimized.cycles_i);
+
 						for(int i=0; i<optimized.event0_n_max; i++) {
 							sprintf(buffer_temp, "%d- m:%d t:%lu c:%d\n", i+1,
 																		static_cast<int>(optimized.event0[i].start_mode),
@@ -854,8 +857,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						sprintf(buffer, "opt red time %.2u:%.2u\n", timesec_to_hour(optimized.time_red), timesec_to_min(optimized.time_red));
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'r') && (command_str[5] == ':') && (command_str[10] == ';')) {
-					// $51:e;		 - show red time;
-						// $51:r:0600;
+						// $51:r:HHMM- set red time;
 						// get the hours, transform to seconds;
 						_aux[0] = command_str[6];
 						_aux[1] = command_str[7];		// '0' in uint8_t is 48. ASCII
@@ -868,7 +870,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux[2] = '\0';
 						optimized.time_red = _time_temp + (static_cast<uint32_t>(atoi(_aux)))*60;
 
-						sprintf(buffer, "opt set h %.2u:%.2u tm:%lu\n", timesec_to_hour(optimized.time_red), timesec_to_min(optimized.time_red), optimized.time_red);
+						sprintf(buffer, "optz set r:%.2u:%.2u ts:%lu\n", timesec_to_hour(optimized.time_red), timesec_to_min(optimized.time_red), optimized.time_red);
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'e') && (command_str[6] == ':') && (command_str[7] == 'm')  && (command_str[9] == ':') && (command_str[11] == ':') && (command_str[15] == ';')) {
 						// $51:e1:m3:2:120;
@@ -1792,7 +1794,7 @@ void Acionna::operation_pump_start_match_optimized(void) {
 
 			// Reset counter parameters for next event cycle.
 			optimized.event0_i = 0;
-			optimized.cycles_n = 0;
+			optimized.cycles_i = 0;
 		}
 
 		// if day time match with next time, enable start motor flag
@@ -1809,7 +1811,7 @@ void Acionna::operation_pump_start_match_optimized(void) {
 
 				// find an event programmed with it's cycle moment
 				do {
-					if(optimized.cycles_n < optimized.event0[optimized.event0_i].cycles_n_max) {
+					if(optimized.cycles_i < optimized.event0[optimized.event0_i].cycles_n_max) {
 						
 						// if motor start ok, return 0;
 						if(!pump1_.start(optimized.event0[optimized.event0_i].start_mode)) {
@@ -1818,7 +1820,7 @@ void Acionna::operation_pump_start_match_optimized(void) {
 						}
 
 						// increment the cycle into the same event.
-						optimized.cycles_n++;
+						optimized.cycles_i++;
 							
 						// if does exists programmed shutdown time, use it!
 						if(optimized.event0[optimized.event0_i].time_to_shutdown) {

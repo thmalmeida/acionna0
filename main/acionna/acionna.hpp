@@ -167,9 +167,10 @@ private:
 		uint32_t time_red = 6*3600;										// day time to stop system;
 		// states_flag started = states_flag::disable;
 		states_flag flag_time_next_config = states_flag::disable;		// will enable when motor start into optimized cycle to enable next time setup when it turn off
+		
+		int cycles_i = 0;												// counter for number o cycles for each event
 		int event0_i = 0;												// the current event (type of start mode)
 		int event0_n_max = 1;											// the current event (type of start mode)
-		int cycles_n = 0;												// counter for number o cycles for each event
 
 		struct {
 			start_types start_mode = start_types::direct_k2;
