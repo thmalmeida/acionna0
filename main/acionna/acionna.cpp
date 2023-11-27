@@ -777,12 +777,15 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						memset(buffer, 0, sizeof(buffer));
 						char buffer_temp[60];
 
-						sprintf(buffer, "tm opt flag:%d h:%.2d:%.2d td:%d\n",
+						sprintf(buffer, "tm opt flag:%d h:%.2d:%.2d td:%d ns:%.2d:%.2d r:%.2d:%.2d\n",
 																		static_cast<int>(flag_check_time_match_optimized_),
 																		timesec_to_hour(optimized.time_match_start),
 																		timesec_to_min(optimized.time_match_start),
-																		timesec_to_min(optimized.time_delay));
-						
+																		timesec_to_min(optimized.time_delay),
+																		timesec_to_hour(optimized.time_match_next),
+																		timesec_to_min(optimized.time_match_next),
+																		timesec_to_hour(optimized.time_red),
+																		timesec_to_min(optimized.time_red));
 						for(int i=0; i<optimized.event0_n_max; i++) {
 							sprintf(buffer_temp, "%d- m:%d t:%lu c:%d\n", i+1,
 																		static_cast<int>(optimized.event0[i].start_mode),
