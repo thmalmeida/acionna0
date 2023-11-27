@@ -777,10 +777,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						memset(buffer, 0, sizeof(buffer));
 						char buffer_temp[60];
 
-						sprintf(buffer, "tm opt auto:%d %.2d:%.2d td:%d\n",
+						sprintf(buffer, "tm opt flag:%d h:%.2d:%.2d td:%d\n",
 																		static_cast<int>(flag_check_time_match_optimized_),
+																		timesec_to_hour(optimized.time_match_start),
 																		timesec_to_min(optimized.time_match_start),
-																		timesec_to_sec(optimized.time_match_start),
 																		timesec_to_min(optimized.time_delay));
 						
 						for(int i=0; i<optimized.event0_n_max; i++) {
@@ -790,12 +790,12 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 																		optimized.event0[i].cycles_n_max);
 							strcat(buffer, buffer_temp);
 						}
-						strcat(buffer, "\n");	
+						strcat(buffer, "\n");
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 's') && (command_str[5] == ':') && (command_str[7] == ';')) {
-						// $51:X;	set auto mode [1|0] ON/OFF;
+						// $51:s:X;	set auto mode [1|0] ON/OFF;
 						_aux[0] = '0';
-						_aux[1] = command_str[4];		// '0' in uint8_t is 48. ASCII
+						_aux[1] = command_str[6];		// '0' in uint8_t is 48. ASCII
 						_aux[2] = '\0';
 						int opcode_sub0 = atoi(_aux);
 
@@ -818,6 +818,15 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						optimized.time_delay = static_cast<uint32_t>(atoi(_aux))*60;
 
 						sprintf(buffer, "set optz delay:%lu min\n", optimized.time_delay/60);
+					}
+					else if((command_str[3] == ':') && (command_str[4] == 'n') && (command_str[5] == ':') && (command_str[7] == ';')) {
+					// $51:n:N;
+						_aux[0] = command_str[6];
+						_aux[1] = command_str[7];
+						_aux[2] = '\0';
+						optimized.event0_n_max = atoi(_aux);
+
+						sprintf(buffer, "set evt n:%d\n", optimized.event0_n_max);
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'h') && (command_str[5] == ':') && (command_str[10] == ';')) {
 						// $51:h:hhmm;
@@ -865,7 +874,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux[0] = '0';
 						_aux[1] = command_str[5];
 						_aux[2] = '\0';
-						int index = static_cast<int>(atoi(_aux));
+						int index = static_cast<int>(atoi(_aux)) - 1;
 
 						// motor start type (must convert to enum class)
 						_aux[0] = '0';
@@ -887,7 +896,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux2[4] = '\0';
 						optimized.event0[index].time_to_shutdown = static_cast<uint32_t>(atoi(_aux2));
 
-						sprintf(buffer, "updated\n");
+						sprintf(buffer, "set e%d m%d c:%d t:%lu\n", index+1, static_cast<int>(optimized.event0[index].start_mode), optimized.event0[index].cycles_n_max, optimized.event0[index].time_to_shutdown);
 					}
 					break;
 				}
