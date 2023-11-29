@@ -792,7 +792,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						for(int i=0; i<optimized.event0_n_max; i++) {
 							sprintf(buffer_temp, "%d- m:%d t:%lu c:%d\n", i+1,
 																		static_cast<int>(optimized.event0[i].start_mode),
-																		optimized.event0[i].time_to_shutdown,
+																		optimized.event0[i].time_to_shutdown/60,
 																		optimized.event0[i].cycles_n_max);
 							strcat(buffer, buffer_temp);
 						}
@@ -879,7 +879,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux[0] = '0';
 						_aux[1] = command_str[5];
 						_aux[2] = '\0';
-						int index = static_cast<int>(atoi(_aux)) - 1;
+						int index = static_cast<int>(atoi(_aux)-1);
 
 						// motor start type (must convert to enum class)
 						_aux[0] = '0';
@@ -899,9 +899,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux2[2] = command_str[13];
 						_aux2[3] = command_str[14];
 						_aux2[4] = '\0';
-						optimized.event0[index].time_to_shutdown = static_cast<uint32_t>(atoi(_aux2));
+						optimized.event0[index].time_to_shutdown = static_cast<uint32_t>(atoi(_aux2)*60);
 
-						sprintf(buffer, "set e%d m%d c:%d t:%lu\n", index+1, static_cast<int>(optimized.event0[index].start_mode), optimized.event0[index].cycles_n_max, optimized.event0[index].time_to_shutdown);
+						sprintf(buffer, "set e%d m%d c:%d t:%lu\n", index+1, static_cast<int>(optimized.event0[index].start_mode), optimized.event0[index].cycles_n_max, optimized.event0[index].time_to_shutdown/60);
 					}
 					break;
 				}
@@ -1718,29 +1718,27 @@ void Acionna::msg_json_back_(void) {
 	}
 }
 void Acionna::operation_mode(void) {
+
+	// for all operation modes
+	operation_pump_stop_check();
+
 	switch (state_mode)
 	{
 		case states_mode::system_off:				// $60;
 			operation_pump_lock_down();
-			operation_pump_stop_check();
 			break;
 
 		case states_mode::system_ready:				// $61;
 			operation_pump_start_match();
-			operation_pump_stop_check();
 			break;
 
 		case states_mode::irrigation_pump_valves:	// $62;
 			operation_pump_start_match();
-			operation_pump_stop_check();
-
 			operation_pump_valves();
 			break;
 
 		case states_mode::water_pump_control_night:	// $63;
 			operation_pump_start_match_optimized();
-			operation_pump_stop_check();
-
 			operation_pump_optimized();
 			break;
 
@@ -1762,7 +1760,7 @@ void Acionna::operation_pump_start_match(void) {
 			{
 				flag_time_match_ = states_flag::enable;
 				index_found = i;
-				break;
+				// break;
 			}
 			// ESP_LOGI(TAG_ACIONNA, "TM FOR CHECK! tml:%d tds:%d", time_match_list[i].time_match, time_day_sec_);
 		}
@@ -1788,17 +1786,24 @@ void Acionna::operation_pump_start_match_optimized(void) {
 	// global enable flag. If time match optimized enable, working on it for pump the water to reservoir
 	if(flag_check_time_match_optimized_ == states_flag::enable) {
 
+		// here, we suppose the pump is on after start by time match or time match next
+		if(optimized.flag_time_next_config == states_flag::enable) {
+			// if pump turn off, update those values;
+			if(pump1_.state() == states_motor::off_idle) {
+				optimized.flag_time_next_config = states_flag::disable;
+				// optimized.time_stop = time_day_sec_;
+				optimized.time_match_next = time_day_sec_ + optimized.time_delay;
+			}
+		}
+
 		// if match with start time, enable start motor flag and clear counter parameters
 		if(optimized.time_match_start == time_day_sec_) {
 			flag_time_match_optimized_ = states_flag::enable;
 
-			// Reset counter parameters for next event cycle.
+			// Reset counter parameters for next event cycle or else if day time match with next time, enable start motor flag
 			optimized.event0_i = 0;
 			optimized.cycles_i = 0;
-		}
-
-		// if day time match with next time, enable start motor flag
-		if(optimized.time_match_next == time_day_sec_) {
+		} else if(optimized.time_match_next == time_day_sec_) {
 			flag_time_match_optimized_ = states_flag::enable;
 		}
 
@@ -1817,16 +1822,15 @@ void Acionna::operation_pump_start_match_optimized(void) {
 						if(!pump1_.start(optimized.event0[optimized.event0_i].start_mode)) {
 							// this is for algorithm to calculate the next turn on after turn off;
 							optimized.flag_time_next_config = states_flag::enable;
-						}
 
-						// increment the cycle into the same event.
-						optimized.cycles_i++;
-							
-						// if does exists programmed shutdown time, use it!
-						if(optimized.event0[optimized.event0_i].time_to_shutdown) {
-							pump1_.time_to_shutdown = optimized.event0[optimized.event0_i].time_to_shutdown;
-						}
+							// if does exists programmed shutdown time, use it!
+							if(optimized.event0[optimized.event0_i].time_to_shutdown) {
+								pump1_.time_to_shutdown = optimized.event0[optimized.event0_i].time_to_shutdown;
+							}
 
+							// increment the cycle into the same event.
+							optimized.cycles_i++;
+						}
 					} else {
 						
 						// go to next event
@@ -1837,26 +1841,18 @@ void Acionna::operation_pump_start_match_optimized(void) {
 						// }
 					}
 				// if does not exists more events programmed, finish the process.	
-				} while((optimized.event0_i < (optimized.event0_n_max - 1)));
-			}
-		}
-
-		// here, we suppose the pump is on after start by time match or time match next
-		if(optimized.flag_time_next_config == states_flag::enable) {
-			// if pump turn off, update those values;
-			if(pump1_.state() == states_motor::off_idle) {
-				optimized.flag_time_next_config = states_flag::disable;
-				// optimized.time_stop = time_day_sec_;
-				optimized.time_match_next = time_day_sec_ + optimized.time_delay;
+				} while((optimized.event0_i < (optimized.event0_n_max - 1)) && (optimized.flag_time_next_config == states_flag::disable));
 			}
 		}
 
 		// turn system off when red time began. End of process.
-		if(optimized.time_red > (time_day_sec_ - 10)) {
-			pump1_.stop(stop_types::red_time);
-			// optimized.time_match_next = optimized.time_match_start;
-			optimized.flag_time_next_config = states_flag::disable;
-			// optimized.time_stop = time_day_sec_;
+		if(optimized.time_red == time_day_sec_) {
+			if(pump1_.state() != states_motor::off_idle) {
+				pump1_.stop(stop_types::red_time);
+				// optimized.time_match_next = optimized.time_match_start;
+				optimized.flag_time_next_config = states_flag::disable;
+				// optimized.time_stop = time_day_sec_;
+			}
 		}
 	}
 }
