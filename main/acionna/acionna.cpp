@@ -786,7 +786,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 																		timesec_to_min(optimized.time_match_next),
 																		timesec_to_hour(optimized.time_red),
 																		timesec_to_min(optimized.time_red),
-																		optimized.event0_i,
+																		optimized.event0_i+1,
 																		optimized.cycles_i);
 
 						for(int i=0; i<optimized.event0_n_max; i++) {
@@ -1794,13 +1794,17 @@ void Acionna::operation_pump_start_match_optimized(void) {
 			// Reset counter parameters for next event cycle
 			optimized.event0_i = 0;
 			optimized.cycles_i = 0;
+			ESP_LOGI(TAG_ACIONNA, "optimized: start time match");
 		} else if(optimized.time_match_next == time_day_sec_) {
 			flag_time_match_optimized_ = states_flag::enable;
+			ESP_LOGI(TAG_ACIONNA, "optimized: next time match");
 		}
 
 		// if found time match optimized (from start time or next)
 		if(flag_time_match_optimized_ == states_flag::enable) {
 			flag_time_match_optimized_ = states_flag::disable;
+
+			int count_loop = 0;
 
 			// find one valid event programmed cycle
 			do {
@@ -1822,15 +1826,24 @@ void Acionna::operation_pump_start_match_optimized(void) {
 
 					// increment the cycle into the same event.
 					optimized.cycles_i++;
+					ESP_LOGI(TAG_ACIONNA, "optimized: IF cycles_i:%d, event0_i:%d", optimized.cycles_i++, optimized.event0_i);
 					// }
 				} else {
 					
 					// go to next event
 					optimized.event0_i++;
+					ESP_LOGI(TAG_ACIONNA, "optimized: ELSE cycles_i:%d, event0_i:%d", optimized.cycles_i++, optimized.event0_i);
 
 					// if(optimized.event0_n > (optimized.event0_n_max - 1)) {
 					// 	break;
 					// }
+				}
+
+				ESP_LOGI(TAG_ACIONNA, "optimized: loop count_i:%d", count_loop);
+				count_loop++;
+				if(count_loop > 20) {
+					ESP_LOGI(TAG_ACIONNA, "optimized: loop count max");
+					break;
 				}
 			// if does not exists more events programmed, finish the process.	
 			} while((optimized.event0_i < (optimized.event0_n_max - 1)) && (optimized.flag_time_next_config == states_flag::disable));
@@ -1839,10 +1852,12 @@ void Acionna::operation_pump_start_match_optimized(void) {
 		// here, we suppose the pump is on after start by time match or time match next
 		if(optimized.flag_time_next_config == states_flag::enable) {
 			// if pump turn off, update those values;
+			ESP_LOGI(TAG_ACIONNA, "optimized: config next time match");
 			if(pump1_.state() == states_motor::off_idle) {
 				optimized.flag_time_next_config = states_flag::disable;
 				// optimized.time_stop = time_day_sec_;
 				optimized.time_match_next = time_day_sec_ + optimized.time_delay;
+				ESP_LOGI(TAG_ACIONNA, "optimized: config next time match t:%.2d:%.2d", timesec_to_hour(optimized.time_match_next), timesec_to_min(optimized.time_match_next));
 			}
 		}
 
@@ -1854,6 +1869,7 @@ void Acionna::operation_pump_start_match_optimized(void) {
 				optimized.flag_time_next_config = states_flag::disable;
 				// optimized.time_stop = time_day_sec_;
 			}
+			ESP_LOGI(TAG_ACIONNA, "optimized: red time founded");
 		}
 	}
 }
