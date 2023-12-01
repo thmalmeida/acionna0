@@ -1,4 +1,5 @@
 #include "setup.hpp"
+// #include "esp_task_wdt.h"
 
 const char* TAG_SETUP = "SETUP";
 
@@ -259,7 +260,8 @@ void test_wifi(void *pvParameter)
 void isr_1sec(void *pvParameter) {
 	while(1) {
 		flag_1sec = 1;
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		// vTaskDelay(1000 / portTICK_PERIOD_MS);
+		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
 }
 void isr_100ms(void *pvParameter) {
@@ -282,7 +284,10 @@ void machine_run(void *pvParameter) {
 		if(flag_1sec) {
 			flag_1sec = 0;
 			acionna0.run_every_second();
-			vTaskDelay(1);
+			// esp_task_wdt_reset();
+			// vTaskDelay(1 / portTICK_PERIOD_MS);
+			vTaskDelay(pdMS_TO_TICKS(1));
+
 		}
 		
 		// if(flag_100ms) {

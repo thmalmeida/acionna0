@@ -286,6 +286,8 @@ public:
 				break;
 		}
 
+		update_state_();
+
 		time_on_ = 0;									// clear timer on to start count
 		time_to_shutdown = time_to_shutdown_config;		// set timer
 		make_log(_mode, *epoch_time_);					// and make some log

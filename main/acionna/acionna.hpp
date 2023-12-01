@@ -130,7 +130,7 @@ private:
 	states_flag flag_check_low_pressure_delta_ = states_flag::enable;
 	states_flag flag_check_time_match_optimized_ = states_flag::enable;
 
-	states_flag flag_time_match_optimized_ = states_flag::enable;
+	states_flag flag_time_match_optimized_ = states_flag::disable;		// time match flag for optimized logic. Must initialized disabled.
 	states_flag flag_start_request_ = states_flag::disable;				// flag request to start motor;
 	states_flag flag_time_match_ = states_flag::disable;				// flag when turn on time occurs;
 	states_flag flag_json_data_back_ = states_flag::disable;			// Continuously send data back. ws server mode.
@@ -160,7 +160,7 @@ private:
 
 	// Optimized mode - basic variables
 	struct {
-		uint32_t time_match_start = 0;									// first start time epoch [s]
+		uint32_t time_match_start = 21*60*60+31*60;						// first start time epoch [s]
 		uint32_t time_match_next = 0;									// next time programmed epoch [s];
 		// uint32_t time_stop = 0;											// time stopped epoch [s]
 		uint32_t time_delay = 5*60;										// delay time after low pressure dectect before turn on again;
