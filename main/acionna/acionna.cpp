@@ -651,7 +651,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3] == ';') {
 						// $50; show all info and timers
 						memset(buffer, 0, sizeof(buffer));
-						sprintf(buffer,"tm flag:%d n:%d\n", (int)flag_check_time_match_, time_match_n);
+						sprintf(buffer,"auto- f:%d n:%d\n", (int)flag_check_time_match_, time_match_n);
 						char buffer_temp[30];
 						for(int i=0; i<time_match_n; i++)
 						{
@@ -777,11 +777,13 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						memset(buffer, 0, sizeof(buffer));
 						char buffer_temp[60];
 
-						sprintf(buffer, "tm opt flag:%d h:%.2d:%.2d td:%d ns:%.2d:%.2d r:%.2d:%.2d ev:%d cy:%d\n",
+						sprintf(buffer, "opt- f:%d n:%d h:%.2d:%.2d td:%d nsf:%d ns:%.2d:%.2d r:%.2d:%.2d ev:%d cy:%d\n",
 																		static_cast<int>(flag_check_time_match_optimized_),
+																		optimized.event0_n_max,
 																		timesec_to_hour(optimized.time_match_start),
 																		timesec_to_min(optimized.time_match_start),
 																		timesec_to_min(optimized.time_delay),
+																		static_cast<int>(optimized.flag_time_next_config),
 																		timesec_to_hour(optimized.time_match_next),
 																		timesec_to_min(optimized.time_match_next),
 																		timesec_to_hour(optimized.time_red),
@@ -1833,7 +1835,7 @@ void Acionna::operation_pump_start_match_optimized(void) {
 				// counter to avoid an infinity loop
 				count_loop++;
 				// ESP_LOGI(TAG_ACIONNA, "optimized: loop count_i++:%d", count_loop);
-				if(count_loop > 20) {
+				if(count_loop > 4) {
 					// ESP_LOGI(TAG_ACIONNA, "optimized: loop count max");
 					break;
 				}
@@ -1866,19 +1868,6 @@ void Acionna::operation_pump_start_match_optimized(void) {
 	}
 }
 void Acionna::operation_pump_stop_check(void) {
-	/*
-	 * Reasons to halt the motor.
-	 * 0x00 - command line request
-	 * 0x01 - time out
-	 * 0x02 - high pressure
-	 * 0x03 - low pressure(broken pipe?)
-	 * 0x04 - thermal relay occurs;
-	 * 0x05 - contactor not on
-	 * 0x06 - low level
-	 * 0x07 - red time
-	 * 0x08 - system lock??
-	 * */
-
 	// check time to shutdown
 	if(flag_check_timer_ == states_flag::enable) {
 		if((pump1_.state() == states_motor::on_nominal_k1) || (pump1_.state() == states_motor::on_nominal_k2) || (pump1_.state() == states_motor::on_nominal_delta) || (pump1_.state() == states_motor::on_speeding_up)) {
