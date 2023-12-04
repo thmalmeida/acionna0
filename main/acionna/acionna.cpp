@@ -17,7 +17,7 @@ volatile uint8_t flag_100ms = 0;
 
 // static pwm_ledc led_wifi_indicator(2, 1, 0, 1);
 
-Acionna::Acionna(ADC_driver* adc) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 180), pump1_{&epoch_time_}, valves1_{&i2c, &epoch_time_, &pressure_} {
+Acionna::Acionna(ADC_driver* adc) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 220), pump1_{&epoch_time_}, valves1_{&i2c, &epoch_time_, &pressure_} {
 // Acionna::Acionna(void) : valves1_{&i2c} {
 	// ADC_driver adc0(adc_mode::oneshot);
 	// ADC_driver adc0(adc_mode::oneshot);
@@ -777,7 +777,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						memset(buffer, 0, sizeof(buffer));
 						char buffer_temp[60];
 
-						sprintf(buffer, "opt- f:%d n:%d h:%.2d:%.2d td:%d nsf:%d ns:%.2d:%.2d r:%.2d:%.2d ev:%d cy:%d\n",
+						sprintf(buffer, "opt- f:%d n:%d h:%.2d:%.2d td:%d nf:%d ns:%.2d:%.2d r:%.2d:%.2d ev:%d cy:%d\n",
 																		static_cast<int>(flag_check_time_match_optimized_),
 																		optimized.event0_n_max,
 																		timesec_to_hour(optimized.time_match_start),
