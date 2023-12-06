@@ -586,7 +586,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';') {
 						// $30; turn off by command line
 						pump1_.stop(stop_types::command_line_user);
-						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
+						sprintf(buffer, "Motor stop. s:%d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
 				}
@@ -594,7 +594,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k1);
-						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
+						sprintf(buffer, "Motor start. k%d s:%d\n", opcode1 static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
 				}
@@ -602,8 +602,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k2);
-						sprintf(buffer, "Motor: pump1_ start request");
-						// sprintf(buffer, "k1: %d, k2: %d, k3: %d\n", static_cast<int>(pump1_.state_k1()), static_cast<int>(pump1_.state_k2()), static_cast<int>(pump1_.state_k3()));
+						sprintf(buffer, "Motor start. k%d s:%d\n", opcode1 static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
 				}
@@ -611,7 +610,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k3);
-						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
+						sprintf(buffer, "Motor start. k%d s:%d\n", opcode1 static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
 				}
@@ -619,7 +618,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::to_delta);
-						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
+						sprintf(buffer, "Motor start Delta. s:%d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
 				}
@@ -627,7 +626,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::to_y);
-						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
+						sprintf(buffer, "Motor start Y. s:%d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
 				}
@@ -635,7 +634,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::y_delta_req);
-						sprintf(buffer, "Motor: %d\n", static_cast<uint8_t>(pump1_.state()));
+						sprintf(buffer, "Motor start Y/Delta. s:%d\n", static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
 				}
