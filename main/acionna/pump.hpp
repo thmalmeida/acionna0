@@ -119,13 +119,14 @@ public:
 				{
 					i++;
 					// delay_us(1);
-					delay_ms(1);
+					delay_us(1);
 					update_switches_();
 
-					if(i == time_switch_k_change)
+					if(i == time_switch_k_change*1000)
 					{
 						ESP_LOGI(TAG_PUMP, "error on k1 change");
 						stop(stop_types::contactor_not_on);
+						time_k1_on_ = i;
 						return 1;
 					}
 				}
@@ -142,10 +143,10 @@ public:
 				{
 					i++;
 					// delay_us(1);
-					delay_ms(1);
+					delay_us(1);
 					update_switches_();
 
-					if(i == time_switch_k_change)
+					if(i == time_switch_k_change*1000)
 					{
 						ESP_LOGI(TAG_PUMP, "error on k2 change");
 						stop(stop_types::contactor_not_on);
@@ -164,10 +165,10 @@ public:
 				while(state_k3() != states_switch::on)
 				{
 					i++;
-					delay_ms(1);
+					delay_us(1);
 					update_switches_();
 
-					if(i == time_switch_k_change)
+					if(i == time_switch_k_change*1000)
 					{
 						ESP_LOGI(TAG_PUMP, "error on k3 change");
 						stop(stop_types::contactor_not_on);
