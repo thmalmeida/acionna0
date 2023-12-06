@@ -8,5 +8,5 @@ idf_component_register(SRCS
 							restart_async.c
 							time_operations.cpp 
                        INCLUDE_DIRS include
-                       REQUIRES esp_rom basic_defines)
+                       REQUIRES esp_rom basic_defines esp_timer)
                        

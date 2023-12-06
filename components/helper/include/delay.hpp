@@ -3,6 +3,7 @@
 
 #include "arch/sys_arch.h"	        // include for delays
 #include "esp32/rom/ets_sys.h"      // include for ets_delay_us()
+#include "esp_timer.h"
 
 void delay_ms(uint32_t milliseconds);
 void delay_us(uint32_t microseconds);
