@@ -205,6 +205,7 @@ private:
 	void sys_ram_free_(char* buffer_str);
 	void sys_reset_reason_(char* buffer_str);
 	void sys_restart_(void);
+	void sys_ticks_per_us(char *buffer_str);
 	void sensor_dht(void);
 };
 #endif
