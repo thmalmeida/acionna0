@@ -195,9 +195,12 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			$95:4;				- mark valid;
 			$95:8:[0-1]			- change boot partition;
 			$95:9;				- Start firmware update;
-		$96;					- show chip info;
-		$97;					- Show RAM usage;
-		$98;					- Show reset reason;
+		$96;
+			$96:b;				- Show reset reason;
+			$96:c;				- Show chip info;
+			$96:m;				- Show RAM usage;
+			$96:t;				- show ticks per us;
+			$96:t:xxxx			- set ticks per clock;
 		$99;					- Soft reset system;
 */
 	int opcode0 = -1;
@@ -594,7 +597,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k1);
-						sprintf(buffer, "Motor start. k%d s:%d\n", opcode1 static_cast<uint8_t>(pump1_.state()));
+						sprintf(buffer, "Motor start. k%d s:%d\n", opcode1, static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
 				}
@@ -602,7 +605,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k2);
-						sprintf(buffer, "Motor start. k%d s:%d\n", opcode1 static_cast<uint8_t>(pump1_.state()));
+						sprintf(buffer, "Motor start. k%d s:%d\n", opcode1, static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
 				}
@@ -610,7 +613,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';')
 					{
 						pump1_.start(start_types::direct_k3);
-						sprintf(buffer, "Motor start. k%d s:%d\n", opcode1 static_cast<uint8_t>(pump1_.state()));
+						sprintf(buffer, "Motor start. k%d s:%d\n", opcode1, static_cast<uint8_t>(pump1_.state()));
 					}
 					break;
 				}
@@ -1495,17 +1498,19 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 				}
 				case 6: {
 					// $96;
-					if(command_str[3] == ';') {
+					if((command_str[3] == ':') && (command_str[4] == 'b') && (command_str[5] == ';')) {
+						// $96:b;
+						sys_reset_reason_(buffer);
+					} else if((command_str[3] == ':') && (command_str[4] == 'c') && (command_str[5] == ';')) {
+						// $96:c;
 						sys_chip_info(buffer);
+					} else if((command_str[3] == ':') && (command_str[4] == 'm') && (command_str[5] == ';')) {
+						// $96:m;
+						sys_ram_free_(buffer);
+					} else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ';')) {
+						// $96:t;
+						sys_ticks_per_us(buffer);
 					}
-					break;
-				}
-				case 7: {
-					sys_ram_free_(buffer);
-					break;
-				}
-				case 8: {
-					sys_reset_reason_(buffer);
 					break;
 				}
 				case 9: {
@@ -2260,6 +2265,10 @@ void Acionna::sys_restart_(void) {
 
 	// Restart system
 	esp_restart();
+}
+void Acionna::sys_ticks_per_us(char *buffer_str) {
+	memset(buffer_str, 0, sizeof(*buffer_str));
+	sprintf(buffer_str, "num ticks:%lu\n", esp_rom_get_cpu_ticks_per_us());
 }
 void Acionna::sys_wifi_info_(char* buffer_str) {
 
