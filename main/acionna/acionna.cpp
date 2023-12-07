@@ -49,7 +49,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			$03:b:85;			- Set to 85% the pressure min bellow the current pressure to avoid pipe broken;
 			$03:m:3;			- Set 3 seconds while K1 and K3 are ON into delta tri start;
 			$03:m;				- Just show the speeding up time;
-			$03:t:400;			- Set 400 milliseconds to wait K3 go off before start K2;
+			$03:t:0400;			- Set 400 milliseconds to wait K3 go off before start K2;
 			$03:t;				- Just show the time switch;
 			$03:u;				- show k time logs;
 
@@ -80,7 +80,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$20:DevName;			- Change bluetooth name;
 		$20:n:
 		$21:i:30;				- lo;		- Altera o nome do bluetooth para "Vassalo";
-		$21:d:099				- pwm: change duty cicle [%];
+		$21:d:099;				- pwm: change duty cicle [%];
 		$21:f:0001				- pwm: change frequency [Hz];
 
 	$3X;						- Acionamento do motor;
@@ -389,17 +389,17 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					else if((command_str[3] == ':') && (command_str[4] == 'm') && (command_str[5] == ';')) {
 						sprintf(buffer, "time delta to y: %d s\n", pump1_.time_delta_to_y_switch_config);
 					} // $03:m;
-					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ':') && (command_str[9] == ';')) {
-						_aux2[0] = '0';
-						_aux2[1] = command_str[6];
-						_aux2[2] = command_str[7];		// '0' in uint8_t is 48. ASCII
-						_aux2[3] = command_str[8];		// '0' in uint8_t is 48. ASCII
+					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ':') && (command_str[10] == ';')) {
+						_aux2[0] = command_str[6];
+						_aux2[1] = command_str[7];
+						_aux2[2] = command_str[8];		// '0' in uint8_t is 48. ASCII
+						_aux2[3] = command_str[9];		// '0' in uint8_t is 48. ASCII
 						_aux2[4] = '\0';
 
 						pump1_.time_switch_k_change = atoi(_aux2);
 
 						sprintf(buffer, "set time_switch: %d\n", pump1_.time_switch_k_change);
-					} // $03:t:900;	- Set 900 milliseconds to wait K3 go off before start K2;
+					} // $03:t:0900;	- Set 900 milliseconds to wait K3 go off before start K2;
 					else if((command_str[3] == ':') && (command_str[4] == 't') && (command_str[5] == ';')) {
 						sprintf(buffer, "time_switch: %d\n", pump1_.time_switch_k_change);
 					} // $03:t; - show time K3 wait to turn on;
@@ -551,19 +551,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			switch (opcode1)
 			{
 				case 1: {
-					if((command_str[3] == ':') && (command_str[4] == 'f') && (command_str[5] == ':') && (command_str[10] == ';')) {
-					// $21:f:0060;
-						_aux2[0] = command_str[6];
-						_aux2[1] = command_str[7];
-						_aux2[2] = command_str[8];
-						_aux2[3] = command_str[9];		// '0' in uint8_t is 48. ASCII
-						_aux2[4] = '\0';
-						uint32_t pwm_led_frequency = (uint32_t) atoi(_aux2);
-						// led_wifi.set_frequency(pwm_led_frequency);
-
-						sprintf(buffer, "pwm freq: %lu", pwm_led_frequency);
-					}
-					else if((command_str[3] == ':') && (command_str[4] == 'd') && (command_str[5] == ':') && (command_str[9] == ';')) {
+					if((command_str[3] == ':') && (command_str[4] == 'd') && (command_str[5] == ':') && (command_str[9] == ';')) {
 					// $21:d:098; - set led duty cycle to 98 %;
 						_aux2[0] = '0';
 						_aux2[1] = command_str[6];
@@ -571,9 +559,20 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux2[3] = command_str[8];		// '0' in uint8_t is 48. ASCII
 						_aux2[4] = '\0';
 						uint32_t pwm_led_duty = (uint32_t) atoi(_aux2);
-						// led_wifi.set_duty(pwm_led_duty);
+						led_wifi.set_duty(pwm_led_duty);
 
 						sprintf(buffer, "pwm duty: %lu", pwm_led_duty);
+					}					
+					else if((command_str[3] == ':') && (command_str[4] == 'f') && (command_str[5] == ':') && (command_str[10] == ';')) {
+					// $21:f:0060;
+						_aux2[0] = command_str[6];
+						_aux2[1] = command_str[7];
+						_aux2[2] = command_str[8];
+						_aux2[3] = command_str[9];		// '0' in uint8_t is 48. ASCII
+						_aux2[4] = '\0';
+						uint32_t pwm_led_frequency = (uint32_t) atoi(_aux2);
+						led_wifi.set_frequency(pwm_led_frequency);
+						sprintf(buffer, "pwm freq: %lu", pwm_led_frequency);
 					}
 					break;
 				}
@@ -1555,10 +1554,11 @@ void Acionna::init() {
 	wifi_get_mac(&wifi_mac_[0]);
 
 	// 3 mac address listed - 18 length + 1 '\0' = 19 
-	char mac_table[3][18] = {
+	char mac_table[4][18] = {
 							{"84:cc:a8:69:f6:f0"},	// .31 - test device;
 							{"84:cc:a8:69:97:7c"},	// .32 - poço cacimba;
-							{"84:cc:a8:69:9c:4c"}};	// .33 - irrigação.
+							{"84:cc:a8:69:9c:4c"},	// .33 - irrigação.
+							{"84:cc:a8:69:41:34"}};	// .34 - new one.
 
 	// Converting uint8_t vector mac address to string
 	for(int i=0; i<6; i++) {
@@ -1575,6 +1575,8 @@ void Acionna::init() {
 		wifi_ip_end = 32;
 	} else if(strcmp(mac_device, &mac_table[2][0]) == 0) {
 		wifi_ip_end = 33;
+	} else if(strcmp(mac_device, &mac_table[3][0]) == 0) {
+		wifi_ip_end = 34;
 	} else {
 		wifi_ip_end = 30;
 	}

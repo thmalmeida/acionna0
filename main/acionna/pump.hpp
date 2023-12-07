@@ -118,11 +118,10 @@ public:
 				while(state_k1() != states_switch::on)
 				{
 					i++;
-					// delay_us(1);
 					delay_us(1);
 					update_switches_();
 
-					if(i == time_switch_k_change*1000)
+					if(i > time_switch_k_change*1000)
 					{
 						ESP_LOGI(TAG_PUMP, "error on k1 change");
 						stop(stop_types::contactor_not_on);
@@ -146,7 +145,7 @@ public:
 					delay_us(1);
 					update_switches_();
 
-					if(i == time_switch_k_change*1000)
+					if(i > time_switch_k_change*1000)
 					{
 						ESP_LOGI(TAG_PUMP, "error on k2 change");
 						stop(stop_types::contactor_not_on);
@@ -168,7 +167,7 @@ public:
 					delay_us(1);
 					update_switches_();
 
-					if(i == time_switch_k_change*1000)
+					if(i > time_switch_k_change*1000)
 					{
 						ESP_LOGI(TAG_PUMP, "error on k3 change");
 						stop(stop_types::contactor_not_on);
@@ -190,7 +189,7 @@ public:
 						i++;										// loop wait count
 						delay_us(1);								// wait 1 millisecond
 						update_switches_();							// update states
-						if(i == time_switch_k_change*1000)			// number of loops is the time delay that k3 takes to switch off
+						if(i > time_switch_k_change*1000)			// number of loops is the time delay that k3 takes to switch off
 						{
 							ESP_LOGI(TAG_PUMP, "maybe k3 is lock");
 							drive_k_(1,0);
@@ -236,7 +235,7 @@ public:
 						i++;
 						delay_us(1);
 						update_switches_();
-						if(i == time_switch_k_change*1000)
+						if(i > time_switch_k_change*1000)
 						{
 							ESP_LOGI(TAG_PUMP, "maybe k2 is lock");
 							drive_k_(1,0);
@@ -341,7 +340,7 @@ public:
 			delay_us(1);
 			k++;
 
-			if(k > 800*1000) {
+			if(k > time_switch_k_change*1000) {
 				break;
 			}
 		}
@@ -450,6 +449,7 @@ private:
 	
 	void update_switches_(void)
 	{
+		// we save all states to debug on $03; command.
 		state_k1_pin_ = read_k_pin_(1);
 		state_k2_pin_ = read_k_pin_(2);
 		state_k3_pin_ = read_k_pin_(3);

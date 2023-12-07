@@ -19,7 +19,8 @@ const char *TAG_IP = "IP stuffs";
 static int s_retry_num = 0;
 uint8_t wifi_ip_end = 29;
 
-// pwm_ledc led_wifi(2, 1, 99, 1);
+// gpio 2, freq 1 Hz, duty 99%, inv 1, channel 0, timer 0, group 0 (low);
+pwm_ledc led_wifi(2, 1, 0, 1, 0, 0, 0);
 
 void wifi_sta_init(uint8_t ip_end)
 {
@@ -352,8 +353,7 @@ void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_bas
 		else if(event_id == WIFI_EVENT_STA_CONNECTED)
 		{
 			wifi_state = conn_states::connected;
-			// led_wifi_indicator.set_duty(3);
-			// led_wifi.set_duty(2);
+			led_wifi.set_duty(2);
 			ESP_LOGI(TAG_WIFI, "connected to ap SSID:%s password:%s", WIFI_SSID_STA, WIFI_PASS);
 			ESP_LOGI(TAG_WIFI, "ESP32 station connected to AP");
 			// httpd web socket start
@@ -363,8 +363,7 @@ void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_bas
 			// if (s_retry_num < EXAMPLE_ESP_MAXIMUM_RETRY)
 			// {
 			wifi_state = conn_states::disconnected;
-			// led_wifi_indicator.set_duty(50);
-			// led_wifi.set_duty(50);
+			led_wifi.set_duty(50);
 			ESP_LOGI(TAG_WIFI, "ESP32 station disconnected to AP");
 
 			// if((s_retry_num%10) == 0)

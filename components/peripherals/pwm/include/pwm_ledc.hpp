@@ -10,6 +10,11 @@ static const char *TAG_PWM = "PWM_LEDC";
 
 /*  ledc pwm peripheral are dividided into 2 groups of 8 channels. Each group has 4 timers.
 
+The total is
+	- 8 timers (4 high and 4 low);
+	- 16 channels (8 for high group and 8 on low group);
+
+
 Group 1 - High speed: automatic and glitch-free changing of the PWM duty cycle;
 Group 2 - Low speed: the PWM duty cycle must be changed by the driver in software.
 
@@ -19,9 +24,9 @@ Ref.:
 [1] https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/ledc.html;
 [2] 14LED PWM Controller (LEDC), esp32 technical reference manual, v49, 2023;
 
-	channel range	: 0 - 7;
-	timer_num		: 0 - 3;
-	timer_module	: 0 or 1;		0: slow, 1: fast
+	channel range			: 0 - 7;
+	timer_num				: 0 - 3;
+	timer_module (group)	: 0 or 1;		0: slow, 1: fast
 */
 
 #define LEDC_TIMER              LEDC_TIMER_0
@@ -32,7 +37,13 @@ Ref.:
 #define LEDC_DUTY               (4095) // Set duty to 50%. ((2 ** 13) - 1) * 50% = 4095
 #define LEDC_FREQUENCY          (1) // Frequency in Hertz. Set frequency at 5 kHz
 
-
+/*
+	Parameters:
+		gpio_port_number
+		frequency [Hz]
+		duty_percent [%]
+		invert_cycle, 0- non inverted, 1- inverted
+*/
 class pwm_ledc {
 
 public:
@@ -46,57 +57,39 @@ public:
 		timer_module_ = timer_module;
 		init(gpio_number, frequency, duty_percent, invert);
 	}
-	// ~pwm_ledc(void) {
-	// }
+	~pwm_ledc(void) {
+	}
 	void init(int gpio_number, uint32_t frequency, uint32_t duty_percent, unsigned int invert) {
 		gpio_number_ = gpio_number;
 		frequency_ = frequency;
 		duty_ = duty_convert_(duty_percent);
 
 		// Prepare and then apply the LEDC PWM timer configuration
-		ledc_timer_config_t* led0_timer_cfg = new ledc_timer_config_t;
-		// ledc_timer_config_t led0_timer_cfg = {
-		// 	.speed_mode       = LEDC_MODE,
-		// 	.timer_num        = LEDC_TIMER,
-		// 	.duty_resolution  = LEDC_DUTY_RES,
-		// 	.freq_hz          = LEDC_FREQUENCY,  // Set output frequency at 5 kHz
-		// 	.clk_cfg          = LEDC_AUTO_CLK
-		// };
+		// ledc_timer_config_t *led0_timer_cfg = new ledc_timer_config_t;
 
-		led0_timer_cfg->speed_mode = LEDC_MODE;
-		led0_timer_cfg->timer_num = LEDC_TIMER;
-		led0_timer_cfg->duty_resolution = LEDC_DUTY_RES;
-		led0_timer_cfg->freq_hz = LEDC_FREQUENCY;
-		led0_timer_cfg->clk_cfg = LEDC_AUTO_CLK;
+		// led0_timer_cfg->speed_mode = static_cast<ledc_mode_t>(timer_module_);
+		// led0_timer_cfg->duty_resolution = LEDC_TIMER_10_BIT;
+		// led0_timer_cfg->timer_num = static_cast<ledc_timer_t>(timer_num_);
+		// led0_timer_cfg->freq_hz = frequency_;
+		// led0_timer_cfg->clk_cfg = LEDC_AUTO_CLK;
+		// led0_timer_cfg->deconfigure = false;
+
+		// Prepare and then apply the LEDC PWM channel configuration
+		// // 1- Timer configuration
+		ledc_timer_config_t led0_timer_cfg;
+
+		led0_timer_cfg.speed_mode = static_cast<ledc_mode_t>(timer_module_);
+		led0_timer_cfg.duty_resolution = LEDC_TIMER_10_BIT;
+		led0_timer_cfg.timer_num = static_cast<ledc_timer_t>(timer_num_);
+		led0_timer_cfg.freq_hz = frequency_;
+		led0_timer_cfg.clk_cfg = LEDC_AUTO_CLK;
+		led0_timer_cfg.deconfigure = false;
 
 		ESP_LOGI(TAG_PWM, "init 2.a");
-		ESP_ERROR_CHECK(ledc_timer_config(led0_timer_cfg));
+		ESP_ERROR_CHECK(ledc_timer_config(&led0_timer_cfg));
 		ESP_LOGI(TAG_PWM, "init 2.b");
 
-		// // 1- Timer configuration
-		// ledc_timer_config_t led0_timer_cfg;
-		// led0_timer_cfg.speed_mode = static_cast<ledc_mode_t>(timer_module_);
-		// led0_timer_cfg.timer_num = static_cast<ledc_timer_t>(timer_num_);
-		// led0_timer_cfg.duty_resolution = LEDC_TIMER_10_BIT;
-		// led0_timer_cfg.freq_hz = frequency_;
-		// led0_timer_cfg.clk_cfg = LEDC_AUTO_CLK;
-		// ESP_LOGI(TAG_PWM, "init 3.a");
-		// ESP_ERROR_CHECK(ledc_timer_config(&led0_timer_cfg));
-		// ESP_LOGI(TAG_PWM, "init 3.b");
-
-
-		// // Prepare and then apply the LEDC PWM channel configuration
-		// ledc_channel_config_t led0_channel_cfg = {
-		// 	.speed_mode     = LEDC_MODE,
-		// 	.channel        = LEDC_CHANNEL,
-		// 	.timer_sel      = LEDC_TIMER,
-		// 	.intr_type      = LEDC_INTR_DISABLE,
-		// 	.gpio_num       = LEDC_OUTPUT_IO,
-		// 	.duty           = 0, // Set duty to 0%
-		// 	.hpoint         = 0
-		// };
-		// ESP_ERROR_CHECK(ledc_channel_config(&led0_channel_cfg));
-
+		// delete led0_timer_cfg;
 
 		// 2- Channel's configuration
 		ledc_channel_config_t led0_channel_cfg;

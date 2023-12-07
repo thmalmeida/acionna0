@@ -56,7 +56,7 @@ enum class ip_states {
 	ip_defined
 };
 
-// extern pwm_ledc led_wifi;
+extern pwm_ledc led_wifi;
 
 extern uint8_t wifi_ip_end;
 extern ip_get_types ip_get_mode;
