@@ -130,6 +130,7 @@ public:
 					}
 				}
 				time_k1_on_ = i;
+				delay_us(10000);
 				ESP_LOGI(TAG_PUMP, "k1 on");
 				break;
 			}
@@ -153,6 +154,7 @@ public:
 					}
 				}
 				time_k2_on_ = i;
+				delay_us(10000);
 				ESP_LOGI(TAG_PUMP, "k2 on");
 				break;
 			}
@@ -175,6 +177,7 @@ public:
 					}
 				}
 				time_k3_on_ = i;
+				delay_us(10000);
 				ESP_LOGI(TAG_PUMP, "k3 on");
 				break;
 			}
