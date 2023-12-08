@@ -1869,6 +1869,11 @@ void Acionna::operation_pump_start_match_optimized(void) {
 				// optimized.time_match_next = optimized.time_match_start;
 				optimized.flag_time_next_config = states_flag::disable;
 				// optimized.time_stop = time_day_sec_;
+			} else {
+				// these occurs when motor is idle on time delay period and next start time is programmed after time red.
+				if(optimized.time_match_next >= optimized.time_red) {
+					optimized.time_match_next = time_day_sec_ - 60;
+				}
 			}
 			// ESP_LOGI(TAG_ACIONNA, "optimized: red time founded");
 		}
