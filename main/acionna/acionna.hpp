@@ -110,13 +110,16 @@ private:
 	Pump pump1_;
 	Valves valves1_;
 
-	states_flag flag_check_k1_ = states_flag::disable;
-	states_flag flag_check_k2_ = states_flag::disable;
-	states_flag flag_check_k3_ = states_flag::disable;
+	states_flag flag_check_k1_ = states_flag::disable;					// check hardware input pin of k1
+	states_flag flag_check_k2_ = states_flag::disable;					// check hardware input pin of k2
+	states_flag flag_check_k3_ = states_flag::disable;					// check hardware input pin of k3
 	states_flag flag_check_high_level_ = states_flag::disable;
 	states_flag flag_check_low_level_ = states_flag::disable;
 	states_flag flag_check_period_ = states_flag::disable;
-	states_flag flag_check_pressure_low_ = states_flag::disable;
+	states_flag flag_check_pressure_low_ = states_flag::enable;			// global flag for low pressure detection
+	states_flag flag_check_pressure_low_k1_ = states_flag::disable;
+	states_flag flag_check_pressure_low_k2_ = states_flag::enable;
+	states_flag flag_check_pressure_low_delta_ = states_flag::enable;
 	states_flag flag_check_pressure_high_ = states_flag::enable;		// enable by default to make system more safe;
 	states_flag flag_check_pressure_valve_ = states_flag::disable;
 	states_flag flag_check_time_match_ = states_flag::disable;
@@ -124,10 +127,6 @@ private:
 	states_flag flag_check_timer_ = states_flag::enable;
 	states_flag flag_check_valves_ = states_flag::disable;				// continuously check valves through PCY8575 module
 	states_flag flag_check_valves_time_match_ = states_flag::disable;
-	states_flag flag_check_low_pressure_ = states_flag::enable;			// global flag
-	states_flag flag_check_low_pressure_k1_ = states_flag::disable;
-	states_flag flag_check_low_pressure_k2_ = states_flag::enable;
-	states_flag flag_check_low_pressure_delta_ = states_flag::enable;
 	states_flag flag_check_time_match_optimized_ = states_flag::enable;
 
 	states_flag flag_time_match_optimized_ = states_flag::disable;		// time match flag for optimized logic. Must initialized disabled.
@@ -135,14 +134,12 @@ private:
 	states_flag flag_time_match_ = states_flag::disable;				// flag when turn on time occurs;
 	states_flag flag_json_data_back_ = states_flag::disable;			// Continuously send data back. ws server mode.
 
-	// states_flag flag_enable_decode_ = states_flag::disable;
-
 	// Flags for communication purpose
 	states_flag ws_server_ans_flag_ = states_flag::disable;
 	states_flag bt_ans_flag_ = states_flag::disable;
 	states_flag ws_client_ans_flag_ = states_flag::disable;
 	
-	uint8_t command_str_[20];
+	uint8_t command_str_[20];											// command buffer array
 	// uint8_t command_str_len_ = 0;
 
 	// time match struct array

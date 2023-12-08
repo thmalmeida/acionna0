@@ -269,13 +269,13 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						for(int i=0; i<9; i++)
 						{
 							dt0.setUnixTime(pump1_.log_motors[i].time_start);
-							sprintf(buffer_temp, "s%d- %.2d/%.2d %.2d:%.2d m:%d t:%lu:%.2lu r:%u\n", i+1, dt0.getDay(),
+							sprintf(buffer_temp, "s%d- %.2d/%.2d %.2d:%.2d m:%d t:%lu:%.2u r:%u\n", i+1, dt0.getDay(),
 																								dt0.getMonth(),
 																								dt0.getHour(),
 																								dt0.getMinute(),
 																								static_cast<int>(pump1_.log_motors[i].start_mode),
 																								pump1_.log_motors[i].time_elapsed_on/60,
-																								timesec_to_sec(pump1_.log_motors[i].time_elapsed_on);
+																								timesec_to_sec(pump1_.log_motors[i].time_elapsed_on),
 																								static_cast<int>(pump1_.log_motors[i].stop_reason));
 							strcat(buffer, buffer_temp);
 						}
@@ -1022,46 +1022,46 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '1') && (command_str[6] == ';')) {
 					// $70:l1;
-						sprintf(buffer, "check low press k1: %d\n", static_cast<int>(flag_check_low_pressure_k1_));
+						sprintf(buffer, "check low press k1: %d\n", static_cast<int>(flag_check_pressure_low_k1_));
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '1') && (command_str[6] == ':') && (command_str[8] == ';')) {
 					// $70:l1:[0|1];
 						if(opcode_sub0) {
-							flag_check_low_pressure_k1_ = states_flag::enable;
-							flag_check_low_pressure_delta_ = states_flag::disable;
+							flag_check_pressure_low_k1_ = states_flag::enable;
+							flag_check_pressure_low_delta_ = states_flag::disable;
 						}
 						else
-							flag_check_low_pressure_k1_ = states_flag::disable;
+							flag_check_pressure_low_k1_ = states_flag::disable;
 					
-						sprintf(buffer, "set check low press k1: %d\n", static_cast<int>(flag_check_low_pressure_k1_));
+						sprintf(buffer, "set check low press k1: %d\n", static_cast<int>(flag_check_pressure_low_k1_));
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '2') && (command_str[6] == ';')) {
 					// $70:l2;
-						sprintf(buffer, "check low press k2: %d\n", static_cast<int>(flag_check_low_pressure_k2_));
+						sprintf(buffer, "check low press k2: %d\n", static_cast<int>(flag_check_pressure_low_k2_));
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '2') && (command_str[6] == ':') && (command_str[8] == ';')) {
 					// $70:l2:[0|1];
 						if(opcode_sub0)
-							flag_check_low_pressure_k2_ = states_flag::enable;
+							flag_check_pressure_low_k2_ = states_flag::enable;
 						else
-							flag_check_low_pressure_k2_ = states_flag::disable;
+							flag_check_pressure_low_k2_ = states_flag::disable;
 					
-						sprintf(buffer, "set check low press k2: %d\n", static_cast<int>(flag_check_low_pressure_k2_));
+						sprintf(buffer, "set check low press k2: %d\n", static_cast<int>(flag_check_pressure_low_k2_));
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '4') && (command_str[6] == ';')) {
 					// $70:l4;
-						sprintf(buffer, "check low press delta: %d\n", static_cast<int>(flag_check_low_pressure_delta_));
+						sprintf(buffer, "check low press delta: %d\n", static_cast<int>(flag_check_pressure_low_delta_));
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'l') && (command_str[5] == '4') && (command_str[6] == ':') && (command_str[8] == ';')) {
 					// $70:l4:[0|1];
 						if(opcode_sub0) {
-							flag_check_low_pressure_delta_ = states_flag::enable;
-							flag_check_low_pressure_k1_ = states_flag::disable;
+							flag_check_pressure_low_delta_ = states_flag::enable;
+							flag_check_pressure_low_k1_ = states_flag::disable;
 						}
 						else
-							flag_check_low_pressure_delta_ = states_flag::disable;
+							flag_check_pressure_low_delta_ = states_flag::disable;
 					
-						sprintf(buffer, "set check k1k2 %d\n", static_cast<int>(flag_check_low_pressure_delta_));
+						sprintf(buffer, "set check k1k2 %d\n", static_cast<int>(flag_check_pressure_low_delta_));
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == 'h') && (command_str[6] == ';')) {
 					// $70:ph;
@@ -1900,21 +1900,21 @@ void Acionna::operation_pump_stop_check(void) {
 
 	// check low pressure (0x03)
 	if(flag_check_pressure_low_ == states_flag::enable) {
-		if(flag_check_low_pressure_k1_ == states_flag::enable) {
+		if(flag_check_pressure_low_k1_ == states_flag::enable) {
 			// To main waterpump with 3 stages;
 			if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k1, 60)) {
 				pump1_.stop(stop_types::pressure_low);
 			}
 		}
 
-		if(flag_check_low_pressure_delta_ == states_flag::enable) {
+		if(flag_check_pressure_low_delta_ == states_flag::enable) {
 			// Trying for irrigation. It needs some tests.
 			if(pipe1_.air_intake_detect(pump1_.state(), states_motor::on_nominal_delta, 60)) {
 				pump1_.stop(stop_types::pressure_low);
 			}
 		}
 
-		if(flag_check_low_pressure_k2_ == states_flag::enable) {
+		if(flag_check_pressure_low_k2_ == states_flag::enable) {
 			// set pump state and expected pressure
 			if(pipe2_.air_intake_detect(pump1_.state(), states_motor::on_nominal_k2, 60)) {
 				pump1_.stop(stop_types::pressure_low);
