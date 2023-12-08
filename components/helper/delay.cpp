@@ -2,7 +2,10 @@
 
 void delay_ms(uint32_t milliseconds)
 {
-	sys_delay_ms(milliseconds);
+	delay_ms(milliseconds*1000);
+
+	// old way (not recommended)
+	// sys_delay_ms(milliseconds);
 }
 void delay_us(uint32_t microseconds)
 {
@@ -15,6 +18,6 @@ void delay_us(uint32_t microseconds)
 		}
 	}
 
-	// 2 - old way using internal function (not recommended)
+	// old way using internal function (not recommended)
 	// ets_delay_us(microseconds);
 }
