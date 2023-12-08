@@ -240,22 +240,22 @@ public:
 						update_switches_();
 						if(i > time_switch_k_change*1000)
 						{
-							ESP_LOGI(TAG_PUMP, "maybe k2 is lock");
+							ESP_LOGI(TAG_PUMP, "maybe k2 is lock, i:%d", i);
 							drive_k_(1,0);
 							drive_k_(2,0);
 							drive_k_(3,0);
-							ESP_LOGI(TAG_PUMP, "i: %d", i);
 							return 1;
 						}
 					}
 					ESP_LOGI(TAG_PUMP, "i: %d", i);
-					delay_ms(time_switch_k_change);
+					delay_us(time_switch_k_change*1000);
 				}
 
 				// if k2 is off, start k3 and than k1.
 				if((state_k2() == states_switch::off) && (state_k2_pin() == states_switch::off)) {
 					ESP_LOGI(TAG_PUMP, "K1 and K3: ON");
 					drive_k_(3,1);
+
 					if((state_k1() == states_switch::off) && (state_k1_pin() == states_switch::off)) {
 						ESP_LOGI(TAG_PUMP, "from zero to Y start");
 						drive_k_(1, 1);
@@ -263,7 +263,8 @@ public:
 					else {
 						ESP_LOGI(TAG_PUMP, "from K1 on to Y start");
 					}
-					delay_us(10000);								// delay for debounce purpose
+
+					delay_us(20000);								// delay for debounce purpose
 				} else {
 					ESP_LOGI(TAG_PUMP, "from delta to Y fail on K2 change");
 					return 1;
@@ -285,7 +286,7 @@ public:
 			case start_types::y_delta_req: {
 				flag_start_y_delta_ = states_flag::enable;
 				start_y_delta_state_ = start_types::to_y;
-				return 0;	// ok!
+				return 0;	// return ok! Exit break function here.
 				break;
 			}
 			default:
