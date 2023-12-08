@@ -269,12 +269,13 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						for(int i=0; i<9; i++)
 						{
 							dt0.setUnixTime(pump1_.log_motors[i].time_start);
-							sprintf(buffer_temp, "s%d- %.2d/%.2d %.2d:%.2d m:%d t:%lu r:%u\n", i+1, dt0.getDay(),
+							sprintf(buffer_temp, "s%d- %.2d/%.2d %.2d:%.2d m:%d t:%lu:%.2lu r:%u\n", i+1, dt0.getDay(),
 																								dt0.getMonth(),
 																								dt0.getHour(),
 																								dt0.getMinute(),
 																								static_cast<int>(pump1_.log_motors[i].start_mode),
 																								pump1_.log_motors[i].time_elapsed_on/60,
+																								timesec_to_sec(pump1_.log_motors[i].time_elapsed_on);
 																								static_cast<int>(pump1_.log_motors[i].stop_reason));
 							strcat(buffer, buffer_temp);
 						}
