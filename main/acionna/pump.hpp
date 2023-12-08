@@ -121,8 +121,7 @@ public:
 					delay_us(1);
 					update_switches_();
 
-					if(i > time_switch_k_change*1000)
-					{
+					if(i > time_switch_k_change*1000) {
 						ESP_LOGI(TAG_PUMP, "error on k1 change");
 						stop(stop_types::contactor_not_on);
 						time_k1_on_ = i;
@@ -130,7 +129,7 @@ public:
 					}
 				}
 				time_k1_on_ = i;
-				delay_us(10000);
+				delay_us(10000);								// delay for debounce purpose
 				ESP_LOGI(TAG_PUMP, "k1 on");
 				break;
 			}
@@ -154,7 +153,7 @@ public:
 					}
 				}
 				time_k2_on_ = i;
-				delay_us(10000);
+				delay_us(10000);								// delay for debounce purpose
 				ESP_LOGI(TAG_PUMP, "k2 on");
 				break;
 			}
@@ -177,7 +176,7 @@ public:
 					}
 				}
 				time_k3_on_ = i;
-				delay_us(10000);
+				delay_us(10000);								// delay for debounce purpose
 				ESP_LOGI(TAG_PUMP, "k3 on");
 				break;
 			}
@@ -195,9 +194,9 @@ public:
 						if(i > time_switch_k_change*1000)			// number of loops is the time delay that k3 takes to switch off
 						{
 							ESP_LOGI(TAG_PUMP, "maybe k3 is lock");
-							drive_k_(1,0);
-							drive_k_(2,0);
-							drive_k_(3,0);
+							drive_k_(1, 0);
+							drive_k_(2, 0);
+							drive_k_(3, 0);
 							ESP_LOGI(TAG_PUMP, "i: %d", i);
 							return 1;
 						}
@@ -208,7 +207,7 @@ public:
 				// K2 algorithm to turn on checking k3 state;
 				if((state_k3() == states_switch::off) && (state_k3_pin() == states_switch::off)) {
 					ESP_LOGI(TAG_PUMP, "K1 and K2: ON");
-					drive_k_(2,1);
+					drive_k_(2, 1);
 					if((state_k1() == states_switch::off) && (state_k1_pin() == states_switch::off)) {
 						ESP_LOGI(TAG_PUMP, "from zero to delta start");
 						drive_k_(1, 1);
@@ -216,6 +215,7 @@ public:
 					else {
 						ESP_LOGI(TAG_PUMP, "from K1 on to delta start");
 					}
+					delay_us(10000);								// delay for debounce purpose
 				} else {
 					ESP_LOGI(TAG_PUMP, "from Y to delta fail on K3 change");
 					return 1;
@@ -263,6 +263,7 @@ public:
 					else {
 						ESP_LOGI(TAG_PUMP, "from K1 on to Y start");
 					}
+					delay_us(10000);								// delay for debounce purpose
 				} else {
 					ESP_LOGI(TAG_PUMP, "from delta to Y fail on K2 change");
 					return 1;
