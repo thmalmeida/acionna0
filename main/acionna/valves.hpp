@@ -364,7 +364,7 @@ public:
 		load_.data_test();
 	}
 
-	static const int log_n = 12;
+	static const int log_n = 15;
 
 	struct {
 		uint8_t valve_id;									// valve id

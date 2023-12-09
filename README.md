@@ -33,7 +33,8 @@ Acionna is a firmware implementation to control and control and monitoring loads
 - average pressure while working
 
 # Working modes!
-** Mode 1
+** Mode 1 - Normal mode
+    this mode can work on manual mode with automatic stop protections (low level, high pressure, time over, thermal relay, ). Automatic start mode can be applied;
 
 ** Mode 2 - Irrigation that can control valves switch system;
 

@@ -269,7 +269,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						for(int i=0; i<9; i++)
 						{
 							dt0.setUnixTime(pump1_.log_motors[i].time_start);
-							sprintf(buffer_temp, "s%d- %.2d/%.2d %.2d:%.2d m:%d t:%lu:%.2u r:%u\n", i+1, dt0.getDay(),
+							sprintf(buffer_temp, "%.2d- %.2d/%.2d %.2d:%.2d m:%d t:%lu:%.2u r:%u\n", i+1, dt0.getDay(),
 																								dt0.getMonth(),
 																								dt0.getHour(),
 																								dt0.getMinute(),
@@ -1185,7 +1185,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 						for(auto i=0; i<valves1_.log_n; i++) {
 							dt0.setUnixTime(valves1_.log_valves[i].started_time);
-							sprintf(buffer_temp, "%d- v%d %.2d/%.2d %.2d:%.2d t:%d p:%d [%d:%d]\n", i,
+							sprintf(buffer_temp, "%.2d- v%d %.2d/%.2d %.2d:%.2d t:%d p:%d [%d:%d]\n", i,
 																						valves1_.log_valves[i].valve_id,
 																						dt0.getDay(),
 																						dt0.getMonth(),

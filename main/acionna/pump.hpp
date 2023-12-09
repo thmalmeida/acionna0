@@ -404,7 +404,7 @@ public:
 	}
 
 	// log history of turn on/off mode and timers;
-	static const int log_n = 10;					// history log size
+	static const int log_n = 15;					// history log size
 	struct {
 		start_types start_mode;						// motor start mode;
 		uint32_t time_start;						// started time. Epoch format [s];
