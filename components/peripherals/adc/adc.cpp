@@ -76,7 +76,7 @@ void ADC_driver::oneshot_channel_config(int channel, int attenuation, int bitwid
 			break;
 		}
 		case 3: {
-			attenuation_ = ADC_ATTEN_DB_11;
+			attenuation_ = ADC_ATTEN_DB_12;
 			break;
 		}
 		default: {
@@ -128,6 +128,27 @@ int ADC_driver::read(int channel) {
 
 	return data_adc_raw;
 }
+int ADC_driver::read(int channel, int length) {
+	int adc_raw = read(channel);
+	int filtered = static_cast<long int>(adc_raw);
+
+	for(int i=1; i<length; i++) {
+		// v[i] = 0.8*v[i-1] + 0.2*read(channel);
+		adc_raw = 0.8*adc_raw + 0.2*read(channel);
+		filtered += (adc_raw + 1);
+		filtered >>= 1;
+	}
+	return filtered;
+}
+void ADC_driver::read(int channel, int* v, int length, int frequency) {
+	int Ts = static_cast<int>(1.0/static_cast<double>(frequency)*1000000.0);
+	for(int i=0; i<length; i++) {
+		v[i] = read(channel);
+		delay_us(Ts);	
+	}
+}
+
+
 // Stream functions - ADC DMA Continuous mode
 void ADC_driver::stream_init(void) {
 

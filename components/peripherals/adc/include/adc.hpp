@@ -19,7 +19,8 @@
 #include "esp_adc/adc_continuous.h"
 
 // #include "arch/sys_arch.h"	        // include for delays
-#include "esp32/rom/ets_sys.h"      // include for ets_delay_us()
+// #include "esp32/rom/ets_sys.h"      // include for ets_delay_us()
+#include "delay.hpp"					// include for delay us
 
 // Continuous macros
 #define POINTS_PER_CYCLE	350
@@ -73,25 +74,8 @@ public:
 	void oneshot_channel_config(int channel, int attenuation, int bitwidth);
 	void set_channel(int channel);
 	int read(int channel);
-	int read(int channel, int n_samples) {
-		int adc_raw = read(channel);
-		int filtered = static_cast<long int>(adc_raw);
-
-		for(int i=1; i<n_samples; i++) {
-			// v[i] = 0.8*v[i-1] + 0.2*read(channel);
-			adc_raw = 0.8*adc_raw + 0.2*read(channel);
-			filtered += (adc_raw + 1);
-			filtered >>= 1;
-		}
-		return filtered;
-	}
-	void read(int channel, int* v, int length, int frequency) {
-		int Ts = static_cast<int>(1.0/static_cast<double>(frequency)*1000000.0);
-		for(int i=0; i<length; i++) {
-			v[i] = read(channel);
-			delay_us_(Ts);	
-		}
-	}
+	int read(int channel, int length);
+	void read(int channel, int* v, int length, int frequency);
 
 	// ----- Continuous mode setup -----
 	// Parameters initizalization
@@ -113,10 +97,10 @@ public:
 
 private:
 
-	void delay_us_(uint32_t microseconds)
-	{
-		ets_delay_us(microseconds);
-	}
+	// void delay_us_(uint32_t microseconds)
+	// {
+	// 	ets_delay_us(microseconds);
+	// }
 	
 	// adc parameters
 	adc_mode mode_ = adc_mode::noption;
