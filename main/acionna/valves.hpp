@@ -13,17 +13,30 @@
 static const char *TAG_VALVES = "VALVES";
 
 // Pressures of each sector in [m.c.a.]
-#define valve01_nominal_pressure 56	// 20231123 //62 20220809
-#define valve02_nominal_pressure 59 // 20231123
-#define valve03_nominal_pressure 61 // 20231123
-#define valve04_nominal_pressure 62
-#define valve05_nominal_pressure 62
-#define valve06_nominal_pressure 66
-#define valve07_nominal_pressure 62
-#define valve08_nominal_pressure 62
-#define valve09_nominal_pressure 62
-#define valve10_nominal_pressure 62
-#define valve11_nominal_pressure 63	// 20231123
+#define valve01_nominal_pressure	56	// 20231123 //62 20220809
+#define valve02_nominal_pressure	59 // 20231123
+#define valve03_nominal_pressure	61 // 20231123
+#define valve04_nominal_pressure	62
+#define valve05_nominal_pressure	62
+#define valve06_nominal_pressure	66
+#define valve07_nominal_pressure	62
+#define valve08_nominal_pressure	62
+#define valve09_nominal_pressure	62
+#define valve10_nominal_pressure	62
+#define valve11_nominal_pressure	63	// 20231123
+
+// area in m2 of each sector
+#define valve01_area				7476
+#define valve02_area				6468
+#define valve03_area				6468
+#define valve04_area				4326
+#define valve05_area				4326
+#define valve06_area				3620
+#define valve07_area				4326
+#define valve08_area				4326
+#define valve09_area				4326
+#define valve10_area				4326
+#define valve11_area				4326
 
 class Valves {
 public:
@@ -63,6 +76,18 @@ public:
 		set_valve_pressure(9, valve09_nominal_pressure);
 		set_valve_pressure(10, valve10_nominal_pressure);
 		set_valve_pressure(11, valve11_nominal_pressure);
+
+		set_valve_area(1, valve01_area);
+		set_valve_area(2, valve02_area);
+		set_valve_area(3, valve03_area);
+		set_valve_area(4, valve04_area);
+		set_valve_area(5, valve05_area);
+		set_valve_area(6, valve06_area);
+		set_valve_area(7, valve07_area);
+		set_valve_area(8, valve08_area);
+		set_valve_area(9, valve09_area);
+		set_valve_area(10, valve10_area);
+		set_valve_area(11, valve11_area);
 
 		set_valve_time(1, 50);
 		set_valve_time(2, 45);
@@ -302,6 +327,14 @@ public:
 		return valve_current_;
 	}
 
+	// water volume by sector (math part)
+	void set_valve_area(int valve_id, unsigned int area) {
+		valve_[valve_id].area = area;
+	}
+	int get_valve_area(int valve_id) {
+		return valve_[valve_id].area;
+	}
+
 	// Test routines
 	unsigned int valves_test_routine() {
 		
@@ -320,7 +353,6 @@ public:
 
 		return 0;
 	}
-
 
 	// Functions directly to PCY8575
 	int module_probe(void) {
@@ -386,13 +418,59 @@ private:
 	// const std::size_t ac_load_count_ = sizeof(ac_load_) / sizeof(ac_load_[0]);
 
 	struct {
-		int pressure_exp = 0;								// pressão nominal esperada daquele setor [m.c.a.];
 		// states_switch state = states_switch::off;		// estado da válvula;
 		states_flag programmed = states_flag::enable;		// enable or disable to schedule list;
 		unsigned int time_elapsed_cfg = 0;					// tempo que o setor ficará ligado [s];
 		unsigned int time_on_last = 0;						// tempo ligado ou último tempo ligado [s];
 		int last_test_irms = 0;								// last current found on test
+
+		// physical parameters
+		int pressure_exp = 0;								// pressão nominal esperada daquele setor [m.c.a.];
+		int pressure_avg = 0;								// last average pressure [m.c.a.];
+		int area = 0;										// the area that sector occupies [m2];
+		int flow = 0;										// the flow rate by water pump with it's pressure [m3/h]
+		int volume = 0;										// volume of rain_mm in [m3]
+		int rain_mm = 0;									// how much mm of rain it's desired [mm];
 	} valve_[number_valves];
+
+	// Flow rate and mm volume per area determined by each valve sector.
+	void calc_time_by_rain_mm(void) {
+		for(int i=0; i<number_valves; i++) {
+			valve_[i].volume = valve_[i].rain_mm*valve_[i].area/1000;
+			valve_[i].time_elapsed_cfg = valve_[i].volume/valve_[i].flow*3600;
+		}
+	}
+	void calc_valve_flow_all(void) {
+		for(int i=1; i<=number_valves; i++) {
+			calc_valve_flow(i);
+		}
+	}
+	void calc_valve_flow(int valve_id) {
+		// for(int i=0; i<number_valves; i++) {
+			valve_[valve_id-1].flow = calc_flow_by_press(valve_[valve_id-1].pressure_exp);
+		// }
+	}
+	/*
+	* @brief Flow rate calculate by pressure
+	*
+	* It calculates the flow rate by pressure of ME-32125 12,5 cv Schneider waterpump. 
+	* The curve fits on a third degree polinomial function;
+	*
+	* @param p pressure on output pump [m.c.a.]
+	* @return flow flow rate found [m3/h]
+	*/
+	float calc_flow_by_press(float p) {
+		float flow = 0;
+
+		double a3 = -0.001632140991146456;
+		double a2 =  0.1209886092070331;
+		double a1 = -4.080404573437304;
+		double a0 =  123.4533544227264;
+
+		flow = a3*pow(p,3)+ a2*pow(p, 2) + a1*p + a0;
+
+		return flow;
+	}
 
 	static const int press_vec_n_ = 10;
 	int press_vec_[press_vec_n_] = {0};
