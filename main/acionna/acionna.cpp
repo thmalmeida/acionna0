@@ -1185,13 +1185,14 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 						for(auto i=0; i<valves1_.log_n; i++) {
 							dt0.setUnixTime(valves1_.log_valves[i].started_time);
-							sprintf(buffer_temp, "%.2d- v%d %.2d/%.2d %.2d:%.2d t:%d p:%d [%d:%d]\n", i,
+							sprintf(buffer_temp, "%.2d- v%d %.2d/%.2d %.2d:%.2d t:%d:%.2u p:%d [%d:%d]\n", i,
 																						valves1_.log_valves[i].valve_id,
 																						dt0.getDay(),
 																						dt0.getMonth(),
 																						dt0.getHour(),
 																						dt0.getMinute(),
 																						static_cast<int>(valves1_.log_valves[i].elapsed_time/60.0),
+																						timesec_to_sec(valves1_.log_valves[i].elapsed_time),
 																						valves1_.log_valves[i].pressure_avg,
 																						valves1_.log_valves[i].pressure_min,
 																						valves1_.log_valves[i].pressure_max);
