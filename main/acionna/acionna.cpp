@@ -167,7 +167,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			$80:v:01:t;			- mostra o tempo de irrigação do setor;
 			$80:v:01:p:68;		- configura pressão nominal do setor [m.c.a.];
 			$80:v:01:p;			- mostra pressão nominal do setor;
-			$80:t;				- test all solenoid drivers;
+			$80:v:01:u:15;		- set 15 mm to valve 01. Use 00 for change all equal.
+			$80:t;				- test all solenoid drivers (not implemented);
+			$80:u;				- update flow rate by it's pressuse expected
 
 		$84:04F3;				- PCY8575 put 16 bit hex value directly to PCY8575;
 		$85;					- PCY8575 get output
@@ -266,7 +268,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						char buffer_temp[60];
 						DateTime dt0;
 						
-						for(int i=0; i<9; i++)
+						for(int i=0; i<pump1_.log_n; i++)
 						{
 							dt0.setUnixTime(pump1_.log_motors[i].time_start);
 							sprintf(buffer_temp, "%.2d- %.2d/%.2d %.2d:%.2d m:%d t:%lu:%.2u r:%u\n", i+1, dt0.getDay(),
