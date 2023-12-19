@@ -14,15 +14,15 @@ static const char *TAG_VALVES = "VALVES";
 
 // Pressures of each sector in [m.c.a.]
 #define valve01_nominal_pressure	56	// 20231123 //62 20220809
-#define valve02_nominal_pressure	59 // 20231123
-#define valve03_nominal_pressure	61 // 20231123
+#define valve02_nominal_pressure	59	// 20231123
+#define valve03_nominal_pressure	61	// 20231123
 #define valve04_nominal_pressure	62
 #define valve05_nominal_pressure	62
 #define valve06_nominal_pressure	66
 #define valve07_nominal_pressure	62
 #define valve08_nominal_pressure	62
 #define valve09_nominal_pressure	62
-#define valve10_nominal_pressure	62
+#define valve10_nominal_pressure	60	// 20231213
 #define valve11_nominal_pressure	63	// 20231123
 
 // area in m2 of each sector
@@ -65,6 +65,18 @@ public:
 	// 	init_valve_parameters();
 	// }
 	void init_valve_parameters(void) {
+		set_valve_time(1, 50);
+		set_valve_time(2, 45);
+		set_valve_time(3, 45);
+		set_valve_time(4, 30);
+		set_valve_time(5, 30);
+		set_valve_time(6, 28);
+		set_valve_time(7, 30);
+		set_valve_time(8, 30);
+		set_valve_time(9, 30);
+		set_valve_time(10, 30);
+		set_valve_time(11, 30);
+
 		set_valve_pressure(1, valve01_nominal_pressure);
 		set_valve_pressure(2, valve02_nominal_pressure);
 		set_valve_pressure(3, valve03_nominal_pressure);
@@ -89,17 +101,8 @@ public:
 		set_valve_area(10, valve10_area);
 		set_valve_area(11, valve11_area);
 
-		set_valve_time(1, 50);
-		set_valve_time(2, 45);
-		set_valve_time(3, 45);
-		set_valve_time(4, 30);
-		set_valve_time(5, 30);
-		set_valve_time(6, 28);
-		set_valve_time(7, 30);
-		set_valve_time(8, 30);
-		set_valve_time(9, 30);
-		set_valve_time(10, 30);
-		set_valve_time(11, 30);
+		calc_valve_flow_all();
+
 		remove(12);
 		// set_valve_time(12, 0);
 	}
@@ -335,6 +338,65 @@ public:
 		return valve_[valve_id].area;
 	}
 
+
+
+	/*
+	* @brief Flow rate calculate by pressure
+	*
+	* It calculates the flow rate by pressure of ME-32125 12,5 cv Schneider waterpump. 
+	* The curve fits on a third degree polinomial function;
+	*
+	* @param p pressure on output pump [m.c.a.]
+	* @return flow flow rate found [m3/h]
+	*/
+	float calc_flow_by_press(float p) {
+		float flow = 0;
+
+		double a3 = -0.001632140991146456;
+		double a2 =  0.1209886092070331;
+		double a1 = -4.080404573437304;
+		double a0 =  123.4533544227264;
+
+		flow = a3*pow(p,3)+ a2*pow(p, 2) + a1*p + a0;
+
+		return flow;
+	}
+	void calc_valve_flow(int valve_id) {
+		// for(int i=0; i<number_valves; i++) {
+			valve_[valve_id-1].flow = calc_flow_by_press(valve_[valve_id-1].pressure_exp);
+		// }
+	}
+	void calc_valve_flow_all(void) {
+		for(int i=1; i<=number_valves; i++) {
+			calc_valve_flow(i);
+		}
+	}
+	/* @Desired rain in mm
+	 *
+	 * Rain in mm is a parameter to calculate the volume of water based on flow and rate
+	 * 
+	 * @param r_mm Rain in mm
+	*/
+	void set_valve_rain_mm(int valve_id, int r_mm) {
+		valve_[valve_id - 1].rain_mm = r_mm;
+	}
+	void set_valve_rain_mm_all(int r_mm) {
+		for(int i=1; i<=number_valves; i++) {
+			set_valve_rain_mm(i, r_mm);
+		}
+	}	
+	void calc_time_volume_by_rain_mm(int valve_id) {
+
+	}
+	// Flow rate and mm volume per area determined by each valve sector.
+	void calc_time_by_rain_mm_all(void) {
+		for(int i=0; i<number_valves; i++) {
+			valve_[i].volume = valve_[i].rain_mm*valve_[i].area/1000;
+			valve_[i].time_elapsed_cfg = valve_[i].volume/valve_[i].flow*3600;
+		}
+	}
+
+
 	// Test routines
 	unsigned int valves_test_routine() {
 		
@@ -432,45 +494,6 @@ private:
 		int volume = 0;										// volume of rain_mm in [m3]
 		int rain_mm = 0;									// how much mm of rain it's desired [mm];
 	} valve_[number_valves];
-
-	// Flow rate and mm volume per area determined by each valve sector.
-	void calc_time_by_rain_mm(void) {
-		for(int i=0; i<number_valves; i++) {
-			valve_[i].volume = valve_[i].rain_mm*valve_[i].area/1000;
-			valve_[i].time_elapsed_cfg = valve_[i].volume/valve_[i].flow*3600;
-		}
-	}
-	void calc_valve_flow_all(void) {
-		for(int i=1; i<=number_valves; i++) {
-			calc_valve_flow(i);
-		}
-	}
-	void calc_valve_flow(int valve_id) {
-		// for(int i=0; i<number_valves; i++) {
-			valve_[valve_id-1].flow = calc_flow_by_press(valve_[valve_id-1].pressure_exp);
-		// }
-	}
-	/*
-	* @brief Flow rate calculate by pressure
-	*
-	* It calculates the flow rate by pressure of ME-32125 12,5 cv Schneider waterpump. 
-	* The curve fits on a third degree polinomial function;
-	*
-	* @param p pressure on output pump [m.c.a.]
-	* @return flow flow rate found [m3/h]
-	*/
-	float calc_flow_by_press(float p) {
-		float flow = 0;
-
-		double a3 = -0.001632140991146456;
-		double a2 =  0.1209886092070331;
-		double a1 = -4.080404573437304;
-		double a0 =  123.4533544227264;
-
-		flow = a3*pow(p,3)+ a2*pow(p, 2) + a1*p + a0;
-
-		return flow;
-	}
 
 	static const int press_vec_n_ = 10;
 	int press_vec_[press_vec_n_] = {0};
