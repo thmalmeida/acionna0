@@ -21,6 +21,7 @@ ADC_driver::ADC_driver(adc_mode mode = adc_mode::oneshot) : mode_{mode} {
 ADC_driver::~ADC_driver(void) {
 	oneshot_deinit();
 }
+
 // Oneshot functions - ADC single mode
 void ADC_driver::oneshot_init(void) {
 	// 1 - Resource Allocation (init)
@@ -128,11 +129,16 @@ int ADC_driver::read(int channel) {
 
 	return data_adc_raw;
 }
-int ADC_driver::read(int channel, int length) {
+/*
+ * @brief makes n reads and return an average 
+ *
+ * @return the average of n reads
+*/
+int ADC_driver::read(int channel, int num_samples) {
 	int adc_raw = read(channel);
 	int filtered = static_cast<long int>(adc_raw);
 
-	for(int i=1; i<length; i++) {
+	for(int i=1; i<num_samples; i++) {
 		// v[i] = 0.8*v[i-1] + 0.2*read(channel);
 		adc_raw = 0.8*adc_raw + 0.2*read(channel);
 		filtered += (adc_raw + 1);
@@ -140,6 +146,18 @@ int ADC_driver::read(int channel, int length) {
 	}
 	return filtered;
 }
+/*
+ * @brief stream read using oneshot method
+ * 
+ * Copy adc raw values on specific frequency using single shot to it's pointer
+ * 
+ * @param channel channel desired
+ * @param v pointer to receive the copy
+ * @param length the length of array
+ * @param frequency the signal frequency
+ * 
+ * @return nothing, just copy the samples to v pointer
+*/
 void ADC_driver::read(int channel, int* v, int length, int frequency) {
 	int Ts = static_cast<int>(1.0/static_cast<double>(frequency)*1000000.0);
 	for(int i=0; i<length; i++) {
@@ -147,7 +165,6 @@ void ADC_driver::read(int channel, int* v, int length, int frequency) {
 		delay_us(Ts);	
 	}
 }
-
 
 // Stream functions - ADC DMA Continuous mode
 void ADC_driver::stream_init(void) {
@@ -253,6 +270,7 @@ void ADC_driver::stream_deinit(void) {
 	// Recycle the ADC Unit
 	adc_continuous_deinit(stream_handle_);
 }
+
 // Calibration functions
 bool ADC_driver::adc_calibration_init(adc_unit_t unit, adc_atten_t atten, adc_cali_handle_t *out_handle)
 {
