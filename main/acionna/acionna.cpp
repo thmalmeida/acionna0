@@ -1306,6 +1306,16 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 								unsigned int valve_pressure = (unsigned int) atoi(_aux);
 								valves1_.set_valve_pressure(valve_id, valve_pressure);
 								sprintf(buffer, "set valve %d: %d m.c.a.\n", valve_id, valves1_.get_valve_pressure(valve_id));
+							} else if((command_str[8] == ':') && (command_str[9] == 'u') && (command_str[10] == ':') && (command_str[13] == ';')) {
+								// $80:v:01:u:15;
+								_aux[0] = command_str[11];
+								_aux[1] = command_str[12];
+								_aux[2] = '\0';
+								uint8_t valve_mm = static_cast<uint8_t>(atoi(_aux));
+								valves1_.set_valve_rain_mm(valve_id, valve_mm);
+								valves1_.calc_time_by_rain_mm(valve_id);
+
+								sprintf(buffer, "set valve %d to %d mm and t:%d", valve_id, valves1_.get_valve_rain_mm(valve_id), valves1_.get_valve_time(valve_id));
 							}
 						}
 					} else {
@@ -1548,8 +1558,7 @@ void Acionna::init() {
 	wifi_ip_end = CONFIG_IP_END;
 	wifi_sta_init(wifi_ip_end);
 	#else
-
-	// static ip select using the inner mac address.
+	// static ip select - using the inner mac address.
 	ip_get_mode = ip_get_types::static_ip;
 	char mac_device[18] = {};						// must initialize with zeros because the use of strcat();
 
