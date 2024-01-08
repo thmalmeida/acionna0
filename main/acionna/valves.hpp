@@ -384,18 +384,30 @@ public:
 		for(int i=1; i<=number_valves; i++) {
 			set_valve_rain_mm(i, r_mm);
 		}
-	}	
-	void calc_time_volume_by_rain_mm(int valve_id) {
-
 	}
-	// Flow rate and mm volume per area determined by each valve sector.
+	/* @brief Find time to obtain a mm of rain
+	*
+	* 	Flow rate and mm volume per area determined by each valve sector.
+	*
+	* 	mm*A*10^-3 = V [m3]
+	* 	Q*t = V
+	* 	Q*t = mm*A*10^-3
+	* 	Time in seconds
+	* 	t = mm*A*10^-3/Q*3600 [s]
+	* @param valve_id valve id number
+	*/
+	void calc_time_by_rain_mm(int valve_id) {
+		int i = valve_id - 1;
+		valve_[i].volume = valve_[i].rain_mm*valve_[i].area/1000;
+		valve_[i].time_elapsed_cfg = valve_[i].volume/valve_[i].flow*3600;
+	}
 	void calc_time_by_rain_mm_all(void) {
-		for(int i=0; i<number_valves; i++) {
-			valve_[i].volume = valve_[i].rain_mm*valve_[i].area/1000;
-			valve_[i].time_elapsed_cfg = valve_[i].volume/valve_[i].flow*3600;
-		}
+		for(int i=1; i<=number_valves; i++)
+			calc_time_by_rain_mm(i);
 	}
-
+	int get_valve_rain_mm(int valve_id) {
+		return valve_[valve_id-1].rain_mm;
+	}
 
 	// Test routines
 	unsigned int valves_test_routine() {
