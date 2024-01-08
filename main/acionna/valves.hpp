@@ -385,6 +385,9 @@ public:
 			set_valve_rain_mm(i, r_mm);
 		}
 	}
+	int get_valve_rain_mm(int valve_id) {
+		return valve_[valve_id-1].rain_mm;
+	}
 	/* @brief Find time to obtain a mm of rain
 	*
 	* 	Flow rate and mm volume per area determined by each valve sector.
@@ -404,9 +407,6 @@ public:
 	void calc_time_by_rain_mm_all(void) {
 		for(int i=1; i<=number_valves; i++)
 			calc_time_by_rain_mm(i);
-	}
-	int get_valve_rain_mm(int valve_id) {
-		return valve_[valve_id-1].rain_mm;
 	}
 
 	// Test routines

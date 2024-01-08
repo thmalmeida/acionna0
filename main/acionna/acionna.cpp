@@ -1220,7 +1220,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 									memset(buffer, 0, sizeof(buffer));
 									char buffer_temp[30];
 									for(int i=1; i<=valves1_.number_valves; i++) {
-										sprintf(buffer_temp, "v[%02d]:%d pg:%d t:%d p:%d\n", i, (int)valves1_.get_valve_state(i), (int)valves1_.get_valve_programmed(i), valves1_.get_valve_time(i), valves1_.get_valve_pressure(i));
+										sprintf(buffer_temp, "v[%02d]:%d pg:%d t:%d mm:%d p:%d\n", i, (int)valves1_.get_valve_state(i), (int)valves1_.get_valve_programmed(i), valves1_.get_valve_rain_mm(i), valves1_.get_valve_time(i), valves1_.get_valve_pressure(i));
 										strcat(buffer, buffer_temp);
 									}
 									strcat(buffer, "\n");
@@ -1311,11 +1311,24 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 								_aux[0] = command_str[11];
 								_aux[1] = command_str[12];
 								_aux[2] = '\0';
-								uint8_t valve_mm = static_cast<uint8_t>(atoi(_aux));
-								valves1_.set_valve_rain_mm(valve_id, valve_mm);
-								valves1_.calc_time_by_rain_mm(valve_id);
+								uint8_t rain_mm = static_cast<uint8_t>(atoi(_aux));
+								if(valve_id) {
+									valves1_.set_valve_rain_mm(valve_id, rain_mm);
+									valves1_.calc_time_by_rain_mm(valve_id);
+									sprintf(buffer, "set valve %d to %d mm and t:%d", valve_id, valves1_.get_valve_rain_mm(valve_id), valves1_.get_valve_time(valve_id));
+								} else {
+									valves1_.set_valve_rain_mm_all(rain_mm);
+									valves1_.calc_time_by_rain_mm_all();
 
-								sprintf(buffer, "set valve %d to %d mm and t:%d", valve_id, valves1_.get_valve_rain_mm(valve_id), valves1_.get_valve_time(valve_id));
+									memset(buffer, 0, sizeof(buffer));
+									char buffer_temp[30];
+									for(int i=1; i<=valves1_.number_valves; i++) {
+										sprintf(buffer_temp, "v[%02d]:%d pg:%d t:%d p:%d\n", i, (int)valves1_.get_valve_state(i), (int)valves1_.get_valve_programmed(i), valves1_.get_valve_time(i), valves1_.get_valve_pressure(i));
+										strcat(buffer, buffer_temp);
+									}
+									strcat(buffer, "\n");
+
+								}
 							}
 						}
 					} else {
