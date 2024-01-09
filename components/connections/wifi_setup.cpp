@@ -29,8 +29,6 @@ void wifi_sta_init(uint8_t ip_end)
 	ESP_ERROR_CHECK(esp_netif_init());
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-	// esp_netif_create_default_wifi_sta();
-
 	// Select ip station mode DHCP or STATIC
 	switch (ip_get_mode)
 	{
@@ -89,22 +87,20 @@ void wifi_sta_init(uint8_t ip_end)
 	memcpy(wifi_config.sta.sae_h2e_identifier, H2E_IDENTIFIER, strlen(H2E_IDENTIFIER));
 
 // Routine test to verify strings
-	int a=strlen(WIFI_SSID_STA);
-
-	printf("SSID: ");
-	for(int i=0; i<a; i++)
-	{
-		printf("%c", wifi_config.sta.ssid[i]);
-	}
-	printf("\n");
-
-	a=strlen(WIFI_PASS);
-	printf("PASSWD: ");
-	for(int i=0; i<a; i++)
-	{
-		printf("%c", wifi_config.sta.password[i]);
-	}
-	printf("\n");
+	// int a=strlen(WIFI_SSID_STA);
+	// printf("SSID: ");
+	// for(int i=0; i<a; i++)
+	// {
+	// 	printf("%c", wifi_config.sta.ssid[i]);
+	// }
+	// printf("\n");
+	// a=strlen(WIFI_PASS);
+	// printf("PASSWD: ");
+	// for(int i=0; i<a; i++)
+	// {
+	// 	printf("%c", wifi_config.sta.password[i]);
+	// }
+	// printf("\n");
 
 	// ESP_LOGI(TAG_WIFI, "SSID: %s, pwd: %s,", wifi_config.sta.ssid, wifi_config.sta.password);
 	// wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA_WPA2_PSK; 	// or ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD
@@ -191,8 +187,7 @@ void wifi_get_info(void)
 void wifi_get_mac(uint8_t* wifi_mac) {
 	esp_read_mac(wifi_mac, ESP_MAC_WIFI_STA);
 }
-void print_auth_mode(int authmode)
-{
+void print_auth_mode(int authmode) {
 	switch (authmode) {
 		case WIFI_AUTH_OPEN:
 			ESP_LOGI(TAG_WIFI, "Authmode \tWIFI_AUTH_OPEN");
@@ -231,8 +226,7 @@ void print_auth_mode(int authmode)
 			break;
 	}
 }
-void print_cipher_type(int pairwise_cipher, int group_cipher)
-{
+void print_cipher_type(int pairwise_cipher, int group_cipher) {
 	switch (pairwise_cipher) {
 		case WIFI_CIPHER_TYPE_NONE:
 			ESP_LOGI(TAG_WIFI, "Pairwise Cipher \tWIFI_CIPHER_TYPE_NONE");
@@ -287,8 +281,7 @@ void print_cipher_type(int pairwise_cipher, int group_cipher)
 		break;
 	}
 }
-void wifi_scan() /* Initialize Wi-Fi as sta and set scan method */
-{
+void wifi_scan() /* Initialize Wi-Fi as sta and set scan method */ {
 	uint16_t number = DEFAULT_SCAN_LIST_SIZE;
 	wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
 	uint16_t ap_count = 0;
@@ -311,8 +304,7 @@ void wifi_scan() /* Initialize Wi-Fi as sta and set scan method */
 		ESP_LOGI(TAG_WIFI, "Channel \t\t%d\n", ap_info[i].primary);
 	}
 }
-void wifi_scan2(uint16_t &number, wifi_ap_record_t* ap_info, uint16_t &ap_count) /* Initialize Wi-Fi as sta and set scan method */
-{
+void wifi_scan2(uint16_t &number, wifi_ap_record_t* ap_info, uint16_t &ap_count) /* Initialize Wi-Fi as sta and set scan method */ {
 	// uint16_t number = DEFAULT_SCAN_LIST_SIZE;
 	// wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
 	// uint16_t ap_count = 0;
@@ -333,8 +325,7 @@ void wifi_scan2(uint16_t &number, wifi_ap_record_t* ap_info, uint16_t &ap_count)
 	}
 }
 // ISR Handler
-void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
-{
+void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
 	if (event_base == WIFI_EVENT)
 	{
 		if (event_id == WIFI_EVENT_WIFI_READY)
@@ -398,7 +389,11 @@ void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_bas
 
 			ip_state = ip_states::ip_defined;
 
+			// Start insecure http server
 			httpd_server_start();
+
+			// Start secure http server SSL;
+			// httpd_ssl_server_start();
 			
 		}
 		else if(event_id == IP_EVENT_STA_LOST_IP)
