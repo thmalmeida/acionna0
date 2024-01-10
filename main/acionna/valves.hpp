@@ -65,6 +65,8 @@ public:
 	// 	init_valve_parameters();
 	// }
 	void init_valve_parameters(void) {
+
+		// set time to each valve
 		set_valve_time(1, 50);
 		set_valve_time(2, 45);
 		set_valve_time(3, 45);
@@ -77,6 +79,7 @@ public:
 		set_valve_time(10, 30);
 		set_valve_time(11, 30);
 
+		// set nominal pressure for each valve
 		set_valve_pressure(1, valve01_nominal_pressure);
 		set_valve_pressure(2, valve02_nominal_pressure);
 		set_valve_pressure(3, valve03_nominal_pressure);
@@ -89,6 +92,7 @@ public:
 		set_valve_pressure(10, valve10_nominal_pressure);
 		set_valve_pressure(11, valve11_nominal_pressure);
 
+		// fill struct valve area
 		set_valve_area(1, valve01_area);
 		set_valve_area(2, valve02_area);
 		set_valve_area(3, valve03_area);
@@ -101,7 +105,13 @@ public:
 		set_valve_area(10, valve10_area);
 		set_valve_area(11, valve11_area);
 
+		// calculate the flow rate [m3/h] for each valve
 		calc_valve_flow_all();
+
+		// For debug purpose only
+		for(int i=1; i<number_valves; i++) {
+			printf("valve[%d] area:%d, flow:%.1f\n", i, get_valve_area(i), valve_[i].flow);
+		}		
 
 		remove(12);
 		// set_valve_time(12, 0);
@@ -331,7 +341,7 @@ public:
 	}
 
 	// water volume by sector (math part)
-	void set_valve_area(int valve_id, unsigned int area) {
+	void set_valve_area(int valve_id, int area) {
 		valve_[valve_id].area = area;
 	}
 	int get_valve_area(int valve_id) {
@@ -361,11 +371,16 @@ public:
 
 		return flow;
 	}
+	/* @brief Calculate the flow rate for each valve in [m3/h] the calculation is based on the sector area and the water pump flow with it's pressure
+	*  @param valve_id valve id
+	*/
 	void calc_valve_flow(int valve_id) {
 		// for(int i=0; i<number_valves; i++) {
-			valve_[valve_id-1].flow = calc_flow_by_press(valve_[valve_id-1].pressure_exp);
+			valve_[valve_id-1].flow = calc_flow_by_press(static_cast<float>(valve_[valve_id-1].pressure_exp));
 		// }
 	}
+	/* @brief Automated function to calculate flow rate for all valves [m3/h]
+	*/
 	void calc_valve_flow_all(void) {
 		for(int i=1; i<=number_valves; i++) {
 			calc_valve_flow(i);
@@ -377,15 +392,15 @@ public:
 	 * 
 	 * @param r_mm Rain in mm
 	*/
-	void set_valve_rain_mm(int valve_id, int r_mm) {
+	void set_valve_rain_mm(int valve_id, float r_mm) {
 		valve_[valve_id - 1].rain_mm = r_mm;
 	}
-	void set_valve_rain_mm_all(int r_mm) {
+	void set_valve_rain_mm_all(float r_mm) {
 		for(int i=1; i<=number_valves; i++) {
 			set_valve_rain_mm(i, r_mm);
 		}
 	}
-	int get_valve_rain_mm(int valve_id) {
+	float get_valve_rain_mm(int valve_id) {
 		return valve_[valve_id-1].rain_mm;
 	}
 	/* @brief Find time to obtain a mm of rain
@@ -402,6 +417,7 @@ public:
 	void calc_time_by_rain_mm(int valve_id) {
 		int i = valve_id - 1;
 		valve_[i].volume = valve_[i].rain_mm*valve_[i].area/1000;
+		ESP_LOGI(TAG_VALVES, "volume:%.1f, rain_mm:%.1f, area:%d, flow:%.1f", valve_[i].volume, valve_[i].rain_mm, valve_[i].area, valve_[i].flow);
 		valve_[i].time_elapsed_cfg = valve_[i].volume/valve_[i].flow*3600;
 	}
 	void calc_time_by_rain_mm_all(void) {
@@ -494,17 +510,17 @@ private:
 	struct {
 		// states_switch state = states_switch::off;		// estado da válvula;
 		states_flag programmed = states_flag::enable;		// enable or disable to schedule list;
-		unsigned int time_elapsed_cfg = 0;					// tempo que o setor ficará ligado [s];
-		unsigned int time_on_last = 0;						// tempo ligado ou último tempo ligado [s];
+		uint32_t time_elapsed_cfg = 0;						// tempo que o setor ficará ligado [s];
+		uint32_t time_on_last = 0;							// tempo ligado ou último tempo ligado [s];
 		int last_test_irms = 0;								// last current found on test
 
 		// physical parameters
 		int pressure_exp = 0;								// pressão nominal esperada daquele setor [m.c.a.];
 		int pressure_avg = 0;								// last average pressure [m.c.a.];
 		int area = 0;										// the area that sector occupies [m2];
-		int flow = 0;										// the flow rate by water pump with it's pressure [m3/h]
-		int volume = 0;										// volume of rain_mm in [m3]
-		int rain_mm = 0;									// how much mm of rain it's desired [mm];
+		float flow = 0.0;									// the flow rate by water pump with it's pressure [m3/h]
+		float volume = 0.0;									// volume of rain_mm in [m3]
+		float rain_mm = 0.0;								// how much mm of rain it's desired [mm];
 	} valve_[number_valves];
 
 	static const int press_vec_n_ = 10;
