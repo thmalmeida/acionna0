@@ -13,16 +13,16 @@
 static const char *TAG_VALVES = "VALVES";
 
 // Pressures of each sector in [m.c.a.]
-#define valve01_nominal_pressure	56	// 20231123 //62 20220809
+#define valve01_nominal_pressure	57	// 20231123 //62 20220809
 #define valve02_nominal_pressure	59	// 20231123
 #define valve03_nominal_pressure	61	// 20231123
 #define valve04_nominal_pressure	62
 #define valve05_nominal_pressure	62
 #define valve06_nominal_pressure	66
 #define valve07_nominal_pressure	62
-#define valve08_nominal_pressure	62
-#define valve09_nominal_pressure	62
-#define valve10_nominal_pressure	60	// 20231213
+#define valve08_nominal_pressure	63
+#define valve09_nominal_pressure	63
+#define valve10_nominal_pressure	63	// 20231213
 #define valve11_nominal_pressure	63	// 20231123
 
 // area in m2 of each sector
@@ -206,7 +206,7 @@ public:
 	void set_valve_time(int valve_id, unsigned int value) {
 		valve_[valve_id-1].time_elapsed_cfg = value*60.0;
 	}
-	unsigned int get_valve_time(int valve_id) {
+	uint32_t get_valve_time(int valve_id) {
 		return valve_[valve_id-1].time_elapsed_cfg/60.0;
 	}
 	void set_valve_pressure(int valve_id, unsigned int value) {
@@ -215,8 +215,8 @@ public:
 	int get_valve_pressure(int valve_id) {
 		return valve_[valve_id-1].pressure_exp;
 	}
-	unsigned int get_total_time_programmed() {
-		unsigned int _total_time = 0;
+	uint32_t get_total_time_programmed() {
+		uint32_t _total_time = 0;
 
 		for(int i=0; i<number_valves; i++)
 		{
@@ -368,9 +368,16 @@ public:
 	* @return flow flow rate found [m3/h]
 	*/
 	float calc_flow_by_press(float p) {
-		float a[4] = {-0.0003697043024953464, 0.0323675658519507, -0.8725112964037632, 49.82268931393812};
+		float a[6] = {-7.81404597668744e-07, 0.0001344964277056774, -0.007860563868574868, 0.1461761489432135, 1.196684722526538, 0.08659938993111427};
 
-		return a[0]*pow(p,3)+ a[1]*pow(p, 2) + a[2]*p + a[3];
+		int pdegree = 5;
+		float flow = 0.0;
+
+		for(int i=0; i<=pdegree; i++) {
+			flow += a[i]*pow(p, pdegree-i);
+		}
+
+		return flow;
 	}
 	/* @brief Calculate the flow rate for each valve in [m3/h] the calculation is based on the sector area and the water pump flow with it's pressure
 	*  @param valve_id valve id
