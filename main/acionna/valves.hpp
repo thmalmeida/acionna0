@@ -215,19 +215,28 @@ public:
 	int get_valve_pressure(int valve_id) {
 		return valve_[valve_id-1].pressure_exp;
 	}
-	uint32_t get_total_time_programmed() {
+	uint32_t get_total_time_programmed(void) {
 		uint32_t _total_time = 0;
 
-		for(int i=0; i<number_valves; i++)
-		{
-			if(valve_[i].programmed == states_flag::enable)
-			{
+		for(int i=0; i<number_valves; i++) {
+			if(valve_[i].programmed == states_flag::enable) {
 				_total_time += valve_[i].time_elapsed_cfg;
 			}
 		}
 
 		return _total_time;
 	}
+
+	float get_total_volume_programmed(void) {
+		float _volume_total = 0.0;
+
+		for(int i=0; i<number_valves; i++) {
+			if(valve_[i].programmed == states_flag::enable) {
+				_volume_total += valve_[i].volume;
+			}
+		}
+	}
+
 	void set_valve_state(int valve_id, int _valve_state) {
 		if(valve_id && (valve_id <= number_valves))	{
 			load_.write(valve_id, _valve_state);
@@ -410,6 +419,10 @@ public:
 	}
 	float get_valve_rain_mm(int valve_id) {
 		return valve_[valve_id-1].rain_mm;
+	}
+
+	float get_valve_volume(int valve_id) {
+		return valve_[valve_id - 1].volume;
 	}
 	/* @brief Find time to obtain a mm of rain
 	*

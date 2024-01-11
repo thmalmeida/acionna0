@@ -1132,7 +1132,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 				case 0: {
 					if (command_str[3] == ';') {
 						// $80;
-						sprintf(buffer, "sV:%d d_inv:%d tsOn:%.2d:%.2d:%.2d Tcfg:%.2d:%.2d:%.2d, v:%.2d tvOn:%.2d:%.2d:%.2d Pcfg:%d tv_cfg:%d, \n",
+						sprintf(buffer, "sV:%d d_inv:%d tsOn:%.2d:%.2d:%.2d Tcfg:%.2d:%.2d:%.2d vol:%.1f v:%.2d tvOn:%.2d:%.2d:%.2d Pcfg:%d tv_cfg:%lu, \n",
 																											(int)valves1_.state_valves,
 																											(int)valves1_.flag_inverted_sequence,
 																											timesec_to_hour(valves1_.get_time_on()),
@@ -1141,6 +1141,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 																											timesec_to_hour(valves1_.get_total_time_programmed()),
 																											timesec_to_min(valves1_.get_total_time_programmed()),
 																											timesec_to_sec(valves1_.get_total_time_programmed()),
+																											valves1_.get_total_volume_programmed(),
 																											valves1_.valve_current(),
 																											timesec_to_hour(valves1_.time_valve_remain),
 																											timesec_to_min(valves1_.time_valve_remain),
@@ -1220,13 +1221,15 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 									memset(buffer, 0, sizeof(buffer));
 									char buffer_temp[30];
 									for(int i=1; i<=valves1_.number_valves; i++) {
-										sprintf(buffer_temp, "v[%02d]:%d pg:%d t:%d mm:%.1f p:%d\n", i, (int)valves1_.get_valve_state(i), (int)valves1_.get_valve_programmed(i), valves1_.get_valve_time(i), valves1_.get_valve_rain_mm(i), valves1_.get_valve_pressure(i));
+										sprintf(buffer_temp, "v[%02d]:%d pg:%d t:%lu rn:%.1f p:%d\n", i, (int)valves1_.get_valve_state(i), (int)valves1_.get_valve_programmed(i), valves1_.get_valve_time(i), valves1_.get_valve_rain_mm(i), valves1_.get_valve_pressure(i));
 										strcat(buffer, buffer_temp);
 									}
 									strcat(buffer, "\n");
 								}
 								else {
-									sprintf(buffer, "v[%02d]:%d pg:%d t:%d min p:%d m.c.a.\n", valve_id, (int)valves1_.get_valve_state(valve_id), (int)valves1_.get_valve_programmed(valve_id), valves1_.get_valve_time(valve_id), valves1_.get_valve_pressure(valve_id));
+									sprintf(buffer, "v[%02d]:%d pg:%d t:%lu min rn:%.1fmm p:%d m.c.a.\n",
+									
+									valve_id, (int)valves1_.get_valve_state(valve_id), (int)valves1_.get_valve_programmed(valve_id), valves1_.get_valve_time(valve_id), valves1_.get_valve_rain_mm(valve_id), valves1_.get_valve_pressure(valve_id));
 								}
 							} else if((command_str[8] == ':') && (command_str[9] == '0') && (command_str[10] == ';')) {
 								// $80:v:01:0; - set valve off
@@ -1288,7 +1291,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 								if(valve_id) {
 									valves1_.set_valve_time(valve_id, valve_time);
-									sprintf(buffer, "valve %d: %d min\n", valve_id, valves1_.get_valve_time(valve_id));
+									sprintf(buffer, "valve %d: %lu min\n", valve_id, valves1_.get_valve_time(valve_id));
 								} else {
 									for(int i=0; i<valves1_.number_valves; i++) {
 										valves1_.set_valve_time(i+1, valve_time);
@@ -1323,14 +1326,14 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 									memset(buffer, 0, sizeof(buffer));
 									char buffer_temp[30];
 									for(int i=1; i<=valves1_.number_valves; i++) {
-										sprintf(buffer_temp, "v[%02d]:%d pg:%d t:%d mm:%.1f p:%d\n", i, (int)valves1_.get_valve_state(i), (int)valves1_.get_valve_programmed(i), valves1_.get_valve_time(i), valves1_.get_valve_rain_mm(i) ,valves1_.get_valve_pressure(i));
+										sprintf(buffer_temp, "v[%02d]:%d pg:%d t:%lu mm:%.1f p:%d\n", i, (int)valves1_.get_valve_state(i), (int)valves1_.get_valve_programmed(i), valves1_.get_valve_time(i), valves1_.get_valve_rain_mm(i) ,valves1_.get_valve_pressure(i));
 										strcat(buffer, buffer_temp);
 									}
 									strcat(buffer, "\n");
 								} else {
 									valves1_.set_valve_rain_mm(valve_id, rain_mm);
 									valves1_.calc_time_by_rain_mm(valve_id);
-									sprintf(buffer, "set valve %d to %.1f mm and t:%d", valve_id, valves1_.get_valve_rain_mm(valve_id), valves1_.get_valve_time(valve_id));
+									sprintf(buffer, "set valve %d to %.1f mm and t:%lu", valve_id, valves1_.get_valve_rain_mm(valve_id), valves1_.get_valve_time(valve_id));
 								}
 							}
 						}
