@@ -1307,12 +1307,14 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 								valves1_.set_valve_pressure(valve_id, valve_pressure);
 								sprintf(buffer, "set valve %d: %d m.c.a.\n", valve_id, valves1_.get_valve_pressure(valve_id));
 							} else if((command_str[8] == ':') && (command_str[9] == 'u') && (command_str[10] == ':') && (command_str[14] == ';')) {
-								// $80:v:01:u:15;
+								// $80:v:01:u:150;
 								_aux2[0] = command_str[11];
 								_aux2[1] = command_str[12];
 								_aux2[2] = command_str[13];
 								_aux2[3] = '\0';
-								float rain_mm = static_cast<float>(atoi(_aux)/10.0);
+								float rain_mm = static_cast<float>(atoi(_aux2))/10.0;
+
+								ESP_LOGI(TAG_ACIONNA, "rain_mm:%.1f", rain_mm);
 
 								if(!valve_id) {
 									valves1_.set_valve_rain_mm_all(rain_mm);
@@ -1328,7 +1330,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 								} else {
 									valves1_.set_valve_rain_mm(valve_id, rain_mm);
 									valves1_.calc_time_by_rain_mm(valve_id);
-									sprintf(buffer, "set valve %d to %f mm and t:%d", valve_id, valves1_.get_valve_rain_mm(valve_id), valves1_.get_valve_time(valve_id));
+									sprintf(buffer, "set valve %d to %.1f mm and t:%d", valve_id, valves1_.get_valve_rain_mm(valve_id), valves1_.get_valve_time(valve_id));
 								}
 							}
 						}

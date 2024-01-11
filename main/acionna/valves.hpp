@@ -105,6 +105,8 @@ public:
 		set_valve_area(10, valve10_area);
 		set_valve_area(11, valve11_area);
 
+		set_valve_rain_mm_all(5.0);
+
 		// calculate the flow rate [m3/h] for each valve
 		calc_valve_flow_all();
 
@@ -340,12 +342,18 @@ public:
 		return valve_current_;
 	}
 
+
+	/*
+	* The following functions is used to find the flow rate
+	* Math functions like pow are used.
+	* This automate to find a specific time for each valve/sector given an amount of rain measured in mm
+	*/
 	// water volume by sector (math part)
 	void set_valve_area(int valve_id, int area) {
-		valve_[valve_id].area = area;
+		valve_[valve_id - 1].area = area;
 	}
 	int get_valve_area(int valve_id) {
-		return valve_[valve_id].area;
+		return valve_[valve_id - 1].area;
 	}
 
 
@@ -360,16 +368,9 @@ public:
 	* @return flow flow rate found [m3/h]
 	*/
 	float calc_flow_by_press(float p) {
-		float flow = 0;
+		float a[4] = {-0.0003697043024953464, 0.0323675658519507, -0.8725112964037632, 49.82268931393812};
 
-		double a3 = -0.001632140991146456;
-		double a2 =  0.1209886092070331;
-		double a1 = -4.080404573437304;
-		double a0 =  123.4533544227264;
-
-		flow = a3*pow(p,3)+ a2*pow(p, 2) + a1*p + a0;
-
-		return flow;
+		return a[0]*pow(p,3)+ a[1]*pow(p, 2) + a[2]*p + a[3];
 	}
 	/* @brief Calculate the flow rate for each valve in [m3/h] the calculation is based on the sector area and the water pump flow with it's pressure
 	*  @param valve_id valve id
@@ -416,9 +417,9 @@ public:
 	*/
 	void calc_time_by_rain_mm(int valve_id) {
 		int i = valve_id - 1;
-		valve_[i].volume = valve_[i].rain_mm*valve_[i].area/1000;
-		ESP_LOGI(TAG_VALVES, "volume:%.1f, rain_mm:%.1f, area:%d, flow:%.1f", valve_[i].volume, valve_[i].rain_mm, valve_[i].area, valve_[i].flow);
-		valve_[i].time_elapsed_cfg = valve_[i].volume/valve_[i].flow*3600;
+		valve_[i].volume = valve_[i].rain_mm*valve_[i].area/1000.0;
+		valve_[i].time_elapsed_cfg = valve_[i].volume/valve_[i].flow*3600.0;
+		ESP_LOGI(TAG_VALVES, "volume:%.1f, rain_mm:%.1f, area:%d, flow:%.1f, time:%lu", valve_[i].volume, valve_[i].rain_mm, valve_[i].area, valve_[i].flow, valve_[i].time_elapsed_cfg);
 	}
 	void calc_time_by_rain_mm_all(void) {
 		for(int i=1; i<=number_valves; i++)
