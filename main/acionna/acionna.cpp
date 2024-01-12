@@ -1219,17 +1219,17 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 								// $80:v:01;
 								if(!valve_id) {
 									memset(buffer, 0, sizeof(buffer));
-									char buffer_temp[30];
+									char buffer_temp[37];
 									for(int i=1; i<=valves1_.number_valves; i++) {
-										sprintf(buffer_temp, "v[%02d]:%d pg:%d t:%lu rn:%.1f p:%d\n", i, (int)valves1_.get_valve_state(i), (int)valves1_.get_valve_programmed(i), valves1_.get_valve_time(i), valves1_.get_valve_rain_mm(i), valves1_.get_valve_pressure(i));
+										sprintf(buffer_temp, "v[%02d]:%d pg:%d t:%lu r:%.1f V:%.1f p:%d\n", i, (int)valves1_.get_valve_state(i), (int)valves1_.get_valve_programmed(i), valves1_.get_valve_time(i), valves1_.get_valve_rain_mm(i), valves1_.get_valve_volume(i), valves1_.get_valve_pressure(i));
 										strcat(buffer, buffer_temp);
 									}
 									strcat(buffer, "\n");
 								}
 								else {
-									sprintf(buffer, "v[%02d]:%d pg:%d t:%lu min rn:%.1fmm p:%d m.c.a.\n",
+									sprintf(buffer, "v[%02d]:%d pg:%d t:%lu min rain:%.1fmm Vol:%.1f p:%d m.c.a.\n",
 									
-									valve_id, (int)valves1_.get_valve_state(valve_id), (int)valves1_.get_valve_programmed(valve_id), valves1_.get_valve_time(valve_id), valves1_.get_valve_rain_mm(valve_id), valves1_.get_valve_pressure(valve_id));
+									valve_id, (int)valves1_.get_valve_state(valve_id), (int)valves1_.get_valve_programmed(valve_id), valves1_.get_valve_time(valve_id), valves1_.get_valve_rain_mm(valve_id), valves1_.get_valve_volume(valve_id), valves1_.get_valve_pressure(valve_id));
 								}
 							} else if((command_str[8] == ':') && (command_str[9] == '0') && (command_str[10] == ';')) {
 								// $80:v:01:0; - set valve off
@@ -2417,15 +2417,16 @@ void Acionna::sensor_dht(void) {
 	// ESP_LOGI(TAG_SENSORS, "Temp sensors count: %u", temp_sensor_count)
 }
 void Acionna::update_all() {
-
-	update_uptime();
-	update_RTC();
-	update_objects();
-	update_stored_data();
+	update_RTC();				// update RTC time
+	update_objects();			// call valves, pump and pipe one second update
+	update_stored_data();		// do nothing
 
 	// update_sensors();		// test sensors
 }
 void Acionna::update_RTC() {
+
+	update_uptime();			// increment uptime system global variable
+
 	epoch_time_ = device_clock.get_time();
 	dt.setUnixTime(epoch_time_);
 
