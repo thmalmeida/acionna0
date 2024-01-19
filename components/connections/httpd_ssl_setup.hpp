@@ -14,6 +14,7 @@
 #include "esp_log.h"
 
 #include "esp_http_server.h"    // Header for http_server websocket
+#include "esp_https_server.h"	// SSL server
 
 #include "basic_defines_conn.hpp"
 
@@ -39,6 +40,8 @@ esp_err_t ws_server_event_handler(httpd_req_t* req);
 void httpd_server_start(void); // suppose to be httpd_handle_t instead of void
 void httpd_server_stop(void);
 void ws_server_send(std::string data);
+
+void httpd_ssl_server_start(void);
 // void esp_restart_async(void*);
 // void esp_shutdown_h_now(void);
 

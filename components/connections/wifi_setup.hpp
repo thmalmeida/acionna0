@@ -25,7 +25,7 @@
 // Added on 20230718
 // #include "esp_netif.h"
 
-#include "httpd_setup.hpp"
+#include "httpd_ssl_setup.hpp"
 #include "ws_client_setup.hpp"
 
 #include "basic_defines_conn.hpp"

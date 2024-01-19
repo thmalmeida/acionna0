@@ -1,4 +1,4 @@
-#include "httpd_setup.hpp"
+#include "httpd_ssl_setup.hpp"
 
 static const char *TAG_WS = "HTTPD";
 
@@ -47,13 +47,8 @@ httpd_config_t ws_server_config = {
 	NULL					// uri_match_fn
 };
 
-// ssl 01
-httpd_ssl_config_t wss_server_config = NULL;//{
-	// ws_server_config,
-	// server certificate
-	// server certificate byte length
-				
-// }
+// SSL
+httpd_ssl_config_t wss_server_config;
 
 esp_err_t ws_server_event_handler(httpd_req_t *req) {
 	if (req->method == HTTP_GET) {
@@ -229,7 +224,31 @@ void httpd_ssl_server_start(void) {
 	// initialize ssl server structparameters 
 	wss_server_config = HTTPD_SSL_CONFIG_DEFAULT();
 
-	extern const unsigned char servercert_start[] asm("")
+	wss_server_config.port_insecure = 9000;
+	wss_server_config.port_secure = 9443;
+	// wss_server_config.transport_mode = HTTPD_SSL_TRANSPORT_INSECURE;
+
+	// Certificate issues
+	// public key
+	extern const unsigned char servercert_start[] asm("_binary_servercert_pem_start");
+	extern const unsigned char servercert_end[]   asm("_binary_servercert_pem_end");
+	wss_server_config.servercert = servercert_start;
+	wss_server_config.servercert_len = servercert_end - servercert_start;
+	
+	// private key
+	extern const unsigned char prvtkey_pem_start[] asm("_binary_prvtkey_pem_start");
+	extern const unsigned char prvtkey_pem_end[]   asm("_binary_prvtkey_pem_end");
+	wss_server_config.prvtkey_pem = prvtkey_pem_start;
+	wss_server_config.prvtkey_len = prvtkey_pem_end - prvtkey_pem_start;
 
 
+	esp_err_t ret = httpd_ssl_start(&ws_server, &wss_server_config);
+	if (ESP_OK != ret) {
+		ESP_LOGI(TAG_WS, "Error starting server!");
+		// return NULL;
+	}
+
+	// Set URI handlers
+	ESP_LOGI(TAG_WS, "Registering URI handlers");
+	httpd_register_uri_handler(ws_server, &ws);
 }
