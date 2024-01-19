@@ -1207,24 +1207,23 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						sprintf(buffer, "set delay time %d\n", (int)valves1_.get_valve_time_delay_close());
 					} else if ((command_str[3] == ':') && (command_str[4] == 'h') && (command_str[5] == ';')) {
 					// $80:h;	// show valves sequence history
-
 						char buffer_temp[85] = {};
 						sprintf(buffer, "Valves history: \n");
 						DateTime dt0;
 
 						for(auto i=0; i<valves1_.log_n; i++) {
 							dt0.setUnixTime(valves1_.log_valves[i].started_time);
-							sprintf(buffer_temp, "%.2d- v%d %.2d/%.2d %.2d:%.2d t:%d:%.2u p:%d [%d:%d]\n", i,
-																						valves1_.log_valves[i].valve_id,
+							sprintf(buffer_temp, "%.2d- %.2d/%.2d %.2d:%.2d v%d t:%d:%.2u p:%d\n", i+1,
 																						dt0.getDay(),
 																						dt0.getMonth(),
 																						dt0.getHour(),
 																						dt0.getMinute(),
+																						valves1_.log_valves[i].valve_id,
 																						static_cast<int>(valves1_.log_valves[i].elapsed_time/60.0),
 																						timesec_to_sec(valves1_.log_valves[i].elapsed_time),
-																						valves1_.log_valves[i].pressure_avg,
-																						valves1_.log_valves[i].pressure_min,
-																						valves1_.log_valves[i].pressure_max);
+																						valves1_.log_valves[i].pressure_avg);
+																						// valves1_.log_valves[i].pressure_min,
+																						// valves1_.log_valves[i].pressure_max);
 							strcat(buffer, buffer_temp);
 						}
 						strcat(buffer, "\n");
@@ -1239,8 +1238,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux[2] = '\0';
 						int valve_id = atoi(_aux);
 
-						if (valve_id <= valves1_.number_valves)
-						{
+						if (valve_id <= valves1_.number_valves) {
 							if(command_str[8] == ';') {
 								// $80:v:01;
 								if(!valve_id) {

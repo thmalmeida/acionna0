@@ -379,6 +379,9 @@ public:
 		return time_last_stopped_;
 	}
 
+	void make_log_update(void) {
+		log_motors[0].time_elapsed_on = time_on_;
+	}
 	void make_log(start_types start_type, uint32_t time_now) {
 
 		for(int i=(log_n-1); i>0; i--) {
@@ -397,10 +400,10 @@ public:
 		log_motors[0].stop_reason = stop_types::other;
 		log_motors[0].time_elapsed_on = 0;
 	}
-	void make_log(stop_types stop_type, uint32_t time_elapsed_on) {
+	void make_log(stop_types stop_type, uint32_t _time_elapsed_on) {
 		
 		log_motors[0].stop_reason = stop_type;
-		log_motors[0].time_elapsed_on = time_elapsed_on;
+		log_motors[0].time_elapsed_on = _time_elapsed_on;
 	}
 
 	// log history of turn on/off mode and timers;
@@ -531,9 +534,9 @@ private:
 	}
 	void update_time_(void)
 	{
-		if((state_motor_ == states_motor::on_nominal_k1) || (state_motor_ == states_motor::on_nominal_k2) || (state_motor_ == states_motor::on_nominal_delta) || (state_motor_ == states_motor::on_speeding_up))
-		{
+		if((state_motor_ == states_motor::on_nominal_k1) || (state_motor_ == states_motor::on_nominal_k2) || (state_motor_ == states_motor::on_nominal_delta) || (state_motor_ == states_motor::on_speeding_up)) {
 			time_on_++;
+			make_log_update();
 
 			if(time_to_shutdown)
 				time_to_shutdown--;
@@ -542,14 +545,11 @@ private:
 			time_off_++;
 		}
 
-		if(flag_check_wait_power_on == states_flag::enable)
-		{
-			if(!time_wait_power_on)
-			{
+		if(flag_check_wait_power_on == states_flag::enable) {
+			if(!time_wait_power_on) {
 				flag_check_wait_power_on = states_flag::disable;
 			}
-			else
-			{
+			else {
 				time_wait_power_on--;
 			}
 		}
