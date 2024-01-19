@@ -42,10 +42,10 @@ class Valves {
 public:
 
 	states_valves state_valves = states_valves::system_off;
-	// unsigned int time_total_cfg = 0;					// sum of programmed valves time [s];	
-	unsigned int time_valve_remain = 0;					// valve time elapsed before turn off [s];
-	unsigned int time_valve_change = 0;					// between changes to verify if pressure has been pressure recovered [s];
-	static const int number_valves = 12;
+	// unsigned int time_total_cfg = 0;				// sum of programmed valves time [s];	
+	unsigned int time_valve_remain = 0;				// valve time elapsed before turn off [s];
+	unsigned int time_valve_change = 0;				// between changes to verify if pressure has been pressure recovered [s];
+	static const int number_valves = 11;
 	states_flag flag_inverted_sequence = states_flag::disable;
 
 	// uint16_t* stream_array;
@@ -123,25 +123,39 @@ public:
 	void update() {
 		if(state_valves == states_valves::automatic_switch) {
 
-			if(!time_valve_remain) {				// next() function find new programmed valve_current_ and it's elapsed time (time_valve_ramain).
-				set_valve_state(valve_current_, 0);	// Turn off the current valve sector to find another programmed;
+			if(!time_valve_remain) {					// next() function find new programmed valve_current_ and it's elapsed time (time_valve_ramain).
+
+				// prepare to turn off the current valve after time valve delay close
+				flag_valve_delay_close_ = states_flag::enable;	// enable count down to turn off the latest valve on;
+				time_valve_delay_close_ = time_valve_delay_close_config_;
+				valve_delay_close_ = valve_current_;			// store the last working valve;
+				// set_valve_state(valve_current_, 0);			// Turn off the current valve sector to find another programmed;
 				
 				if(time_valve_elapsed_) {
-						time_valve_elapsed_ = 0;	// Clear valve elapsed time [s].
+						time_valve_elapsed_ = 0;				// Clear valve elapsed time [s].
 				}
 
 				// Algorithm to find next programmed valve sector:
 				// 	This function turn on the next programmed valve found and refresh the time_valve_elapsed.
-				if(next()) {						// Ruturn true if some next programmed sector was found. Else return 0 if none is found meaning finish working cycle.
-					make_log();						// Found programmed valve sector. Make some log.
+				if(next()) {		// Return true if some next programmed sector was found. Else return 0 if none is found meaning finish working cycle.
+					make_log();		// Found programmed valve sector. Make some log.
 				} else {
-					stop();							// Couldn't find new programmed valve sector or achieve end cycle. Stop valve switch process.
+					stop();			// Couldn't find new programmed valve sector or achieve end cycle. Stop valve switch process.
 				}
 			} else {
 				time_valve_remain--;
 			}
 
-			make_log_update();						// refresh the elapsed time valve on log vector
+			if(flag_valve_delay_close_ == states_flag::enable) {
+				if(time_valve_delay_close_ > 0) {
+					time_valve_delay_close_--;
+				} else {
+					flag_valve_delay_close_ = states_flag::disable;
+					set_valve_state(valve_delay_close_, 0);	// Turn off the current valve sector to find another programmed;
+				}
+			}
+
+			make_log_update();								// refresh the elapsed time valve on log vector
 			time_valve_elapsed_++;
 			time_system_on_++;
 		}
@@ -235,6 +249,8 @@ public:
 				_volume_total += valve_[i].volume;
 			}
 		}
+
+		return _volume_total;
 	}
 
 	void set_valve_state(int valve_id, int _valve_state) {
@@ -284,7 +300,6 @@ public:
 	}
 	unsigned int next(void) {
 		states_flag flag_valve_found_ = states_flag::disable;
-		valve_last_close_ = valve_current_;						// store the last working valve;
 
 		if(flag_inverted_sequence == states_flag::enable) {
 			do {
@@ -518,14 +533,14 @@ public:
 		int pressure_avg;									// average pressure while on state;
 	}log_valves[log_n] = {};
 
-	uint8_t valve_current_ = 0;								// current working valve;
-	uint8_t valve_last_close_ = 0;							// last current valve to close after time_delay_close_
-	uint8_t valve_seq = 0;									// valve sequence number during the cycle;
-	uint32_t valve_seq_elapsed_time = 0;					// last elapsed time [s];
+	uint8_t valve_current_ = 0;									// current working valve;
+	uint8_t valve_delay_close_ = 0;								// last current valve to close after time_delay_close_
+	uint8_t valve_seq = 0;										// valve sequence number during the cycle;
+	uint32_t valve_seq_elapsed_time = 0;						// last elapsed time [s];
 
 private:
 	// GPIO_Basic ac_load_[11];
-	pcy8575 load_;											// connection with i2c_to_gpio module;
+	pcy8575 load_;												// connection with i2c_to_gpio module;
 	// const std::size_t ac_load_count_ = sizeof(ac_load_) / sizeof(ac_load_[0]);
 
 	struct {
@@ -547,13 +562,14 @@ private:
 	static const int press_vec_n_ = 10;
 	int press_vec_[press_vec_n_] = {0};
 
-	uint32_t time_system_on_ = 0;							// current time on [s];
-	uint32_t time_valve_elapsed_ = 0;						// reset time elapsed during on state;
-	uint32_t time_delay_close_ = 0;							// delay time to turn solenoide off after sector change on next() function;
-	uint32_t *epoch_time_;									// epoch time linked with system;
-	int *pressure_mca_;										// pipe pressure from pointer to valves class;
+	uint32_t time_system_on_ = 0;								// current time on [s];
+	uint32_t time_valve_elapsed_ = 0;							// reset time elapsed during on state;
+	uint32_t time_valve_delay_close_ = 0;						// delay time to turn solenoide off after sector change on next() function;
+	uint32_t time_valve_delay_close_config_ = 10;				// delay time configured
+	uint32_t *epoch_time_;										// time linked with epoch system time;
+	int *pressure_mca_;											// pipe pressure from pointer to valves class;
 	states_flag flag_valve_found_ = states_flag::disable;
-	states_flag flag_valve_close_ = states_flag::disable;	// flag to close last current valve;
+	states_flag flag_valve_delay_close_ = states_flag::disable;	// flag to close last current valve;
 
 
 	//	GPIO_Basic drive_kn_[3]={GPIO_Basic{AC_LOAD1},GPIO_Basic{AC_LOAD2},GPIO_Basic{AC_LOAD3}};
