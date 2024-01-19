@@ -15,8 +15,6 @@ int timeout_sensors_cfg = 600;
 volatile uint8_t flag_1sec = 0;
 volatile uint8_t flag_100ms = 0;
 
-// static pwm_ledc led_wifi_indicator(2, 1, 0, 1);
-
 Acionna::Acionna(ADC_driver* adc) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 220), pump1_{&epoch_time_}, valves1_{&i2c, &epoch_time_, &pressure_} {
 // Acionna::Acionna(void) : valves1_{&i2c} {
 	// ADC_driver adc0(adc_mode::oneshot);
@@ -157,6 +155,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$80;					- show info
 			$80:s:[0|1];		- start/stop valves sequence;
 			$80:d:[0|1];		- 0 sentido direto; 1 - sentido inverso na troca dos setores;
+			$80:f;				- show valve switch mode status and it's delay time;
+			$80:f:[0|1];		- enable/disable delay switch off last valve after turn next valve on;
+			$80:g:10;			- set the amount of time in seconds for delay switch valve off;
 			$80:h;				- show valves history log. Time on, elapsed time, avg pressure;
 			$80:n;				- next valve forcing time valve to zero;
 			$80:v:01;			- mostra condições de configuração da válvula 01;
@@ -1179,6 +1180,31 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 							valves1_.flag_inverted_sequence = states_flag::disable;
 							sprintf(buffer, "sentido %d\n", (int)valves1_.flag_inverted_sequence);
 						}
+					} else if ((command_str[3] == ':') && (command_str[4] == 'f') && (command_str[5] == ';')) {
+						// $80:f;
+						sprintf(buffer, "delay mode %d t:%d\n", (int)valves1_.flag_valve_delay_switch, static_cast<int>(valves1_.get_valve_time_delay_close()));
+					} else if ((command_str[3] == ':') && (command_str[4] == 'f') && (command_str[5] == ':') && (command_str[7] == ';')) {
+						// $80:f:[0|1];
+						_aux[0] = '0';
+						_aux[1] = command_str[6];		// '0' in uint8_t is 48. ASCII
+						_aux[2] = '\0';
+						int status_code = atoi(_aux);
+
+						if(status_code) {
+							valves1_.flag_valve_delay_switch = states_flag::enable;
+							sprintf(buffer, "delay mode %d\n", (int)valves1_.flag_valve_delay_switch);
+						} else {
+							valves1_.flag_valve_delay_switch = states_flag::disable;
+							sprintf(buffer, "delay mode %d\n", (int)valves1_.flag_valve_delay_switch);
+						}
+					} else if ((command_str[3] == ':') && (command_str[4] == 'g') && (command_str[5] == ':') && (command_str[8] == ';')) {
+						// $80:g:15;
+						_aux[0] = command_str[6];
+						_aux[1] = command_str[7];		// '0' in uint8_t is 48. ASCII
+						_aux[2] = '\0';
+						uint32_t _time = static_cast<uint32_t>(atoi(_aux));
+						valves1_.set_valve_time_delay_close(_time);
+						sprintf(buffer, "set delay time %d\n", (int)valves1_.get_valve_time_delay_close());
 					} else if ((command_str[3] == ':') && (command_str[4] == 'h') && (command_str[5] == ';')) {
 					// $80:h;	// show valves sequence history
 
@@ -1881,7 +1907,7 @@ void Acionna::operation_pump_start_match_optimized(void) {
 			} while((optimized.event0_i < (optimized.event0_n_max)) && (optimized.flag_time_next_config == states_flag::disable));
 		}
 
-		// here, we suppose the pump is on after start by time match or time match next
+		// here, we suppose the pump is on after start by time match or time match next. And then, configure next time if motor is off.
 		if(optimized.flag_time_next_config == states_flag::enable) {
 			// if pump turn off, update those values;
 			// ESP_LOGI(TAG_ACIONNA, "optimized: config next time match 0");
@@ -1981,10 +2007,9 @@ void Acionna::operation_pump_optimized(void) {
 
 }
 void Acionna::operation_pump_valves(void) {
-	// If PCY8575 module resets, all ports go down and valve stop. To prevent it, keep setting on the current valve every second.
-	// P.S.: the module has implemented backup registers to keep output buffer even if PCY8575 reset occurs.
-	/*
-		A better function suppose to be implemented checking the current [mA] and valve current state asking PCY8575 module;
+	/* If PCY8575 module resets, all ports go down and valve stop. To prevent it, keep setting on the current valve every second.
+	*  P.S.: the module has implemented backup registers to keep output buffer even if PCY8575 reset occurs.
+	*  A better function suppose to be implemented checking the current [mA] and valve current state asking PCY8575 module;
 	*/
 	if(flag_check_valves_ == states_flag::enable) {
 		if((pump1_.state() == states_motor::on_nominal_delta) && (valves1_.state_valves == states_valves::automatic_switch)) {
@@ -1992,7 +2017,7 @@ void Acionna::operation_pump_valves(void) {
 		}
 	}
 
-	// If valves still not working but motor is turned on, start valves working cycle.
+	// If valves cycle was not initialized but motor is turned on, start valves working cycle.
 	if(valves1_.state_valves == states_valves::system_off) {
 		if((pump1_.state() == states_motor::on_nominal_delta) || pump1_.state() == states_motor::on_speeding_up) {
 			valves1_.start();
@@ -2186,8 +2211,7 @@ void Acionna::sys_fw_update_(void) {
 	// advanced_ota_start();
 	ota_start();
 }
-void Acionna::sys_fw_update_ans_async_(void)
-{
+void Acionna::sys_fw_update_ans_async_(void) {
 	#ifdef CONFIG_BT_ENABLE
 	if((ws_server_client_state == conn_states::connected) || (bt_state == conn_states::connected)) {
 	#else
@@ -2453,8 +2477,7 @@ void Acionna::update_objects() {
 	valves1_.update();
 	// #endif
 }
-void Acionna::update_sensors()
-{
+void Acionna::update_sensors() {
 	// if(!timeout_sensors)
 	// {
 	// 	timeout_sensors = timeout_sensors_cfg;
@@ -2481,13 +2504,11 @@ void Acionna::update_sensors()
 }
 void Acionna::update_stored_data() {
 }
-void Acionna::update_uptime()
-{
+void Acionna::update_uptime() {
 	uptime_++;
 	// ESP_LOGI(TAG_ACIONNA, "uptime: %lu, esp_uptime: %ld", uptime_, static_cast<long int>(esp_timer_get_time() / 1000000);
 	// or
-	// uptime = esp_timer_get_time();
-
+	// uptime_ = esp_timer_get_time();
 	// ESP_LOGI(TAG_ACIONNA, "uptime: %d", device_clock.internal_time());
 	// ESP_LOGI(TAG_ACIONNA, "uptime: %ld", static_cast<long int>((esp_timer_get_time() / 1000000)));
 }
