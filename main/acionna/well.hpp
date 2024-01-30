@@ -2,7 +2,7 @@
 #define WELL_HPP
 
 #include <adc.hpp>
-#include <gpio.hpp>
+#include <gpio_driver.h>
 #include "pinout.hpp"
 
 #include "helper.hpp"
@@ -68,7 +68,7 @@ public:
 	}
 
 private:
-	GPIO_Basic water_level_[4];
+	GPIO_DRIVER water_level_[4];
 	const std::size_t water_level_count_ = sizeof(water_level_) / sizeof(water_level_[0]);
 
 	states_level state_L1_ = states_level::low;

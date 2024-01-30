@@ -1,7 +1,7 @@
 #include "onewire.h"
 #include "hardware_defs.h"
 
-OneWire::OneWire(GPIO_Basic *gpio){
+OneWire::OneWire(GPIO_DRIVER *gpio){
 	this->gpio = gpio;
 	reset_search();
 }

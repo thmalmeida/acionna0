@@ -2,7 +2,7 @@
 #define _PUMP_HPP__
 
 #include <adc.hpp>
-#include <gpio.hpp>
+#include <gpio_driver.h>
 #include <pinout.hpp>
 
 #include "esp_log.h"
@@ -10,16 +10,16 @@
 #include "helper.hpp"
 #include "delay.hpp"
 
-//GPIO_Basic ac_load_[]={
-//		GPIO_Basic{AC_LOAD1},
-//		GPIO_Basic{AC_LOAD2},
-//		GPIO_Basic{AC_LOAD3}};
+//GPIO_DRIVER ac_load_[]={
+//		GPIO_DRIVER{AC_LOAD1},
+//		GPIO_DRIVER{AC_LOAD2},
+//		GPIO_DRIVER{AC_LOAD3}};
 //const std::size_t ac_load_count_ = sizeof(ac_load_) / sizeof(ac_load_[0]);
-//GPIO_Basic gpio_generic_[]{
-//		GPIO_Basic{GPIO_GENERIC1},
-//		GPIO_Basic{GPIO_GENERIC2},
-//		GPIO_Basic{GPIO_GENERIC3},
-//		GPIO_Basic{GPIO_GENERIC4}
+//GPIO_DRIVER gpio_generic_[]{
+//		GPIO_DRIVER{GPIO_GENERIC1},
+//		GPIO_DRIVER{GPIO_GENERIC2},
+//		GPIO_DRIVER{GPIO_GENERIC3},
+//		GPIO_DRIVER{GPIO_GENERIC4}
 //};
 //const std::size_t gpio_generic_count_ = sizeof(gpio_generic_) / sizeof(gpio_generic_[0]);
 static const char *TAG_PUMP = "PUMP";
@@ -418,12 +418,12 @@ public:
 private:
 
 	// Output TRIACS hardware drive to contactors
-	GPIO_Basic ac_load_[3];
+	GPIO_DRIVER ac_load_[3];
 	const std::size_t ac_load_count_ = sizeof(ac_load_) / sizeof(ac_load_[0]);
-//	GPIO_Basic drive_kn_[3]={GPIO_Basic{AC_LOAD1},GPIO_Basic{AC_LOAD2},GPIO_Basic{AC_LOAD3}};
+//	GPIO_DRIVER drive_kn_[3]={GPIO_DRIVER{AC_LOAD1},GPIO_DRIVER{AC_LOAD2},GPIO_DRIVER{AC_LOAD3}};
 
 	// input of contators
-	GPIO_Basic gpio_generic_[4];
+	GPIO_DRIVER gpio_generic_[4];
 	const std::size_t gpio_generic_count_ = sizeof(gpio_generic_) / sizeof(gpio_generic_[0]);
 
 	// States of pins and devs stores into variables

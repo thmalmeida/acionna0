@@ -2,7 +2,6 @@
 #define _VALVES_HPP__
 
 #include <adc.hpp>
-#include <gpio.hpp>
 #include <pinout.hpp>
 
 #include "esp_log.h"

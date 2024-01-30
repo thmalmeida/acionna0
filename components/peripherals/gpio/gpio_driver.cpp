@@ -1,12 +1,12 @@
-#include <gpio.hpp>
+#include <gpio_driver.h>
 
 #ifndef GPIO_INTERRUPT_FLAGS
 #define GPIO_INTERRUPT_FLAGS		(ESP_INTR_FLAG_LEVEL3|ESP_INTR_FLAG_IRAM)
 #endif
 
-unsigned int GPIO_Basic::driver_instaled = 0;
+unsigned int GPIO_DRIVER::driver_instaled = 0;
 
-GPIO_Basic::GPIO_Basic(gpio_num_t num, bool remap)
+GPIO_DRIVER::GPIO_DRIVER(gpio_num_t num, bool remap)
 {
 	this->num = num;
 
@@ -14,43 +14,43 @@ GPIO_Basic::GPIO_Basic(gpio_num_t num, bool remap)
 	if(remap == true)
 		gpio_iomux_out(num, 2, false);
 }
-GPIO_Basic::GPIO_Basic(gpio_num_t num, gpio_mode_t mode) : level(0){
+GPIO_DRIVER::GPIO_DRIVER(gpio_num_t num, gpio_mode_t mode) : level(0){
 	this->num = num;
 	gpio_set_direction(num,mode);
 }
 
-void GPIO_Basic::mode(gpio_mode_t mode){
+void GPIO_DRIVER::mode(gpio_mode_t mode){
 	gpio_set_direction(num,mode);
 }
 
-void GPIO_Basic::write(int level){
+void GPIO_DRIVER::write(int level){
 	gpio_set_level(num, level);
 }
 
-void GPIO_Basic::toggle(){
+void GPIO_DRIVER::toggle(){
 	level = !level;
 	write(level);
 }
 
-int GPIO_Basic::read(){
+int GPIO_DRIVER::read(){
 	level = gpio_get_level(num);
 	return level;
 }
 
-void GPIO_Basic::reset() noexcept
+void GPIO_DRIVER::reset() noexcept
 {
 	gpio_reset_pin(num);
 }
 
-void GPIO_Basic::pull(gpio_pull_mode_t mode){
+void GPIO_DRIVER::pull(gpio_pull_mode_t mode){
 	gpio_set_pull_mode(num, mode);
 }
 
-void GPIO_Basic::strength(gpio_drive_cap_t cap){
+void GPIO_DRIVER::strength(gpio_drive_cap_t cap){
 	gpio_set_drive_capability(num, cap);
 }
 
-void GPIO_Basic::hold(bool hold){
+void GPIO_DRIVER::hold(bool hold){
 	if(hold){
 		gpio_hold_en(num);
 	} else {
@@ -58,7 +58,7 @@ void GPIO_Basic::hold(bool hold){
 	}
 }
 
-void GPIO_Basic::deep_sleep_hold(bool hold){
+void GPIO_DRIVER::deep_sleep_hold(bool hold){
 	if(hold){
 		gpio_deep_sleep_hold_en();
 	} else {
@@ -66,7 +66,7 @@ void GPIO_Basic::deep_sleep_hold(bool hold){
 	}
 }
 
-void GPIO_Basic::register_interrupt(gpio_isr_t handler, void* isr_args){
+void GPIO_DRIVER::register_interrupt(gpio_isr_t handler, void* isr_args){
 	if(driver_instaled == 0){
 		gpio_install_isr_service(GPIO_INTERRUPT_FLAGS);
 		driver_instaled++;
@@ -76,7 +76,7 @@ void GPIO_Basic::register_interrupt(gpio_isr_t handler, void* isr_args){
 	gpio_isr_handler_add(num, handler,this);
 }
 
-void GPIO_Basic::unregister_interrupt(){
+void GPIO_DRIVER::unregister_interrupt(){
 	if(driver_instaled == 0){
 		return;
 	}
@@ -89,19 +89,19 @@ void GPIO_Basic::unregister_interrupt(){
 	}
 }
 
-void GPIO_Basic::enable_interrupt(gpio_int_type_t type){
+void GPIO_DRIVER::enable_interrupt(gpio_int_type_t type){
 	gpio_set_intr_type(num, type);
 	gpio_intr_enable(num);
 }
 
-void GPIO_Basic::disable_interrupt(){
+void GPIO_DRIVER::disable_interrupt(){
 	gpio_intr_disable(num);
 }
 
-void* GPIO_Basic::get_isr_args(){
+void* GPIO_DRIVER::get_isr_args(){
 	return isr_args;
 }
 
-GPIO_Basic::~GPIO_Basic(){
+GPIO_DRIVER::~GPIO_DRIVER(){
 	unregister_interrupt();
 }

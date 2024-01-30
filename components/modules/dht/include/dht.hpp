@@ -26,13 +26,13 @@
 #define TAG_DHT "DHT"
 
 
-#include "gpio.hpp"
+#include "gpio_driver.h"
 #include "hardware_defs.h"
 
 
 class DHT{
 	public:
-		DHT(GPIO_Basic* gpio);
+		DHT(GPIO_DRIVER* gpio);
 
 		void begin();
 		bool requestRead();
@@ -44,7 +44,7 @@ class DHT{
 		void set_high();
 
 	private:
-		GPIO_Basic* _gpio;
+		GPIO_DRIVER* _gpio;
 		
 		uint8_t _data[5];
 		bool checkSum();

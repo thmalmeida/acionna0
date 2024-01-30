@@ -37,7 +37,7 @@
 
 #include <stdint.h>
 // #include "gpio.h"
-#include "gpio.hpp"
+#include <gpio_driver.h>
 #include "crc.h"
 
 // ROM commands - Comandos para endereçar dispositivos
@@ -60,7 +60,7 @@ class OneWire{
      *
      * @param [in] gpio Porta GPIO utilizada como barramento.
      */
-    OneWire(GPIO_Basic *gpio);
+    OneWire(GPIO_DRIVER *gpio);
 
     // Perform a 1-Wire reset cycle. Returns 1 if a device responds
     // with a presence pulse.  Returns 0 if there is no device or the
@@ -257,7 +257,7 @@ class OneWire{
 	/**
 	 * \brief Define a porta digital que será utilizada para barramento dos dispositivos
 	 */
-    GPIO_Basic *gpio;
+    GPIO_DRIVER *gpio;
 
     // global search state
     unsigned char ROM_NO[8];

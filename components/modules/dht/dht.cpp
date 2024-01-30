@@ -3,7 +3,7 @@
 // TODO: check checksum, interruptions
 
 // Code ready to use with AM2302 (DHT22). To use with DHT11 change return methods into get_temp and get humidity
-DHT::DHT(GPIO_Basic* gpio){
+DHT::DHT(GPIO_DRIVER* gpio){
 	this->_gpio = gpio;
 	_gpio->mode(GPIO_MODE_INPUT);
 	_gpio->pull(GPIO_PULLUP_ONLY);

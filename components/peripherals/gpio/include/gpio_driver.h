@@ -1,5 +1,5 @@
-#ifndef GPIO_H__
-#define GPIO_H__
+#ifndef GPIO_DRIVER_H__
+#define GPIO_DRIVER_H__
 
 #include "driver/gpio.h"
 
@@ -8,12 +8,12 @@
  * 	estao se utilizando do driver de interrucao
  */
 
-class GPIO_Basic{
+class GPIO_DRIVER{
 	public:
-		// GPIO_Basic(gpio_num_t num) : num(num) {}
-		GPIO_Basic(gpio_num_t num) : num(num) {}
-		GPIO_Basic(gpio_num_t num, gpio_mode_t mode);
-		GPIO_Basic(gpio_num_t num, bool remap);
+		// GPIO_DRIVER(gpio_num_t num) : num(num) {}
+		GPIO_DRIVER(gpio_num_t num) : num(num) {}
+		GPIO_DRIVER(gpio_num_t num, gpio_mode_t mode);
+		GPIO_DRIVER(gpio_num_t num, bool remap);
 
 		void mode(gpio_mode_t mode);
 
@@ -37,7 +37,7 @@ class GPIO_Basic{
 
 		void* get_isr_args();
 
-		~GPIO_Basic();
+		~GPIO_DRIVER();
 
 	protected:
 		int level = 0;
@@ -48,7 +48,7 @@ class GPIO_Basic{
 };
 
 typedef struct {
-	GPIO_Basic* esse;
+	GPIO_DRIVER* esse;
 	void* args;
 }gpio_isr_args_t;
 
