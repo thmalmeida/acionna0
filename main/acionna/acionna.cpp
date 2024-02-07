@@ -1134,7 +1134,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if (command_str[3] == ';') {
 						// $80;
 						sprintf(buffer, "sV:%d d_inv:%d tsOn:%.2d:%.2d:%.2d Tcfg:%.2d:%.2d:%.2d vol:%.1f v:%.2d tvOn:%.2d:%.2d:%.2d Pcfg:%d tv_cfg:%lu, \n",
-																											(int)valves1_.state_valves,
+																											(int)valves1_.state(),
 																											(int)valves1_.flag_inverted_sequence,
 																											timesec_to_hour(valves1_.get_time_on()),
 																											timesec_to_min(valves1_.get_time_on()),
@@ -1782,7 +1782,7 @@ void Acionna::msg_json_back_(void) {
 }
 void Acionna::operation_mode(void) {
 
-	// for all operation modes
+	// for all operation modes, check electrical and hydraulic parameters. Stop motor if limits occurs.
 	operation_pump_stop_check();
 
 	switch (state_mode)
@@ -2010,13 +2010,12 @@ void Acionna::operation_pump_valves(void) {
 	*  A better function suppose to be implemented checking the current [mA] and valve current state asking PCY8575 module;
 	*/
 	if(flag_check_valves_ == states_flag::enable) {
-		if((pump1_.state() == states_motor::on_nominal_delta) && (valves1_.state_valves == states_valves::automatic_switch)) {
+		if((pump1_.state() == states_motor::on_nominal_delta) && (valves1_.state() == states_valves::automatic_switch)) {
 			valves1_.set_valve_state(valves1_.valve_current(), 1);
 		}
 	}
-
 	// If valves cycle was not initialized but motor is turned on, start valves working cycle.
-	if(valves1_.state_valves == states_valves::system_off) {
+	if(valves1_.state() == states_valves::system_off) {
 		if((pump1_.state() == states_motor::on_nominal_delta) || pump1_.state() == states_motor::on_speeding_up) {
 			valves1_.start();
 			// minus some time avoid to enter into this condition after working valves cycle finish while motor is on;
@@ -2024,9 +2023,8 @@ void Acionna::operation_pump_valves(void) {
 			pump1_.time_to_shutdown_config = valves1_.get_total_time_programmed();
 		}
 	}
-
 	// If valves cycle are working but motor is turned off, stop valves working cycle.
-	if(valves1_.state_valves == states_valves::automatic_switch) {
+	if(valves1_.state() == states_valves::automatic_switch) {
 		if(pump1_.state() != states_motor::on_nominal_delta)
 			if(pump1_.state() != states_motor::on_speeding_up)
 				valves1_.stop();
@@ -2034,7 +2032,6 @@ void Acionna::operation_pump_valves(void) {
 		// This variable makes the interconnection between pipe pressure and valve class to make average sector pressure.
 		pressure_ = pipe1_.pressure_mca();
 	}
-
 }
 void Acionna::parser_(uint8_t* payload_str, int payload_str_len, uint8_t *command_str, int& command_str_len)
 {

@@ -40,7 +40,6 @@ static const char *TAG_VALVES = "VALVES";
 class Valves {
 public:
 
-	states_valves state_valves = states_valves::system_off;
 	// unsigned int time_total_cfg = 0;							// sum of programmed valves time [s];	
 	unsigned int time_valve_remain = 0;							// valve time elapsed before turn off [s];
 	unsigned int time_valve_change = 0;							// between changes to verify if pressure has been pressure recovered [s];
@@ -126,7 +125,7 @@ public:
 
 	// This functions should be called every 1 second interval
 	void update() {
-		if(state_valves == states_valves::automatic_switch) {
+		if(state_valves_ == states_valves::automatic_switch) {
 
 			if(!time_valve_remain) {	// when time valve finish, find_next() function find new programmed valve_current_ and it's elapsed time (time_valve_ramain).
 
@@ -146,8 +145,8 @@ public:
 				if(find_next()) {		// Return true if some next programmed sector was found. Else return 0 if none is found meaning finish working cycle.
 					make_log();		// Found programmed valve sector. Make some log.
 
-					if(valve_time_elapsed_) {
-						valve_time_elapsed_ = 0;					// Clear valve elapsed time [s] after find another programmed valve.
+					if(time_valve_elapsed_) {
+						time_valve_elapsed_ = 0;					// Clear valve elapsed time [s]. It's important to find another programmed valve.
 					}
 				} else {
 					stop();			// Couldn't find new programmed valve sector or achieve end cycle. Stop valve switch process.
@@ -167,7 +166,7 @@ public:
 			}
 
 			make_log_update();								// refresh the elapsed time valve on log vector
-			valve_time_elapsed_++;
+			time_valve_elapsed_++;
 			time_system_on_++;
 		}
 	}
@@ -195,7 +194,7 @@ public:
 		log_valves[0].pressure_max = pressure_avg();
 	}
 	void make_log_update(void) {
-		log_valves[0].elapsed_time = valve_time_elapsed_;
+		log_valves[0].elapsed_time = time_valve_elapsed_;
 
 		log_valves[0].pressure_avg = pressure_avg();
 
@@ -282,9 +281,9 @@ public:
 		load_.put(0x0000);								// reset all valves;
 		valve_seq = 0;									// reset valve sequence number;
 		time_valve_remain = 0;							// reset current valve time;
-		valve_time_elapsed_ = 0;						// reset time elapsed during on state;
+		time_valve_elapsed_ = 0;						// reset time elapsed during on state;
 		time_system_on_ = 0;							// reset working time cycle;
-		state_valves = states_valves::automatic_switch;	// put automatic valve switch state on;
+		state_valves_ = states_valves::automatic_switch;	// put automatic valve switch state on;
 		flag_valve_found_ = states_flag::disable;		// disable found new programmed valve sector;
 
 		// Set a kind of pointer to find_next() function find the next valve
@@ -301,13 +300,13 @@ public:
 		// 	set_valve_state(n, 0);
 		// }
 		load_.put(0x0000);		// reset all valves;	
-		// because sometimes the motor turn off and do not refresh time due the state_valves = states_valves::system_off;
-		if(valve_time_elapsed_) {
+		// because sometimes the motor turn off and do not refresh time due the state_valves_ = states_valves::system_off;
+		if(time_valve_elapsed_) {
 			make_log_update();
-			valve_time_elapsed_ = 0;
+			time_valve_elapsed_ = 0;
 		}
 		valve_current_ = 0;
-		state_valves = states_valves::system_off;	
+		state_valves_ = states_valves::system_off;	
 	}
 	unsigned int find_next(void) {
 		states_flag flag_valve_found_ = states_flag::disable;
@@ -327,7 +326,7 @@ public:
 				else
 				{
 					flag_valve_found_ = states_flag::enable;
-					state_valves = states_valves::system_off;
+					state_valves_ = states_valves::system_off;
 				}
 			} while(flag_valve_found_ == states_flag::disable);
 		}
@@ -346,7 +345,7 @@ public:
 				else
 				{
 					flag_valve_found_ = states_flag::enable;
-					state_valves = states_valves::system_off;
+					state_valves_ = states_valves::system_off;
 					valve_current_ = 0;
 					return 0;
 				}
@@ -377,6 +376,9 @@ public:
 		return valve_current_;
 	}
 
+	states_valves state(void) {
+		return state_valves_;
+	}
 
 	/*
 	* The following functions is used to find the flow rate
@@ -560,6 +562,8 @@ private:
 	pcy8575 load_;											// connection with i2c_to_gpio module;
 	// const std::size_t ac_load_count_ = sizeof(ac_load_) / sizeof(ac_load_[0]);
 
+	states_valves state_valves_ = states_valves::system_off;	// Valves machine state;
+
 	struct {
 		// states_switch state = states_switch::off;		// estado da válvula;
 		states_flag programmed = states_flag::enable;		// enable or disable to schedule list;
@@ -580,9 +584,9 @@ private:
 	int press_vec_[press_vec_n_] = {0};
 
 	uint32_t time_system_on_ = 0;							// current time on [s];
-	uint32_t valve_time_elapsed_ = 0;						// time elapsed during valve on state;
+	uint32_t time_valve_elapsed_ = 0;						// time elapsed during valve on state;
 	uint32_t time_delay_close_ = 0;							// delay time to turn solenoide off after sector change on find_next() function;
-	uint32_t time_delay_close_config_ = 15;					// delay time configured
+	uint32_t time_delay_close_config_ = 30;					// delay time configured
 	uint32_t *epoch_time_;									// time linked with epoch system time;
 	int *pressure_mca_;										// pipe pressure from pointer to valves class;
 	states_flag flag_valve_found_ = states_flag::disable;
