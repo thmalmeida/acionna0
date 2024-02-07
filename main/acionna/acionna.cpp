@@ -2016,8 +2016,9 @@ void Acionna::operation_pump_valves(void) {
 	}
 	// If valves cycle was not initialized but motor is turned on, start valves working cycle.
 	if(valves1_.state() == states_valves::system_off) {
-		if((pump1_.state() == states_motor::on_nominal_delta) || pump1_.state() == states_motor::on_speeding_up) {
-			valves1_.start();
+		// if((pump1_.state() == states_motor::on_nominal_delta) || pump1_.state() == states_motor::on_speeding_up) {
+		if(pump1_.state() == states_motor::on_speeding_up) {
+			valves1_.start();	// Just start valves system machine if it is off and motor is acceleratig;
 			// minus some time avoid to enter into this condition after working valves cycle finish while motor is on;
 			pump1_.time_to_shutdown = valves1_.get_total_time_programmed()-10;	// does not indeed to aliviate the pressure because of next condition that turn valves system off;
 			pump1_.time_to_shutdown_config = valves1_.get_total_time_programmed();
