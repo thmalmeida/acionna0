@@ -108,15 +108,11 @@ public:
 		return state_motor_;
 	}
 	int start(start_types _mode) {
-
+		int i = 0;	// for us counter purpose
 		switch (_mode) {
 			case start_types::direct_k1: {
 				drive_k_(1, 1);
-
-				// check K change with time
-				int i = 0;
-				while(state_k1() != states_switch::on)
-				{
+				while(state_k1() != states_switch::on) {	// check K change with time
 					i++;
 					delay_us(1);
 					update_switches_();
@@ -129,40 +125,31 @@ public:
 					}
 				}
 				time_k1_on_ = i;
-				delay_us(10000);								// delay for debounce purpose
+				delay_ms(time_switch_k_change);								// delay for debounce purpose
 				ESP_LOGI(TAG_PUMP, "k1 on");
 				break;
 			}
 			case start_types::direct_k2: {
 				drive_k_(2, 1);
-
-				// check K change with time
-				int i = 0;
-				while(state_k2() != states_switch::on)
-				{
+				while(state_k2() != states_switch::on) {	// check K change with time
 					i++;
-					// delay_us(1);
 					delay_us(1);
 					update_switches_();
 
-					if(i > time_switch_k_change*1000)
-					{
+					if(i > time_switch_k_change*1000) {
 						ESP_LOGI(TAG_PUMP, "error on k2 change");
 						stop(stop_types::contactor_not_on);
 						return 1;
 					}
 				}
 				time_k2_on_ = i;
-				delay_us(10000);								// delay for debounce purpose
 				ESP_LOGI(TAG_PUMP, "k2 on");
+				delay_ms(time_switch_k_change);								// delay for debounce purpose
 				break;
 			}
 			case start_types::direct_k3: {
 				drive_k_(3, 1);
-
-				// check K change with time
-				int i = 0;
-				while(state_k3() != states_switch::on)
+				while(state_k3() != states_switch::on)		// check K change with time
 				{
 					i++;
 					delay_us(1);
@@ -176,8 +163,8 @@ public:
 					}
 				}
 				time_k3_on_ = i;
-				delay_us(10000);								// delay for debounce purpose
 				ESP_LOGI(TAG_PUMP, "k3 on");
+				delay_ms(time_switch_k_change);					// delay for debounce purpose
 				break;
 			}
 			case start_types::to_delta: {
@@ -185,8 +172,6 @@ public:
 				if((state_k3() == states_switch::on) || (state_k3_pin() == states_switch::on)) {
 					ESP_LOGI(TAG_PUMP, "from Y to delta. K3: OFF");						
 					drive_k_(3, 0);									// turn k3 off
-					
-					int i = 0;
 					while((state_k3() == states_switch::on) || (state_k3_pin() == states_switch::on)) {
 						i++;										// loop wait count
 						delay_us(1);								// wait 1 millisecond
@@ -215,7 +200,8 @@ public:
 					else {
 						ESP_LOGI(TAG_PUMP, "from K1 on to delta start");
 					}
-					delay_us(10000);								// delay for debounce purpose
+					delay_ms(time_switch_k_change);					// delay for debounce purpose
+					// delay_us(10000);								// delay for debounce purpose
 				} else {
 					ESP_LOGI(TAG_PUMP, "from Y to delta fail on K3 change");
 					return 1;
@@ -232,8 +218,6 @@ public:
 				if((state_k2() == states_switch::on) || (state_k2_pin() == states_switch::on)) {
 					ESP_LOGI(TAG_PUMP, "from delta to Y. K2: OFF");						
 					drive_k_(2, 0);
-					
-					int i = 0;
 					while((state_k2() == states_switch::on) || (state_k2_pin() == states_switch::on)) {
 						i++;
 						delay_us(1);
@@ -255,7 +239,6 @@ public:
 				if((state_k2() == states_switch::off) && (state_k2_pin() == states_switch::off)) {
 					ESP_LOGI(TAG_PUMP, "K1 and K3: ON");
 					drive_k_(3,1);
-
 					if((state_k1() == states_switch::off) && (state_k1_pin() == states_switch::off)) {
 						ESP_LOGI(TAG_PUMP, "from zero to Y start");
 						drive_k_(1, 1);
@@ -263,8 +246,7 @@ public:
 					else {
 						ESP_LOGI(TAG_PUMP, "from K1 on to Y start");
 					}
-
-					delay_us(20000);								// delay for debounce purpose
+					delay_us(time_switch_k_change*1000);				// delay for debounce purpose
 				} else {
 					ESP_LOGI(TAG_PUMP, "from delta to Y fail on K2 change");
 					return 1;
