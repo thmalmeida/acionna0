@@ -10,18 +10,19 @@
 
 class GPIO_DRIVER{
 	public:
-		// GPIO_DRIVER(gpio_num_t num) : num(num) {}
-		GPIO_DRIVER(gpio_num_t num) : num(num) {}
-		GPIO_DRIVER(gpio_num_t num, gpio_mode_t mode);
-		GPIO_DRIVER(gpio_num_t num, bool remap);
+		// GPIO_DRIVER(int pin_number, int direction = 0);
+		GPIO_DRIVER(int pin_number, int direction = 0, bool remap = false);
 
-		void mode(gpio_mode_t mode);
-
+		void mode(int direction);
+		int read(void);
 		void write(int level);
-		void toggle();
-		int read();
+		void toggle(void);
+		void reset(void) noexcept;
 
-		void reset() noexcept;
+		~GPIO_DRIVER();
+
+		// uC specifics - ESP32
+		void pull(int mode);
 
 		void register_interrupt(gpio_isr_t handler, void* isr_args);
 		void unregister_interrupt();
@@ -29,22 +30,22 @@ class GPIO_DRIVER{
 		void enable_interrupt(gpio_int_type_t type);
 		void disable_interrupt();
 
-		void pull(gpio_pull_mode_t mode);
-
 		void strength(gpio_drive_cap_t cap);
 		void hold(bool hold);
 		static void deep_sleep_hold(bool hold);
 
 		void* get_isr_args();
 
-		~GPIO_DRIVER();
+	private:
+		int pin_number_;
+		int direction_;
+		int level_ = 0;
 
-	protected:
-		int level = 0;
-		gpio_num_t num;
+		// uC specifics - ESP32
+		gpio_num_t pin_number_t_;
 		void* isr_args = NULL;
-
 		static unsigned int driver_instaled;
+
 };
 
 typedef struct {
