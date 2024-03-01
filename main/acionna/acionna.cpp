@@ -2359,27 +2359,8 @@ void Acionna::sys_wifi_info_(char* buffer_str) {
 	// }
 }
 void Acionna::sys_wifi_scan_(char* buffer_str) {
-
-	uint16_t ap_count = 0;
-	uint16_t number = DEFAULT_SCAN_LIST_SIZE;
-	wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
-	wifi_ap_record_t *ap_info_ptr = &ap_info[0];
-
-	// char buffer_str[200];
-	char buffer_temp[62];
-
-	memset(ap_info, 0, sizeof(ap_info));
 	memset(buffer_str, 0, sizeof(*buffer_str));
-	memset(buffer_temp, 0, sizeof(buffer_temp));
-
-	wifi_scan2(number, ap_info_ptr, ap_count);
-	for(int i=0; (i<DEFAULT_SCAN_LIST_SIZE) && (i<ap_count); i++)
-	{
-		sprintf(buffer_temp, "Ch: %d, RSSI: %d, SSID: %s\n", ap_info[i].primary, ap_info[i].rssi, ap_info[i].ssid);
-		strcat(buffer_str, buffer_temp);
-	}
-	// std::string str(buffer_str);
-	// ws_server_send(str);
+	wifi_scan(buffer_str);
 }
 void Acionna::sys_wifi_mac_(char* buffer_str) {
 	

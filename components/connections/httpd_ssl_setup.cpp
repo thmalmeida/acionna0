@@ -20,12 +20,13 @@ const httpd_uri_t ws = {
 };
 httpd_handle_t ws_server = NULL;   // Server instance global declaration
 httpd_config_t ws_server_config = {
-	tskIDLE_PRIORITY+5,     // task_priority
-	4096,                   // stack_size
+	tskIDLE_PRIORITY+5,    	 // task_priority
+	4096,                  	// stack_size
 	tskNO_AFFINITY,			// core_id
+	(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT),	// task_caps - memory allocating
 	CONFIG_WS_SERVER_PORT,	// server_port
-	32768,                  // ctrl_port
-	4,                      // max_open_sockets
+	32768,					// ctrl_port
+	5,                      // max_open_sockets
 	8,                      // max_uri_handlers
 	8,                      // max_resp_headers
 	5,                      // backlog_conn
@@ -37,7 +38,7 @@ httpd_config_t ws_server_config = {
 	NULL,                   // global_transport_ctx
 	NULL,                   // global_transport_ctx_free_fn
 	false,					// enable/disable linger
-	5,						// linger timeout in seconds
+	0,						// linger timeout in seconds
 	false,					// keep_alive_enable
 	0,						// keep_alive_idle
 	0,						// keep_alive_interval

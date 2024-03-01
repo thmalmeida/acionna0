@@ -69,8 +69,7 @@ void wifi_get_info(void);
 void wifi_get_mac(uint8_t* wifi_mac);
 void print_auth_mode(int authmode);
 void print_cipher_type(int pairwise_cipher, int group_cipher);
-void wifi_scan();
-void wifi_scan2(uint16_t &number, wifi_ap_record_t* ap_info, uint16_t &ap_count);
+void wifi_scan(char* str);
 void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 
 #endif
