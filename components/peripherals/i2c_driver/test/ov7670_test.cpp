@@ -7,7 +7,7 @@
 
 static const char* TAG = "APP_MAIN";
 
-#include "i2c_driver.hpp"
+#include "I2C_Driver.hpp"
 
 #define	SIOC	GPIO_NUM_23
 #define	SIOD	GPIO_NUM_25
@@ -40,7 +40,7 @@ extern "C" void app_main(){
 	PWM camera_clk(LEDC_HIGH_SPEED_MODE, LEDC_CHANNEL_0, LEDC_TIMER_0);
 	camera_clk.init(XCLK_FREQ, XCLK, LEDC_TIMER_1_BIT, 1);
 
-	I2C_DRIVER camera_i2c(I2C_NUM_0, SIOC, SIOD, 100000);
+	I2C_Driver camera_i2c(I2C_NUM_0, SIOC, SIOD, 100000);
 	camera_i2c.init();
 
 	ESP_LOGI(TAG, "Reseting CAM");

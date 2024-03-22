@@ -1,5 +1,5 @@
-#ifndef I2C_DRIVER_H__
-#define I2C_DRIVER_H__
+#ifndef I2C_Driver_H__
+#define I2C_Driver_H__
 
 #include <stdio.h>
 #include <cstdint>
@@ -27,8 +27,7 @@ enum class i2c_ans {
 #define I2C_SPEED_FAST_HZ	400000
 #define I2C_SPEED_NORMAL_HZ	100000
 
-#define I2C_ADDR			0x58
-#define I2C_COMMAND_WAIT_MS	200		// -1 means wait forever
+#define I2C_COMMAND_WAIT_MS	50		// -1 means wait forever
 
 
 /* 
@@ -90,23 +89,23 @@ Command: X, Type: write.
 
 */
 
-class I2C_DRIVER{
+class I2C_Driver{
 	public:
-		// I2C_DRIVER(i2c_port_t port, int scl, int sda, uint32_t freq, bool pull_up = false);
-		I2C_DRIVER(int port, int scl, int sda, uint32_t freq = I2C_SPEED_NORMAL_HZ);
-		~I2C_DRIVER();
+		// I2C_Driver(i2c_port_t port, int scl, int sda, uint32_t freq, bool pull_up = false);
+		I2C_Driver(int port, int scl, int sda, uint32_t freq = I2C_SPEED_NORMAL_HZ);
+		~I2C_Driver();
 
-		i2c_ans write(uint8_t slave_addr, uint8_t reg, bool ack_check = true);
-		i2c_ans write(uint8_t slave_addr, uint8_t reg, uint8_t data, bool ack_check = true);
-		i2c_ans write(uint8_t slave_addr, uint8_t reg, uint8_t* data, size_t len, bool ack_chec = true);
-		i2c_ans write(uint8_t slave_addr, uint8_t* data, uint8_t len);
-
-		// This is read only command
-		i2c_ans read(uint8_t slave_addr, uint8_t* data, size_t data_len, bool ack_check = true);
+		i2c_ans write(uint8_t slave_addr, uint8_t reg);
+		i2c_ans write(uint8_t slave_addr, uint8_t reg, uint8_t data);
+		i2c_ans write(uint8_t slave_addr, uint8_t reg, uint8_t *data, size_t len);
+		i2c_ans write(uint8_t slave_addr, uint8_t *data, uint8_t len);
 
 		// The following reads is precedded by write before read;
-		i2c_ans read(uint8_t slave_addr, uint8_t reg, uint8_t* data, size_t len, bool ack_check = true);
-		i2c_ans read(uint8_t slave_addr, uint8_t reg, uint8_t* data, bool ack_check = true);
+		i2c_ans read(uint8_t slave_address, const uint8_t *data_write, size_t len_write, uint8_t *data_read, size_t len_read);
+		i2c_ans read(uint8_t slave_addr, uint8_t *data, size_t len);
+		i2c_ans read(uint8_t slave_addr, uint8_t *data);
+		i2c_ans read(uint8_t slave_addr, uint8_t reg, uint8_t *data, size_t len);
+		i2c_ans read(uint8_t slave_addr, uint8_t reg, uint8_t *data);
 		// i2c_ans read(uint8_t slave_address, const uint8_t* write_buffer, size_t write_buffer_len, uint8_t* read_buffer, size_t read_buffer_len);
 
 		// Check if that addr is alive	
@@ -122,6 +121,8 @@ class I2C_DRIVER{
 		// ESP32 specifics
 		i2c_master_dev_handle_t dev_handle_;
 		i2c_master_bus_handle_t bus_handle_;
+
+		i2c_device_config_t dev_cfg_;
 };
 
 #endif /* I2C_MASTER_H__ */

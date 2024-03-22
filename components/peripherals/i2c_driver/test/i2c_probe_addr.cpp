@@ -1,5 +1,5 @@
 #include "driver/gpio.h"
-#include "i2c_driver.hpp"
+#include "I2C_Driver.hpp"
 
 #include "esp_log.h"
 
@@ -11,7 +11,7 @@ static const char* TAG = "APP_MAIN";
 #define I2C_FREQ_HZ		100000
 
 extern "C" void app_main(){
-	I2C_DRIVER i2c(I2C_NUM_0, SCL_PIN, SDA_PIN, I2C_FREQ_HZ);
+	I2C_Driver i2c(I2C_NUM_0, SCL_PIN, SDA_PIN, I2C_FREQ_HZ);
 	i2c.init();
 
 	uint8_t addr = 0;
