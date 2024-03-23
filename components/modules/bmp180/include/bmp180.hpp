@@ -1,17 +1,23 @@
-#ifndef __BPM180_HPP__
-#define __BPM180_HPP__
+#ifndef BPM180_HPP__
+#define BPM180_HPP__
 
-#include "i2c_master.hpp"
+/*
+* Finished writed on 20240322;
+* by thmalmeida
+*/
+
+#include "i2c_driver.hpp"
 #include "esp_log.h"
 
 #define BMP180_ADDR             0x77
 #define BMP180_ADDR_TEMP        0x2E	// Conversion time 4.5 ms
-#define BMP180_ADDR_PRESS_OSS_0 0x34	// 4.5 ms
-#define BMP180_ADDR_PRESS_OSS_1 0x74	// 7.5 ms
-#define BMP180_ADDR_PRESS_OSS_2 0xB4	// 13.5 ms
+#define BMP180_ADDR_PRESS_OSS_0 0x34	// Max conv. time: 4.5 ms
+#define BMP180_ADDR_PRESS_OSS_1 0x74	// 7.5 ms.  0x34 + (OSS << 6)
+#define BMP180_ADDR_PRESS_OSS_2 0xB4	// 13.5 ms. 
 #define BMP180_ADDR_PRESS_OSS_3 0xF4	// 25.5 ms
 #define BMP180_ADDR_ID          0xD0	// id reset state value (for ok response)	     
 #define BMP180_ADDR_SOFT_RST	0xE0	// register to soft reset
+#define BMP180_ADDR_CR			0xF4	// Control Register
 
 // Address register for calibration coefficients
 #define BMP180_ADDR_AC1_MSB		0xAA
@@ -37,21 +43,69 @@
 #define BMP180_ADDR_MD_MSB		0xBE
 #define BMP180_ADDR_MD_LSB		0xBF
 
-class bmp180 {
+/* 
+* Pressure reads with maximum of 128 S/s and temperature of 1 S/s;
+* UT - Temperature data (16-bit)
+* UP - pressure data (16 to 19 bit)
+*
+*
+* Sampling Mode				Parameter 				n samples	conversion time [ms]
+							Oversampling_setting
+							(OSR)				
+* 1- Ultra Low power		0						1			4.5
+* 2- Standard				1						2			7.5
+* 3- high resolution		2						4			13.5
+* 4- ultra high resolution	3						8			25.5
+*
+* 176 bit EEPROM is partitioned in 11 words of 16 bits each
+*
+* Accuracy:
+* Pressure: 	1 Pa (=0.01 hPa = 0.01 mbar)
+* Temperature:	0.1 C
+*/
 
-    public:
-    bmp180(I2C_Master *i2c);
-    void init(void);
-    void probe(void);
-    void get_temp(void);
-    void get_pres(void);
+class BMP180 {
+public:
+	BMP180(I2C_Driver *i2c);
 
-    int16_t AC1, AC2, AC3, B1, B2, MB, MC, MD;
-    uint16_t AC4, AC5, AC6;
+	bool probe(void);
+	void init(void);
 
-    private:
-    I2C_Master *i2c_;
+	// get uncompensated temperature (UT)
+	uint16_t u_temperature(void);
 
+	// get uncompensated pressure (UP)
+	uint32_t u_pressure(void);
+
+	double calc_true_temperature(void);
+	double calc_true_pressure(void);
+
+	// calculate the altitude based on pressure;
+	int altitude(void);
+	int pressure_sea_level(void);
+
+	void soft_reset(void);
+
+private:
+
+	// set oss value on ctrl_meas register
+	void oss_(uint8_t value);
+
+	// get oss value on ctrl_meas register
+	uint8_t oss_(void);
+
+	int UT = 0; 				// Uncompesated temperature;
+	int UP = 0;					// Uncompensated pressure;
+
+	// Calibration coefficients
+	int16_t AC1_, AC2_, AC3_, B1_, B2_, MB_, MC_, MD_;
+	uint16_t AC4_, AC5_, AC6_;
+
+	// Calculated coefficients;
+	double B5_, p_;
+
+	// i2c driver pointer;
+	I2C_Driver *i2c_;
 };
 
 #endif

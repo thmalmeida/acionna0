@@ -2,92 +2,162 @@
 
 const char* TAG_BMP180 = "BMP180";
 
-void bmp180::probe(void) {
-	bool alive = i2c_->probe(BMP180_ADDR);
-	// uint8_t data;
-	// uint8_t reg_address = 0xD0;
-	
-	// i2c_->read(slave_address, reg_address, &data, true);
+BMP180::BMP180(I2C_Driver *i2c) : i2c_(i2c) {
+	printf("BMP180 status: %u\n", static_cast<uint8_t>(probe()));
 
-	ESP_LOGI(TAG_BMP180, "BMP180 status: %d\n", alive);
+	init();
 }
-void bmp180::init(void) {
-	probe();
-
+bool BMP180::probe(void) {
+	// Return true if it is alive
+	return i2c_->probe(BMP180_ADDR);
+}
+void BMP180::init(void) {
 	uint8_t data_MSB, data_LSB;
 
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC1_LSB, &data_LSB, true);
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC1_MSB, &data_MSB, true);
-	AC1 = (data_MSB << 8) | data_LSB;
-	ESP_LOGI(TAG_BMP180, "AC1= %d", AC1);
+	// Read calibration data from BMP180 internals EEPROM;
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC1_LSB, &data_LSB);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC1_MSB, &data_MSB);
+	AC1_ = (data_MSB << 8) | data_LSB;
+	printf("AC1= %d\n", AC1_);
 
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC2_LSB, &data_LSB, true);
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC2_MSB, &data_MSB, true);
-	AC2 = (data_MSB << 8) | data_LSB;
-	ESP_LOGI(TAG_BMP180, "AC2= %d", AC2);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC2_LSB, &data_LSB);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC2_MSB, &data_MSB);
+	AC2_ = (data_MSB << 8) | data_LSB;
+	printf("AC2= %d\n", AC2_);
 
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC3_LSB, &data_LSB, true);
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC3_MSB, &data_MSB, true);
-	AC3 = (data_MSB << 8) | data_LSB;
-	ESP_LOGI(TAG_BMP180, "AC3= %d", AC3);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC3_LSB, &data_LSB);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC3_MSB, &data_MSB);
+	AC3_ = (data_MSB << 8) | data_LSB;
+	printf("AC3= %d\n", AC3_);
 
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC4_LSB, &data_LSB, true);
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC4_MSB, &data_MSB, true);
-	AC4 = (data_MSB << 8) | data_LSB;
-	ESP_LOGI(TAG_BMP180, "AC4= %d", AC4);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC4_LSB, &data_LSB);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC4_MSB, &data_MSB);
+	AC4_ = (data_MSB << 8) | data_LSB;
+	printf("AC4= %d\n", AC4_);
 
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC5_LSB, &data_LSB, true);
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC5_MSB, &data_MSB, true);
-	AC5 = (data_MSB << 8) | data_LSB;
-	ESP_LOGI(TAG_BMP180, "AC5= %d", AC5);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC5_LSB, &data_LSB);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC5_MSB, &data_MSB);
+	AC5_ = (data_MSB << 8) | data_LSB;
+	printf("AC5= %d\n", AC5_);
 
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC6_LSB, &data_LSB, true);
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC6_MSB, &data_MSB, true);
-	AC6 = (data_MSB << 8) | data_LSB;
-	ESP_LOGI(TAG_BMP180, "AC6= %d", AC6);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC6_LSB, &data_LSB);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_AC6_MSB, &data_MSB);
+	AC6_ = (data_MSB << 8) | data_LSB;
+	printf("AC6= %d\n", AC6_);
 
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_B1_LSB, &data_LSB, true);
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_B1_MSB, &data_MSB, true);
-	B1 = (data_MSB << 8) | data_LSB;
-	ESP_LOGI(TAG_BMP180, "B1= %d", B1);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_B1_LSB, &data_LSB);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_B1_MSB, &data_MSB);
+	B1_ = (data_MSB << 8) | data_LSB;
+	printf("B1= %d\n", B1_);
 
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_B2_LSB, &data_LSB, true);
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_B2_MSB, &data_MSB, true);
-	B2 = (data_MSB << 8) | data_LSB;
-	ESP_LOGI(TAG_BMP180, "B2= %d", B2);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_B2_LSB, &data_LSB);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_B2_MSB, &data_MSB);
+	B2_ = (data_MSB << 8) | data_LSB;
+	printf("B2= %d\n", B2_);
 
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_MB_LSB, &data_LSB, true);
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_MB_MSB, &data_MSB, true);
-	MB = (data_MSB << 8) | data_LSB;
-	ESP_LOGI(TAG_BMP180, "MB= %d", MB);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_MB_LSB, &data_LSB);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_MB_MSB, &data_MSB);
+	MB_ = (data_MSB << 8) | data_LSB;
+	printf("MB= %d\n", MB_);
 
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_MC_LSB, &data_LSB, true);
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_MC_MSB, &data_MSB, true);
-	MC = (data_MSB << 8) | data_LSB;
-	ESP_LOGI(TAG_BMP180, "MC= %d", MC);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_MC_LSB, &data_LSB);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_MC_MSB, &data_MSB);
+	MC_ = (data_MSB << 8) | data_LSB;
+	printf("MC= %d\n", MC_);
 
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_MD_LSB, &data_LSB, true);
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_MD_MSB, &data_MSB, true);
-	MD = (data_MSB << 8) | data_LSB;
-	ESP_LOGI(TAG_BMP180, "MD= %d", MD);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_MD_LSB, &data_LSB);
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_MD_MSB, &data_MSB);
+	MD_ = (data_MSB << 8) | data_LSB;
+	printf("MD= %d\n", MD_);
 
 }
-void bmp180::get_temp(void) {
+uint16_t BMP180::u_temperature(void) {
 	// write 0x2E (addr temp) into 0x74 (press oss3 addr);
-	i2c_->write(BMP180_ADDR, BMP180_ADDR_PRESS_OSS_3, BMP180_ADDR_TEMP, true); 
+	i2c_->write(BMP180_ADDR, BMP180_ADDR_PRESS_OSS_3, BMP180_ADDR_TEMP); 
 	
 	// wait 4.5 ms
 	delay_us(4500);
 
-	uint8_t data_MSB, data_LSB;
+	uint8_t MSB, LSB;
 	int temperature;
-	i2c_->read(BMP180_ADDR, 0xF6, &data_MSB, true);
-	i2c_->read(BMP180_ADDR, 0xF7, &data_LSB, true);
-	temperature = (data_MSB << 8) | data_LSB;
+	i2c_->read(BMP180_ADDR, 0xF6, &MSB);
+	i2c_->read(BMP180_ADDR, 0xF7, &LSB);
+	temperature = (MSB << 8) | LSB;
+	printf("Temperature: %d\n", temperature);
 
-	ESP_LOGI(TAG_BMP180, "Temperature: %d", temperature);
-
+	return temperature;
 }
-void bmp180::get_pres(void) {
+uint32_t BMP180::u_pressure(void) {
+	i2c_->write(BMP180_ADDR, BMP180_ADDR_CR, 0x34+(oss_()<<6));
 
+	// Wait
+	delay_ms(5);
+
+	uint8_t MSB, LSB, XLSB;
+	int pressure;
+	i2c_->read(BMP180_ADDR, 0xF6, &MSB);
+	i2c_->read(BMP180_ADDR, 0xF7, &LSB);
+	i2c_->read(BMP180_ADDR, 0xF8, &XLSB);
+
+	pressure = ((MSB << 16) + (LSB << 8) + (XLSB)) >> (8 - oss_());
+
+	return pressure;
+}
+double BMP180::calc_true_temperature(void) {
+	double X1 = (u_temperature()-AC6_)*AC5_/32768.0;
+	double X2 = (MC_*2048.0)/(X1+MD_);
+	B5_ = X1 + X2;
+	double T = (B5_+8.0)/16.0;
+	
+	return T;
+}
+double BMP180::calc_true_pressure(void) {
+	double B6 = B5_ - 4000.0;
+	double X1 = (B2_*(B6*B6/4096.0))/65536.0;
+	double X2 = AC2_*B6/2048.0;
+	double X3 = X1 + X2;
+	double B3 = ((static_cast<uint32_t>(AC1_*4.0+X3) << oss_())+ 2.0)/4.0;
+	X1 = AC3_*B6/8192.0;
+	X2 = (B1_*(B6*B6/4096.0))/65536.0;
+	X3 = ((X1+X2)+2.0)/4.0;
+	double B4 = AC4_*(static_cast<uint32_t>(X3+ 32768.0))/32768.0;
+	double B7 = static_cast<uint32_t>(UP-B3)*(50000 >> oss_());
+	if(static_cast<uint32_t>(B7) < 0x80000000) {
+		p_ = (B7*2.0)/B4;
+	} else {
+		p_ = (B7/B4)*2.0;
+	}
+
+	X1 = (p_/256.0)*(p_/256.0);
+	X1 = (X1*3038.0)/65536.0;
+	X2 = (-7357.0*p_)/65536.0;
+	p_ = p_ + (X1+X2+3791.0)/16.0;
+
+	return p_;
+}
+void BMP180::oss_(uint8_t value) {
+	uint8_t ctrl_meas;
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_CR, &ctrl_meas);
+
+	ctrl_meas &= 0x3F;
+	ctrl_meas |= (value << 6);
+
+	i2c_->write(BMP180_ADDR, BMP180_ADDR_CR, ctrl_meas);
+}
+uint8_t BMP180::oss_(void) {
+	uint8_t ctrl_meas;
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_CR, &ctrl_meas);
+
+	return ctrl_meas >> 6;
+}
+
+int BMP180::altitude(void) {
+	return 0;
+}
+int BMP180::pressure_sea_level(void) {
+	return 0;
+}
+
+void BMP180::soft_reset(void) {
+	i2c_->write(BMP180_ADDR, BMP180_ADDR_SOFT_RST);
 }
