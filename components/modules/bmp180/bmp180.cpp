@@ -71,27 +71,45 @@ void BMP180::init(void) {
 	printf("MD= %d\n", MD_);
 
 }
-uint16_t BMP180::u_temperature(void) {
+int BMP180::altitude(void) {
+	return 0;
+}
+double BMP180::temperature(void) {
+	return temperature_;
+}
+double BMP180::pressure(void) {
+	return pressure_;
+}
+int BMP180::pressure_sea_level(void) {
+	return 0;
+}
+void BMP180::fetch(void) {
+	temperature_ = calc_true_temperature_(u_temperature_());
+	pressure_ = calc_true_pressure_(u_pressure_());
+}
+void BMP180::soft_reset(void) {
+	i2c_->write(BMP180_ADDR, BMP180_ADDR_SOFT_RST);
+}
+
+uint16_t BMP180::u_temperature_(void) {
 	// write 0x2E (addr temp) into 0x74 (press oss3 addr);
 	i2c_->write(BMP180_ADDR, BMP180_ADDR_PRESS_OSS_3, BMP180_ADDR_TEMP); 
 	
 	// wait 4.5 ms
 	delay_us(4500);
+	// delay_ms(5);	// cause error
 
 	uint8_t MSB, LSB;
-	int temperature;
 	i2c_->read(BMP180_ADDR, 0xF6, &MSB);
 	i2c_->read(BMP180_ADDR, 0xF7, &LSB);
-	temperature = (MSB << 8) | LSB;
-	printf("Temperature: %d\n", temperature);
 
-	return temperature;
+	return ((MSB << 8) | LSB);
 }
-uint32_t BMP180::u_pressure(void) {
+uint32_t BMP180::u_pressure_(void) {
 	i2c_->write(BMP180_ADDR, BMP180_ADDR_CR, 0x34+(oss_()<<6));
 
 	// Wait
-	delay_ms(5);
+	delay_us(5);
 
 	uint8_t MSB, LSB, XLSB;
 	int pressure;
@@ -103,25 +121,25 @@ uint32_t BMP180::u_pressure(void) {
 
 	return pressure;
 }
-double BMP180::calc_true_temperature(void) {
-	double X1 = (u_temperature()-AC6_)*AC5_/32768.0;
+double BMP180::calc_true_temperature_(uint16_t temp) {
+	double X1 = (temp-AC6_)*AC5_/32768.0;
 	double X2 = (MC_*2048.0)/(X1+MD_);
 	B5_ = X1 + X2;
 	double T = (B5_+8.0)/16.0;
-	
+
 	return T;
 }
-double BMP180::calc_true_pressure(void) {
+double BMP180::calc_true_pressure_(uint32_t press) {
 	double B6 = B5_ - 4000.0;
 	double X1 = (B2_*(B6*B6/4096.0))/65536.0;
 	double X2 = AC2_*B6/2048.0;
 	double X3 = X1 + X2;
-	double B3 = ((static_cast<uint32_t>(AC1_*4.0+X3) << oss_())+ 2.0)/4.0;
+	double B3 = ((static_cast<uint32_t>(AC1_*4.0 + X3) << oss_()) + 2.0)/4.0;
 	X1 = AC3_*B6/8192.0;
 	X2 = (B1_*(B6*B6/4096.0))/65536.0;
 	X3 = ((X1+X2)+2.0)/4.0;
-	double B4 = AC4_*(static_cast<uint32_t>(X3+ 32768.0))/32768.0;
-	double B7 = static_cast<uint32_t>(UP-B3)*(50000 >> oss_());
+	double B4 = AC4_*(static_cast<uint32_t>(X3 + 32768.0))/32768.0;
+	double B7 = static_cast<uint32_t>(press-B3)*(50000 >> oss_());
 	if(static_cast<uint32_t>(B7) < 0x80000000) {
 		p_ = (B7*2.0)/B4;
 	} else {
@@ -145,19 +163,19 @@ void BMP180::oss_(uint8_t value) {
 	i2c_->write(BMP180_ADDR, BMP180_ADDR_CR, ctrl_meas);
 }
 uint8_t BMP180::oss_(void) {
-	uint8_t ctrl_meas;
-	i2c_->read(BMP180_ADDR, BMP180_ADDR_CR, &ctrl_meas);
-
-	return ctrl_meas >> 6;
+	return ctrl_meas_() >> 6;
 }
-
-int BMP180::altitude(void) {
-	return 0;
+uint8_t BMP180::sco_(void) {
+	return (ctrl_meas_() >> 5) & 0xFE;
 }
-int BMP180::pressure_sea_level(void) {
-	return 0;
+uint8_t BMP180::ctrl_meas_(void) {
+	uint8_t ctrl_meas_r;
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_CR, &ctrl_meas_r);
+	return ctrl_meas_r;
 }
+uint8_t BMP180::chip_id_(void) {
+	uint8_t data;
+	i2c_->read(BMP180_ADDR, BMP180_ADDR_ID, &data);
 
-void BMP180::soft_reset(void) {
-	i2c_->write(BMP180_ADDR, BMP180_ADDR_SOFT_RST);
+	return data;
 }

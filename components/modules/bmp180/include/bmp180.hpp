@@ -67,26 +67,31 @@
 class BMP180 {
 public:
 	BMP180(I2C_Driver *i2c);
+	~BMP180(void) {}
 
 	bool probe(void);
 	void init(void);
 
-	// get uncompensated temperature (UT)
-	uint16_t u_temperature(void);
-
-	// get uncompensated pressure (UP)
-	uint32_t u_pressure(void);
-
-	double calc_true_temperature(void);
-	double calc_true_pressure(void);
-
-	// calculate the altitude based on pressure;
+	double temperature(void);
+	double pressure(void);
 	int altitude(void);
 	int pressure_sea_level(void);
+
+	// calculate the altitude based on pressure;
+	void fetch(void);
 
 	void soft_reset(void);
 
 private:
+	// get uncompensated temperature (UT)
+	uint16_t u_temperature_(void);
+
+	// get uncompensated pressure (UP)
+	uint32_t u_pressure_(void);
+
+	double calc_true_temperature_(uint16_t temp);
+
+	double calc_true_pressure_(uint32_t press);
 
 	// set oss value on ctrl_meas register
 	void oss_(uint8_t value);
@@ -94,8 +99,20 @@ private:
 	// get oss value on ctrl_meas register
 	uint8_t oss_(void);
 
-	int UT = 0; 				// Uncompesated temperature;
-	int UP = 0;					// Uncompensated pressure;
+	// start conversion bit
+	uint8_t sco_(void);
+
+	// ctrl_meas register
+	uint8_t ctrl_meas_(void);	
+
+	// get chip id
+	uint8_t chip_id_(void);
+
+	// int UT = 0; 				// Uncompesated temperature;
+	// int UP = 0;				// Uncompensated pressure;
+
+	double temperature_;
+	double pressure_;
 
 	// Calibration coefficients
 	int16_t AC1_, AC2_, AC3_, B1_, B2_, MB_, MC_, MD_;
