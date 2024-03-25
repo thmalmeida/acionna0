@@ -2,7 +2,7 @@
 #define BMP180_HPP__
 
 /*
-* Finished writed on 20240322;
+* Finished writed on 20240324;
 * by thmalmeida
 */	
 
@@ -76,14 +76,19 @@ public:
 	bool probe(void);
 	void init(void);
 
+	// return temp in scale of 0.1 C;
 	int32_t temperature(void);
+
+	// return pressure in [Pa]
 	int32_t pressure(void);
+
+	// return altitude in [m]
 	int32_t altitude(void);
 
-	// not tested yet
+	// not tested yet. Suppose to calibrate the sea level pressure
 	void pressure_sea_level(uint32_t pressure, int32_t altitude);
 
-	// calculate the altitude based on pressure;
+	// must call before ask for pressure and temperature;
 	void fetch(void);
 
 	void soft_reset(void);
@@ -111,16 +116,13 @@ private:
 	// ctrl_meas register
 	uint8_t ctrl_meas_(void);	
 
-	// get chip id
+	// get chip id - 0x55
 	uint8_t chip_id_(void);
 
-	// int UT = 0; 				// Uncompesated temperature;
-	// int UP = 0;				// Uncompensated pressure;
+	int32_t temperature_;					// Temperature in Celcius degree;
+	int32_t pressure_;						// Pressure in [Pa]
 
-	int32_t temperature_;
-	int32_t pressure_;
-
-	int32_t pressure_sea_level_ = 101325; // Pressure at sea level [Pa]
+	int32_t pressure_sea_level_ = 101325; 	// Pressure at sea level [Pa]
 
 	// Calibration coefficients
 	int16_t AC1_, AC2_, AC3_, B1_, B2_, MB_, MC_, MD_;
