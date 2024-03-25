@@ -1,13 +1,15 @@
-#ifndef BPM180_HPP__
-#define BPM180_HPP__
+#ifndef BMP180_HPP__
+#define BMP180_HPP__
 
 /*
 * Finished writed on 20240322;
 * by thmalmeida
-*/
+*/	
 
 #include "i2c_driver.hpp"
 #include "esp_log.h"
+
+#include <cmath>
 
 #define BMP180_ADDR             0x77
 #define BMP180_ADDR_TEMP        0x2E	// Conversion time 4.5 ms
@@ -43,6 +45,8 @@
 #define BMP180_ADDR_MD_MSB		0xBE
 #define BMP180_ADDR_MD_LSB		0xBF
 
+// #define BMP180_DEBUG			1
+
 /* 
 * Pressure reads with maximum of 128 S/s and temperature of 1 S/s;
 * UT - Temperature data (16-bit)
@@ -72,10 +76,12 @@ public:
 	bool probe(void);
 	void init(void);
 
-	double temperature(void);
-	double pressure(void);
-	int altitude(void);
-	int pressure_sea_level(void);
+	int32_t temperature(void);
+	int32_t pressure(void);
+	int32_t altitude(void);
+
+	// not tested yet
+	void pressure_sea_level(uint32_t pressure, int32_t altitude);
 
 	// calculate the altitude based on pressure;
 	void fetch(void);
@@ -89,9 +95,9 @@ private:
 	// get uncompensated pressure (UP)
 	uint32_t u_pressure_(void);
 
-	double calc_true_temperature_(uint16_t temp);
+	int32_t calc_true_temperature_(uint16_t temp);
 
-	double calc_true_pressure_(uint32_t press);
+	int32_t calc_true_pressure_(uint32_t press);
 
 	// set oss value on ctrl_meas register
 	void oss_(uint8_t value);
@@ -111,15 +117,17 @@ private:
 	// int UT = 0; 				// Uncompesated temperature;
 	// int UP = 0;				// Uncompensated pressure;
 
-	double temperature_;
-	double pressure_;
+	int32_t temperature_;
+	int32_t pressure_;
+
+	int32_t pressure_sea_level_ = 101325; // Pressure at sea level [Pa]
 
 	// Calibration coefficients
 	int16_t AC1_, AC2_, AC3_, B1_, B2_, MB_, MC_, MD_;
 	uint16_t AC4_, AC5_, AC6_;
 
 	// Calculated coefficients;
-	double B5_, p_;
+	int32_t B5_, p_;
 
 	// i2c driver pointer;
 	I2C_Driver *i2c_;
