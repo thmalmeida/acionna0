@@ -9,41 +9,45 @@
 #include "i2c_driver.hpp"
 #include "esp_log.h"
 
-#include <cmath>
+#include <cmath>						// used for altitude calculation only
 
-#define BMP180_ADDR             0x77
-#define BMP180_ADDR_TEMP        0x2E	// Conversion time 4.5 ms
-#define BMP180_ADDR_PRESS_OSS_0 0x34	// Max conv. time: 4.5 ms
-#define BMP180_ADDR_PRESS_OSS_1 0x74	// 7.5 ms.  0x34 + (OSS << 6)
-#define BMP180_ADDR_PRESS_OSS_2 0xB4	// 13.5 ms. 
-#define BMP180_ADDR_PRESS_OSS_3 0xF4	// 25.5 ms
-#define BMP180_ADDR_ID          0xD0	// id reset state value (for ok response)	     
-#define BMP180_ADDR_SOFT_RST	0xE0	// register to soft reset
-#define BMP180_ADDR_CR			0xF4	// Control Register
+#define BMP180_ADDR				0x77	// Device address
+#define BMP180_REG_TEMP			0x2E	// Conversion time 4.5 ms
+#define BMP180_REG_PRESS_OSS_0	0x34	// Max conv. time: 4.5 ms
+#define BMP180_REG_PRESS_OSS_1	0x74	// 7.5 ms.  0x34 + (OSS << 6)
+#define BMP180_REG_PRESS_OSS_2	0xB4	// 13.5 ms. 
+#define BMP180_REG_PRESS_OSS_3	0xF4	// 25.5 ms
+#define BMP180_REG_RESET		0xE0	// register to reset command
+#define BMP180_REG_CTRL_MEAS	0xF4	// Control measure register
+#define BMP180_REG_OUT_MSB		0xF6	// adc output msb - temperature and pressure
+#define BMP180_REG_OUT_LSB		0xF7	// adc output lsb - temperature and pressure
+#define BMP180_REG_OUT_XLSB		0xF8	// adc output xlsb - pressure only
+#define BMP180_REG_ID			0xD0	// id reset state value (for ok response)	     
+
 
 // Address register for calibration coefficients
-#define BMP180_ADDR_AC1_MSB		0xAA
-#define BMP180_ADDR_AC1_LSB		0xAB
-#define BMP180_ADDR_AC2_MSB		0xAC
-#define BMP180_ADDR_AC2_LSB		0xAD
-#define BMP180_ADDR_AC3_MSB		0xAE
-#define BMP180_ADDR_AC3_LSB		0xAF
-#define BMP180_ADDR_AC4_MSB		0xB0
-#define BMP180_ADDR_AC4_LSB		0xB1
-#define BMP180_ADDR_AC5_MSB		0xB2
-#define BMP180_ADDR_AC5_LSB		0xB3
-#define BMP180_ADDR_AC6_MSB		0xB4
-#define BMP180_ADDR_AC6_LSB		0xB5
-#define BMP180_ADDR_B1_MSB		0xB6
-#define BMP180_ADDR_B1_LSB		0xB7
-#define BMP180_ADDR_B2_MSB		0xB8
-#define BMP180_ADDR_B2_LSB		0xB9
-#define BMP180_ADDR_MB_MSB		0xBA
-#define BMP180_ADDR_MB_LSB		0xBB
-#define BMP180_ADDR_MC_MSB		0xBC
-#define BMP180_ADDR_MC_LSB		0xBD
-#define BMP180_ADDR_MD_MSB		0xBE
-#define BMP180_ADDR_MD_LSB		0xBF
+#define BMP180_REG_AC1_MSB		0xAA
+#define BMP180_REG_AC1_LSB		0xAB
+#define BMP180_REG_AC2_MSB		0xAC
+#define BMP180_REG_AC2_LSB		0xAD
+#define BMP180_REG_AC3_MSB		0xAE
+#define BMP180_REG_AC3_LSB		0xAF
+#define BMP180_REG_AC4_MSB		0xB0
+#define BMP180_REG_AC4_LSB		0xB1
+#define BMP180_REG_AC5_MSB		0xB2
+#define BMP180_REG_AC5_LSB		0xB3
+#define BMP180_REG_AC6_MSB		0xB4
+#define BMP180_REG_AC6_LSB		0xB5
+#define BMP180_REG_B1_MSB		0xB6
+#define BMP180_REG_B1_LSB		0xB7
+#define BMP180_REG_B2_MSB		0xB8
+#define BMP180_REG_B2_LSB		0xB9
+#define BMP180_REG_MB_MSB		0xBA
+#define BMP180_REG_MB_LSB		0xBB
+#define BMP180_REG_MC_MSB		0xBC
+#define BMP180_REG_MC_LSB		0xBD
+#define BMP180_REG_MD_MSB		0xBE
+#define BMP180_REG_MD_LSB		0xBF
 
 // #define BMP180_DEBUG			1
 
@@ -66,6 +70,10 @@
 * Accuracy:
 * Pressure: 	1 Pa (=0.01 hPa = 0.01 mbar)
 * Temperature:	0.1 C
+*
+* Range:
+* Pressure:		300 to 1100 hPa
+* Temperature:	0 to +65 C
 */
 
 class BMP180 {
