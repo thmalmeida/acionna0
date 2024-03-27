@@ -12,17 +12,20 @@
 #include <cmath>
 
 #define BMP280_ADDR             0x77	// Device address
+
 #define BMP280_REG_STATUS		0xF3	// status register. bit 3 - measuring; bit 0 - im_update[0]
 #define BMP280_REG_CTRL_MEAS	0xF4	// Control measure - osrs_t[2:0] osrs_p[2:0] mode[1:0]
 #define BMP280_REG_CONFIG		0xF5	// Config - t_sb[2:0] filter[2:0] bit 1 (void) spi3w_en[0]
+
+#define BMP280_REG_PRESS_MSB	0xF7
+#define BMP280_REG_PRESS_LSB	0xF8
+#define BMP280_REG_PRESS_XLSB	0xF9	// press_xlsb[7:4] bits only
+#define BMP280_REG_TEMP_MSB		0xFA
+#define BMP280_REG_TEMP_LSB		0xFB
+#define BMP280_REG_TEMP_XLSB	0xFC	// temp_xlsb[7:4]
+
 #define BMP280_REG_RESET		0xE0	// Register addr to reset
 #define BMP280_REG_ID			0xD0	// chip id number - 0x58
-#define BMP280_REG_TEMP_XLSB	0xFC	// temp_xlsb[7:4]
-#define BMP280_REG_TEMP_LSB		0xFB
-#define BMP280_REG_TEMP_MSB		0xFA
-#define BMP280_REG_PRESS_XLSB	0xF9	// press_xlsb[7:4] bits only
-#define BMP280_REG_PRESS_LSB	0xF8
-#define BMP280_REG_PRESS_MSB	0xF7
 
 #define BMP280_CMD_RESET		0xB6	// write this value into reg reset to complete power-on-reset procedure.
 
@@ -56,7 +59,7 @@
 #define BMP280_REG_RESERVED_MSB	0xA1
 
 
-// #define BMP280_DEBUG			1
+#define BMP280_DEBUG			1
 
 /* 
 * Pressure reads with maximum of 128 S/s and temperature of 1 S/s;
@@ -119,6 +122,20 @@ public:
 
 private:
 
+	// burst reads
+
+	// registers sequence read
+	i2c_ans read_burst_reg(void);
+
+	// adc sequence read
+	i2c_ans read_burst_adc(void);
+
+	// calibration coefficients sequence read
+	i2c_ans read_burst_calib(void);
+
+	void read_calib(void);
+
+
 	// bit operations for config register
 	uint8_t t_sb_(void);
 	void t_sb_(uint8_t value);
@@ -146,14 +163,14 @@ private:
 	uint8_t mode_(void);
 
 	// uncompensated temperature (UT) - 20 bits
-	uint32_t u_temperature_(void);
+	int32_t u_temperature_read_(void);
 
 	// uncompensated pressure (UP) - 20 bits
-	uint32_t u_pressure_(void);
+	int32_t u_pressure_read_(void);
 
-	int32_t calc_true_temperature_(uint32_t temp);
+	int32_t calc_true_temperature_(uint32_t adc_T);
 
-	int32_t calc_true_pressure_(uint32_t press);
+	int32_t calc_true_pressure_(uint32_t adc_P);
 
 	// config register - s_sb[2:0], filter[2:0], spi3w_en[0]
 	uint8_t config_(void);
@@ -178,12 +195,19 @@ private:
 
 	int32_t pressure_sea_level_ = 101325; 	// Pressure at sea level [Pa]
 
+	// registers
+	uint8_t status_reg_, ctrl_meas_reg_, config_reg_;
+
+
 	// Calibration coefficients
 	uint16_t dig_T1_, dig_P1_;
 	int16_t dig_T2_, dig_T3_, dig_P2_, dig_P3_, dig_P4_, dig_P5_, dig_P6_, dig_P7_, dig_P8_, dig_P9_;
 
 	int32_t temperature_;					// Temperature in Celcius degree;
 	int32_t pressure_;						// Pressure in [Pa]
+
+	int32_t u_temperature_;					// uncompensated temperature - raw value
+	int32_t u_pressure_;					// uncompensated pressure - raw value
 
 	// Calculated coefficients;
 	// int32_t B5_, p_;

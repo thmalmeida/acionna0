@@ -14,93 +14,34 @@ bool BMP280::probe(void) {
 	return i2c_->probe(BMP280_ADDR);
 }
 void BMP280::init(void) {
-	uint8_t MSB, LSB;
 
-	// Read calibration data from BMP280 internals EEPROM;
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T1_LSB, &LSB);
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T1_MSB, &MSB);
-	dig_T1_ = (MSB << 8) | LSB;
-	#ifdef BMP280_DEBUG
-	printf("dig_T1_ = %d\n", dig_T1_);
-	#endif
+	read_calib();
 
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T2_LSB, &LSB);
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T2_MSB, &MSB);
-	dig_T2_ = (MSB << 8) | LSB;
-	#ifdef BMP280_DEBUG
-	printf("dig_T2_ = %d\n", dig_T2_);
-	#endif
+	read_burst_calib();
 
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T3_LSB, &LSB);
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T3_MSB, &MSB);
-	dig_T3_ = (MSB << 8) | LSB;
-	#ifdef BMP280_DEBUG
-	printf("dig_T3_ = %d\n", dig_T3_);
-	#endif
+	// set mode
+	osrs_t_(2);		// 010 - 2x oversampling, 17 bit (page 26/49);
+	delay_ms(10);
+	osrs_p_(5);		// 101 - 16x oversampling, 20 bit;
+	delay_ms(10);
+	mode_(3);
+	delay_ms(10);
 
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P1_LSB, &LSB);
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P1_MSB, &MSB);
-	dig_P1_ = (MSB << 8) | LSB;
-	#ifdef BMP280_DEBUG
-	printf("dig_P1_ = %d\n", dig_P1_);
-	#endif
+	t_sb_(2);		// 001 - t_standby = 62.5 ms (table 11, pag. 17/49);
+	delay_ms(10);
+	filter_(2);		// 2   - /4 (table 6, pag 14/49); 
+	delay_ms(10);
 
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P2_LSB, &LSB);
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P2_MSB, &MSB);
-	dig_P2_ = (MSB << 8) | LSB;
-	#ifdef BMP280_DEBUG
-	printf("dig_P2_ = %d\n", dig_P2_);
-	#endif
-
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P3_LSB, &LSB);
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P3_MSB, &MSB);
-	dig_P3_ = (MSB << 8) | LSB;
-	#ifdef BMP280_DEBUG
-	printf("dig_P3_ = %d\n", dig_P3_);
-	#endif
-
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P4_LSB, &LSB);
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P4_MSB, &MSB);
-	dig_P4_ = (MSB << 8) | LSB;
-	#ifdef BMP280_DEBUG
-	printf("dig_P4_ = %d\n", dig_P4_);
-	#endif
-
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P5_LSB, &LSB);
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P5_MSB, &MSB);
-	dig_P5_ = (MSB << 8) | LSB;
-	#ifdef BMP280_DEBUG
-	printf("dig_P5_ = %d\n", dig_P5_);
-	#endif
-
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P6_LSB, &LSB);
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P6_MSB, &MSB);
-	dig_P6_ = (MSB << 8) | LSB;
-	#ifdef BMP280_DEBUG
-	printf("dig_P6_ = %d\n", dig_P6_);
-	#endif
-
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P7_LSB, &LSB);
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P7_MSB, &MSB);
-	dig_P7_ = (MSB << 8) | LSB;
-	#ifdef BMP280_DEBUG
-	printf("dig_P7_ = %d\n", dig_P7_);
-	#endif
-
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P8_LSB, &LSB);
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P8_MSB, &MSB);
-	dig_P8_ = (MSB << 8) | LSB;
-	#ifdef BMP280_DEBUG
-	printf("dig_P8_ = %d\n", dig_P8_);
-	#endif
-
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P9_LSB, &LSB);
-	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P9_MSB, &MSB);
-	dig_P9_ = (MSB << 8) | LSB;
 	#ifdef BMP280_DEBUG
 	printf("dig_P9_ = %d\n", dig_P9_);
 
-	printf("osrs_t: %u, osrs_p: %u, chip id: 0x%02x, \n", osrs_t_(), osrs_p_(), chip_id_());
+	printf("osrs_t:%u, osrs_p:%u, mode_:%u, t_sb_:%u, filter_:%u, chip id: 0x%02x, \n",
+				osrs_t_(),
+				osrs_p_(),
+				mode_(),
+				t_sb_(),
+				filter_(),
+				chip_id_());
 	#endif
 }
 int32_t BMP280::altitude(void) {
@@ -118,15 +59,226 @@ void BMP280::pressure_sea_level(uint32_t pressure, int32_t altitude) {
 	pressure_sea_level_ = static_cast<double>(pressure)/(pow(1.0-altitude/44330, 5.225));
 }
 void BMP280::fetch(void) {
-	temperature_ = calc_true_temperature_(u_temperature_());
-	pressure_ = calc_true_pressure_(u_pressure_());
+	read_burst_adc();
+	delay_ms(10);
+	temperature_ = calc_true_temperature_(u_temperature_);
+	pressure_ = calc_true_pressure_(u_pressure_);
+
+	u_pressure_read_();
+	delay_ms(10);
+	u_temperature_read_();
+	delay_ms(10);
+
+	printf("osrs_t:%u, osrs_p:%u, mode_:%u, t_sb_:%u, filter_:%u, chip id: 0x%02x, \n",
+			osrs_t_(),
+			osrs_p_(),
+			mode_(),
+			t_sb_(),
+			filter_(),
+			chip_id_());
 }
 void BMP280::reset(void) {
 	i2c_->write(BMP280_REG_RESET, BMP280_CMD_RESET);
 }
 
+i2c_ans BMP280::read_burst_reg(void) {
+	uint8_t data[3];
+
+	i2c_ans ret = i2c_->read(BMP280_ADDR, BMP280_REG_STATUS, &data[0], 3);
+
+	for(int i=0; i<3; i++) {
+		printf("data[%d]: 0x%02x\n", i, data[i]);
+	}
+
+	if(ret == i2c_ans::ok) {
+		status_reg_ = data[0];
+		ctrl_meas_reg_ = data[1];
+		config_reg_ = data[2];
+	} else {
+		printf("error read\n");
+	}
+
+	return ret;
+}
+i2c_ans BMP280::read_burst_adc(void) {
+	uint8_t data[6];
+
+	i2c_ans ret = i2c_->read(BMP280_ADDR, BMP280_REG_PRESS_MSB, &data[0], 6);
+
+	for(int i=0; i<6; i++) {
+		printf("data[%d]: 0x%02x\n", i, data[i]);
+	}
+
+	if(ret == i2c_ans::ok) {
+		u_pressure_ = 		(data[0] << 12) | (data[1] << 4) | (data[2] >> 4);
+		u_temperature_ =	(data[3] << 12) | (data[4] << 4) | (data[5] >> 4);
+	} else {
+		printf("error read\n");
+	}
+
+	return ret;
+}
+i2c_ans BMP280::read_burst_calib(void) {
+	uint8_t data[26];
+
+	i2c_ans ret = i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T1_LSB, &data[0], 26);
+
+	dig_T1_ = (data[1] << 8) | data[0];
+	dig_T2_ = (data[3] << 8) | data[2];
+	dig_T3_ = (data[5] << 8) | data[4];
+	dig_P1_ = (data[7] << 8) | data[6];
+	dig_P2_ = (data[9] << 8) | data[8];
+	dig_P3_ = (data[11] << 8) | data[10];
+	dig_P4_ = (data[13] << 8) | data[12];
+	dig_P5_ = (data[15] << 8) | data[14];
+	dig_P6_ = (data[17] << 8) | data[16];
+	dig_P7_ = (data[19] << 8) | data[18];
+	dig_P8_ = (data[21] << 8) | data[20];
+	dig_P9_ = (data[23] << 8) | data[22];
+
+	#ifdef BMP280_DEBUG
+	for(int i=0; i<24; i+=2) {
+		printf("%d: 0x%02x 0x%02x = %d\n", i, data[i+1], data[i], static_cast<int16_t>((data[i+1] << 8) | data[i]));
+	}	
+	// printf("dig_T1_ = %d\n", dig_T1_);
+	// printf("dig_T2_ = %d\n", dig_T2_);
+	// printf("dig_T3_ = %d\n", dig_T3_);
+	// printf("dig_P1_ = %d\n", dig_P1_);
+	#endif
+	return ret;
+}
+void BMP280::read_calib(void) {
+	uint8_t MSB, LSB;
+	// Read calibration data from BMP280 internals EEPROM;
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T1_LSB, &LSB);
+	delay_ms(10);
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T1_MSB, &MSB);
+	delay_ms(10);
+	dig_T1_ = (MSB << 8) | LSB;
+	#ifdef BMP280_DEBUG
+	printf("dig_T1_ = %d\n", dig_T1_);
+	#endif
+
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T2_LSB, &LSB);
+	delay_ms(10);
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T2_MSB, &MSB);
+	delay_ms(10);
+	dig_T2_ = (MSB << 8) | LSB;
+	#ifdef BMP280_DEBUG
+	printf("dig_T2_ = %d\n", dig_T2_);
+	#endif
+
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T3_LSB, &LSB);
+	delay_ms(10);
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T3_MSB, &MSB);
+	delay_ms(10);
+	dig_T3_ = (MSB << 8) | LSB;
+	#ifdef BMP280_DEBUG
+	printf("dig_T3_ = %d\n", dig_T3_);
+	#endif
+
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P1_LSB, &LSB);
+	delay_ms(10);
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P1_MSB, &MSB);
+	delay_ms(10);
+	dig_P1_ = (MSB << 8) | LSB;
+	#ifdef BMP280_DEBUG
+	printf("dig_P1_ = %d\n", dig_P1_);
+	#endif
+
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P2_LSB, &LSB);
+	delay_ms(10);
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P2_MSB, &MSB);
+	delay_ms(10);
+	dig_P2_ = (MSB << 8) | LSB;
+	#ifdef BMP280_DEBUG
+	printf("dig_P2_ = %d\n", dig_P2_);
+	#endif
+
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P3_LSB, &LSB);
+	delay_ms(10);
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P3_MSB, &MSB);
+	delay_ms(10);
+	dig_P3_ = (MSB << 8) | LSB;
+	#ifdef BMP280_DEBUG
+	printf("dig_P3_ = %d\n", dig_P3_);
+	#endif
+
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P4_LSB, &LSB);
+	delay_ms(10);
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P4_MSB, &MSB);
+	delay_ms(10);
+	dig_P4_ = (MSB << 8) | LSB;
+	#ifdef BMP280_DEBUG
+	printf("dig_P4_ = %d\n", dig_P4_);
+	#endif
+
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P5_LSB, &LSB);
+	delay_ms(10);
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P5_MSB, &MSB);
+	delay_ms(10);
+	dig_P5_ = (MSB << 8) | LSB;
+	#ifdef BMP280_DEBUG
+	printf("dig_P5_ = %d\n", dig_P5_);
+	#endif
+
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P6_LSB, &LSB);
+	delay_ms(10);
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P6_MSB, &MSB);
+	delay_ms(10);
+	dig_P6_ = (MSB << 8) | LSB;
+	#ifdef BMP280_DEBUG
+	printf("dig_P6_ = %d\n", dig_P6_);
+	#endif
+
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P7_LSB, &LSB);
+	delay_ms(10);
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P7_MSB, &MSB);
+	delay_ms(10);
+	dig_P7_ = (MSB << 8) | LSB;
+	#ifdef BMP280_DEBUG
+	printf("dig_P7_ = %d\n", dig_P7_);
+	#endif
+
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P8_LSB, &LSB);
+	delay_ms(10);
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P8_MSB, &MSB);
+	delay_ms(10);
+	dig_P8_ = (MSB << 8) | LSB;
+	#ifdef BMP280_DEBUG
+	printf("dig_P8_ = %d\n", dig_P8_);
+	#endif
+
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P9_LSB, &LSB);
+	delay_ms(10);
+	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_P9_MSB, &MSB);
+	delay_ms(10);
+	dig_P9_ = (MSB << 8) | LSB;	
+}
+
+int32_t BMP280::u_pressure_read_(void) {
+	// i2c_->write(BMP280_ADDR, BMP280_REG_CTRL_MEAS, 0x34+(oss_()<<6));
+
+	// Wait 4.5 ms
+	delay_us(4500);
+	// delay_ms(5);
+
+	uint8_t MSB, LSB, XLSB;
+
+	i2c_->read(BMP280_ADDR, BMP280_REG_PRESS_MSB, &MSB);
+	i2c_->read(BMP280_ADDR, BMP280_REG_PRESS_LSB, &LSB);
+	i2c_->read(BMP280_ADDR, BMP280_REG_PRESS_XLSB, &XLSB);
+
+	int32_t u_press = (MSB << 12) | (LSB << 4) | (XLSB >> 4);
+
+	#ifdef BMP280_DEBUG
+	printf("simple read: 0x%02x 0x%02x 0x%02x\n", MSB, LSB, XLSB);
+	printf("up: %ld, 0x%08lx\n", u_press, u_press);
+	#endif
+	return u_press;
+}
 // pressure/temperature uncompensated values
-uint32_t BMP280::u_temperature_(void) {
+int32_t BMP280::u_temperature_read_(void) {
 	// write 0x2E (addr temp) into 0x74 (press oss3 addr);
 	// i2c_->write(BMP280_ADDR, BMP280_ADDR_PRESS_OSS_3, BMP280_ADDR_TEMP); 
 	
@@ -135,30 +287,18 @@ uint32_t BMP280::u_temperature_(void) {
 	// delay_ms(5);
 
 	uint8_t XLSB, LSB, MSB;
-	i2c_->read(BMP280_ADDR, 0xFC, &XLSB);
-	i2c_->read(BMP280_ADDR, 0xF7, &LSB);
-	i2c_->read(BMP280_ADDR, 0xF6, &MSB);
-	
+	i2c_->read(BMP280_ADDR, BMP280_REG_TEMP_MSB, &MSB);
+	i2c_->read(BMP280_ADDR, BMP280_REG_TEMP_LSB, &LSB);
+	i2c_->read(BMP280_ADDR, BMP280_REG_TEMP_XLSB, &XLSB);
 
+	int32_t u_temp = (MSB << 12) | (LSB << 4) | (XLSB >> 4);
 
-	return ((MSB << 8) | LSB);
-}
-uint32_t BMP280::u_pressure_(void) {
-	// i2c_->write(BMP280_ADDR, BMP280_REG_CTRL_MEAS, 0x34+(oss_()<<6));
+	#ifdef BMP280_DEBUG
+	printf("simple read: 0x%02x 0x%02x 0x%02x\n", MSB, LSB, XLSB);
+	printf("ut: %ld, 0x%08lx\n", u_temp, u_temp);
+	#endif
 
-	// Wait 4.5 ms
-	delay_us(4500);
-	// delay_ms(5);
-
-	uint8_t MSB, LSB, XLSB;
-	int pressure = 0;
-	i2c_->read(BMP280_ADDR, 0xF6, &MSB);
-	i2c_->read(BMP280_ADDR, 0xF7, &LSB);
-	i2c_->read(BMP280_ADDR, 0xF8, &XLSB);
-
-	// pressure = ((MSB << 16) + (LSB << 8) + (XLSB)) >> (8 - oss_());
-
-	return pressure;
+	return (u_temp);
 }
 int32_t BMP280::calc_true_temperature_(uint32_t adc_T) {
 	// Returns temperature in DegC, resolution is 0.01 DegC. Output value of “5123” equals 51.23 DegC.
@@ -198,7 +338,7 @@ int32_t BMP280::calc_true_pressure_(uint32_t adc_P) {
 
 // bit read/write operations for config register
 uint8_t BMP280::t_sb_(void) {
-	return (config_() >> 5) & 0x13;
+	return (config_() >> 5) & 0x07;
 }
 void BMP280::t_sb_(uint8_t value) {
 	uint8_t config = config_();
@@ -209,7 +349,7 @@ void BMP280::t_sb_(uint8_t value) {
 	config_(config);
 }
 uint8_t BMP280::filter_(void) {
-	return (config_() >> 2) & 0x13;
+	return (config_() >> 2) & 0x07;
 }
 void BMP280::filter_(uint8_t value) {
 	uint8_t config = config_();
@@ -233,18 +373,23 @@ void BMP280::spi3w_en_(uint8_t value) {
 
 // bit operation for ctrl_meas register
 uint8_t BMP280::osrs_t_(void) {
-	return ((ctrl_meas_() >> 5) & 0x13);
+	return (0x07 & (ctrl_meas_() >> 5));
 }
 void BMP280::osrs_t_(uint8_t value) {
 	uint8_t ctrl_meas = ctrl_meas_();
 
-	ctrl_meas &= 0x1F;	// clear osrs_t bits
+	printf("osrs_t_ - ctrl_meas: 0x%02x\n", ctrl_meas);
+	ctrl_meas &= 0x1F;	// 0b 0001 1111 - clear osrs_t bits
+	printf("osrs_t_ - ctrl_meas: 0x%02x\n", ctrl_meas);
+	// ctrl_meas &= ~0xE0;
+	// ctrl_meas = ctrl_meas | (value << 5);
 	ctrl_meas |= (value << 5);
+	printf("osrs_t_ - ctrl_meas: 0x%02x\n", ctrl_meas);
 	
 	ctrl_meas_(ctrl_meas);
 }
 uint8_t BMP280::osrs_p_(void) {
-	return ((ctrl_meas_() >> 2) & 0x13);
+	return ((ctrl_meas_() >> 2) & 0x07);
 }
 void BMP280::osrs_p_(uint8_t value) {
 	uint8_t ctrl_meas = ctrl_meas_();
@@ -267,14 +412,11 @@ void BMP280::mode_(uint8_t value) {
 }
 
 // reg read/write operations
-uint8_t BMP280::config_(void) {
-	uint8_t config;
-	i2c_->read(BMP280_ADDR, BMP280_REG_CONFIG, &config);
+uint8_t BMP280::status_(void) {
+	uint8_t status_reg;
+	i2c_->read(BMP280_ADDR, BMP280_REG_STATUS, &status_reg);
 
-	return config;	
-}
-void BMP280::config_(uint8_t value) {
-	i2c_->write(BMP280_ADDR, BMP280_REG_CONFIG, value);
+	return status_reg;
 }
 uint8_t BMP280::ctrl_meas_(void) {
 	uint8_t ctrl_meas;
@@ -285,11 +427,14 @@ uint8_t BMP280::ctrl_meas_(void) {
 void BMP280::ctrl_meas_(uint8_t value) {
 	i2c_->write(BMP280_ADDR, BMP280_REG_CTRL_MEAS, value);
 }
-uint8_t BMP280::status_(void) {
-	uint8_t status_reg;
-	i2c_->read(BMP280_ADDR, BMP280_REG_STATUS, &status_reg);
+uint8_t BMP280::config_(void) {
+	uint8_t config;
+	i2c_->read(BMP280_ADDR, BMP280_REG_CONFIG, &config);
 
-	return status_reg;
+	return config;	
+}
+void BMP280::config_(uint8_t value) {
+	i2c_->write(BMP280_ADDR, BMP280_REG_CONFIG, value);
 }
 
 uint8_t BMP280::chip_id_(void) {
