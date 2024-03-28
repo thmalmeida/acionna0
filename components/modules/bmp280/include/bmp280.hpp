@@ -117,7 +117,9 @@ public:
 
 	// return pressure in scale of 0.16 [Pa] (depends of oversampling parameters)
 	int32_t pressure(void);
-
+	
+	double pressure_Pa(void);
+;
 	// return altitude in [m]
 	int32_t altitude(void);
 
@@ -182,6 +184,7 @@ private:
 	int32_t calc_true_temperature_(int32_t adc_T);
 
 	uint32_t calc_true_pressure_(int32_t adc_P);
+	double calc_true_pressure_2_(int32_t adc_P);
 
 	// config register - s_sb[2:0], filter[2:0], spi3w_en[0]
 	uint8_t config_(void);
@@ -216,6 +219,7 @@ private:
 
 	int32_t temperature_;					// Temperature in Celcius degree;
 	uint32_t pressure_;						// Pressure in [Pa]
+	double pressure_Pa_;					// pressure in [Pa] ?
 
 	// 20 bit positive integers stored on 32 bit signed integer
 	int32_t u_temperature_;					// uncompensated temperature - raw value

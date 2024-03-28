@@ -46,13 +46,16 @@ void BMP280::init(void) {
 }
 int32_t BMP280::altitude(void) {
 	// 44330*(1-(p/p0)^(1/5.255))
-	return static_cast<int32_t>(44330.0*(1.0-pow(static_cast<double>(pressure_*100)/static_cast<double>(pressure_sea_level_), 1.0/5.255)));
+	return static_cast<int32_t>(44330.0*(1.0-pow(pressure_Pa_/static_cast<double>(pressure_sea_level_), 1.0/5.255)));
 }
 int32_t BMP280::temperature(void) {
 	return temperature_;
 }
 int32_t BMP280::pressure(void) {
 	return pressure_;
+}
+double BMP280::pressure_Pa(void) {
+	return pressure_Pa_;
 }
 void BMP280::pressure_sea_level(uint32_t pressure, int32_t altitude) {
 	// Not tested yet!
@@ -64,6 +67,7 @@ void BMP280::fetch(void) {
 	// u_temperature_read_();
 	temperature_ = calc_true_temperature_(u_temperature_);
 	pressure_ = calc_true_pressure_(u_pressure_);
+	pressure_Pa_ = calc_true_pressure_2_(u_pressure_);
 
 	#ifdef BMP280_DEBUG
 	printf("osrs_t:%u, osrs_p:%u, mode_:%u, t_sb_:%u, filter_:%u, chip id: 0x%02x, \n",
@@ -384,7 +388,35 @@ uint32_t BMP280::calc_true_pressure_(int32_t adc_P) {
 	// printf("B6: %ld, X1: %ld, X2: %ld, X3: %ld, B3: %ld\n", B6, X1, X2, X3, B3);
 	// #endif
 }
+double BMP280::calc_true_pressure_2_(int32_t adc_P) {
 
+// static int8_t compensate_pressure(double *comp_pressure,
+// 									const struct bmp2_uncomp_data *uncomp_data,
+// 									const struct bmp2_dev *dev)
+
+	// int8_t rslt = BMP2_OK;
+	double var1, var2;
+	double pressure = 0.0;
+
+	var1 = ((double) t_fine_ / 2.0) - 64000.0;
+	var2 = var1 * var1 * ((double) dig_P6_) / 32768.0;
+	var2 = var2 + var1 * ((double) dig_P5_) * 2.0;
+	var2 = (var2 / 4.0) + (((double) dig_P4_) * 65536.0);
+	var1 = (((double)dig_P3_) * var1 * var1 / 524288.0 + ((double)dig_P2_) * var1) / 524288.0;
+	var1 = (1.0 + var1 / 32768.0) * ((double) dig_P1_);
+
+	if (var1 < 0 || var1 > 0)
+	{
+		pressure = 1048576.0 - (double)adc_P;
+		pressure = (pressure - (var2 / 4096.0)) * 6250.0 / var1;
+		var1 = ((double)dig_P9_) * pressure * pressure / 2147483648.0;
+		var2 = pressure * ((double)dig_P8_) / 32768.0;
+
+		pressure = pressure + (var1 + var2 + ((double)dig_P7_)) / 16.0;
+	}
+
+	return pressure;
+}
 // bit read/write operations for config register
 uint8_t BMP280::t_sb_(void) {
 	return (config_() >> 5) & 0x07;
