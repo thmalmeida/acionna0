@@ -58,13 +58,17 @@
 #define BMP280_REG_RESERVED_LSB	0xA0
 #define BMP280_REG_RESERVED_MSB	0xA1
 
+#define BMP280_DELAY_WRITE_MS	10		// some time delay after write
+#define BMP280_DELAY_READ_MS	10
+#define BMP280_DELAY_INIT_MS	50		// wait stablish after power (not in manual);
+
 
 #define BMP280_DEBUG			1
 
 /* 
-* Pressure reads with maximum of 128 S/s and temperature of 1 S/s;
-* UT - Temperature data (16-bit)
-* UP - pressure data (16 to 19 bit)
+* Pressure reads with maximum of ___ S/s and temperature of __ S/s;
+* UT - Temperature data (20-bit)
+* UP - pressure data 	(20-bit)
 *
 * Three power modes:
 * 	- sleep mode;
@@ -78,6 +82,13 @@
 * 2- Standard				1						2			7.5
 * 3- high resolution		2						4			13.5
 * 4- ultra high resolution	3						8			25.5
+*
+*
+* Table 10: mode settings (page 15)
+* mode[1:0]		Mode
+*	00			sleep mode
+* 01 or 10		Forced mode
+* 	11			Normal mode
 *
 * 176 bit EEPROM is partitioned in 11 words of 16 bits each
 *
@@ -168,9 +179,9 @@ private:
 	// uncompensated pressure (UP) - 20 bits
 	int32_t u_pressure_read_(void);
 
-	int32_t calc_true_temperature_(uint32_t adc_T);
+	int32_t calc_true_temperature_(int32_t adc_T);
 
-	int32_t calc_true_pressure_(uint32_t adc_P);
+	int32_t calc_true_pressure_(int32_t adc_P);
 
 	// config register - s_sb[2:0], filter[2:0], spi3w_en[0]
 	uint8_t config_(void);
@@ -206,6 +217,7 @@ private:
 	int32_t temperature_;					// Temperature in Celcius degree;
 	int32_t pressure_;						// Pressure in [Pa]
 
+	// 20 bit positive integers stored on 32 bit signed integer
 	int32_t u_temperature_;					// uncompensated temperature - raw value
 	int32_t u_pressure_;					// uncompensated pressure - raw value
 
