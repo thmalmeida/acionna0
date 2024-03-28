@@ -46,7 +46,7 @@ void BMP280::init(void) {
 }
 int32_t BMP280::altitude(void) {
 	// 44330*(1-(p/p0)^(1/5.255))
-	return static_cast<int32_t>(44330.0*(1.0-pow(static_cast<double>(pressure_)/static_cast<double>(pressure_sea_level_), 1.0/5.255)));
+	return static_cast<int32_t>(44330.0*(1.0-pow(static_cast<double>(pressure_*100)/static_cast<double>(pressure_sea_level_), 1.0/5.255)));
 }
 int32_t BMP280::temperature(void) {
 	return temperature_;
@@ -60,12 +60,12 @@ void BMP280::pressure_sea_level(uint32_t pressure, int32_t altitude) {
 }
 void BMP280::fetch(void) {
 	read_burst_adc();
+	// u_pressure_read_();
+	// u_temperature_read_();
 	temperature_ = calc_true_temperature_(u_temperature_);
 	pressure_ = calc_true_pressure_(u_pressure_);
 
-	// u_pressure_read_();
-	// u_temperature_read_();
-
+	#ifdef BMP280_DEBUG
 	printf("osrs_t:%u, osrs_p:%u, mode_:%u, t_sb_:%u, filter_:%u, chip id: 0x%02x, \n",
 			osrs_t_(),
 			osrs_p_(),
@@ -73,6 +73,7 @@ void BMP280::fetch(void) {
 			t_sb_(),
 			filter_(),
 			chip_id_());
+	#endif
 }
 void BMP280::reset(void) {
 	i2c_->write(BMP280_REG_RESET, BMP280_CMD_RESET);
@@ -309,30 +310,75 @@ int32_t BMP280::calc_true_temperature_(int32_t adc_T) {
 	var1 = ((((adc_T>>3) - (static_cast<int32_t>(dig_T1_)<<1))) * (static_cast<int32_t>(dig_T2_))) >> 11;
 	var2 = (((((adc_T>>4) - (static_cast<int32_t>(dig_T1_))) * ((adc_T>>4) - (static_cast<int32_t>(dig_T1_)))) >> 12) * (static_cast<int32_t>(dig_T3_))) >> 14;
 	t_fine_ = var1 + var2;
-	T = (t_fine_ * 5 + 128) >> 8;
+	T = ((t_fine_*5) + 128) >> 8;
+	
 	return T;	
 }
-int32_t BMP280::calc_true_pressure_(int32_t adc_P) {
+uint32_t BMP280::calc_true_pressure_(int32_t adc_P) {
 	// Returns pressure in Pa as unsigned 32 bit integer in Q24.8 format (24 integer bits and 8 fractional bits).
 	// Output value of “24674867” represents 24674867/256 = 96386.2 Pa = 963.862 hPa
-	int64_t var1, var2, p;
-	var1 = (static_cast<int64_t>(t_fine_)) - 128000;
-	var2 = var1 * var1 * static_cast<int64_t>(dig_P6_);
-	var2 = var2 + ((var1*static_cast<int64_t>(dig_P5_))<<17);
-	var2 = var2 + ((static_cast<int64_t>(dig_P4_))<<35);
-	var1 = ((var1 * var1 * static_cast<int64_t>(dig_P3_))>>8) + ((var1 * static_cast<int64_t>(dig_P2_))<<12);
-	var1 = ((((static_cast<int64_t>(1))<<47)+var1))*(static_cast<int64_t>(dig_P1_))>>33;
+	int32_t var1, var2;
+	uint32_t p;
+	var1 = (static_cast<int32_t>(t_fine_)) - static_cast<int32_t>(64000);
+	var2 = (((var1>>2) * (var1>>2)) >> 11)*static_cast<int32_t>(dig_P6_);
+	var2 = var2 + ((var1*static_cast<int32_t>(dig_P5_))<<1);
+	var2 = (var2 >> 2) + ((static_cast<int32_t>(dig_P4_))<<16);
+	var1 = ((dig_P3_*(((var1 >> 2)*(var1 >> 2)) >> 13)) >> 3) + (((static_cast<int32_t>(dig_P2_)*var1) >> 1) >> 18);
+	var1 = ((32768 + var1))*((static_cast<int32_t>(dig_P1_)) >> 15);
 
 	if (var1 == 0) {
+		#ifdef BMP280_DEBUG
+		printf("calc_true_pressure error!\n");
+		#endif
 		return 0; // avoid exception caused by division by zero
 	}
+
+	p = static_cast<uint32_t>((static_cast<int32_t>(1048576)-adc_P) - (var2 >> 12))*3125;
+	if(p < 0x80000000) {
+		p = (p << 1)/(static_cast<uint32_t>(var1));
+		#ifdef BMP280_DEBUG
+		printf("p < , ");
+		#endif
+	} else {
+		p = (p/static_cast<uint32_t>(var1)) * 2;
+		#ifdef BMP280_DEBUG
+		printf("p > , ");
+		#endif
+	}
+
+	var1 = (static_cast<int32_t>(dig_P9_)*(static_cast<int32_t>(((p >> 3) * (p >> 3)) >> 13))) >> 12;
+	var2 = (static_cast<int32_t>(p >> 2)*(static_cast<int32_t>(dig_P8_))) >> 13;
+
+	p = static_cast<uint32_t>(static_cast<int32_t>(p) + ((var1 + var2 + dig_P7_) >> 4));
+
+	#ifdef BMP280_DEBUG
+	printf("p_: %lu Pa\n", p);
+	#endif
+	return p;
+
+
+
+
+	// int64_t var1, var2, p;
+	// var1 = (static_cast<int64_t>(t_fine_)) - 128000;
+	// var2 = var1 * var1 * static_cast<int64_t>(dig_P6_);
+	// var2 = var2 + ((var1*static_cast<int64_t>(dig_P5_))<<17);
+	// var2 = var2 + ((static_cast<int64_t>(dig_P4_))<<35);
+	// var1 = ((var1 * var1 * static_cast<int64_t>(dig_P3_))>>8) + ((var1 * static_cast<int64_t>(dig_P2_))<<12);
+	// var1 = ((((static_cast<int64_t>(1))<<47)+var1))*(static_cast<int64_t>(dig_P1_))>>33;
+
+	// if (var1 == 0) {
+	// 	return 0; // avoid exception caused by division by zero
+	// }
 	
-	p = 1048576-adc_P;
-	p = (((p<<31)-var2)*3125)/var1;
-	var1 = ((static_cast<int64_t>(dig_P9_)) * (p>>13) * (p>>13)) >> 25;
-	var2 = ((static_cast<int64_t>(dig_P8_)) * p) >> 19;
-	p = ((p + var1 + var2) >> 8) + ((static_cast<int64_t>(dig_P7_))<<4);
-	return static_cast<uint32_t>(p);
+	// p = 1048576-adc_P;
+	// p = (((p<<31)-var2)*3125)/var1;
+	// var1 = ((static_cast<int64_t>(dig_P9_)) * (p>>13) * (p>>13)) >> 25;
+	// var2 = ((static_cast<int64_t>(dig_P8_)) * p) >> 19;
+	// p = ((p + var1 + var2) >> 8) + ((static_cast<int64_t>(dig_P7_))<<4);
+	// return static_cast<uint32_t>(p);
+
+
 
 	// #ifdef BMP280_DEBUG
 	// printf("B6: %ld, X1: %ld, X2: %ld, X3: %ld, B3: %ld\n", B6, X1, X2, X3, B3);

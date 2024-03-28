@@ -181,7 +181,7 @@ private:
 
 	int32_t calc_true_temperature_(int32_t adc_T);
 
-	int32_t calc_true_pressure_(int32_t adc_P);
+	uint32_t calc_true_pressure_(int32_t adc_P);
 
 	// config register - s_sb[2:0], filter[2:0], spi3w_en[0]
 	uint8_t config_(void);
@@ -202,7 +202,7 @@ private:
 	uint8_t chip_id_(void);
 
 	// t_fine carries fine temperature as global value
-	int32_t t_fine_;
+	int32_t t_fine_ = 0;
 
 	int32_t pressure_sea_level_ = 101325; 	// Pressure at sea level [Pa]
 
@@ -215,7 +215,7 @@ private:
 	int16_t dig_T2_, dig_T3_, dig_P2_, dig_P3_, dig_P4_, dig_P5_, dig_P6_, dig_P7_, dig_P8_, dig_P9_;
 
 	int32_t temperature_;					// Temperature in Celcius degree;
-	int32_t pressure_;						// Pressure in [Pa]
+	uint32_t pressure_;						// Pressure in [Pa]
 
 	// 20 bit positive integers stored on 32 bit signed integer
 	int32_t u_temperature_;					// uncompensated temperature - raw value
