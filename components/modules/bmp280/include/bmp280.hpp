@@ -62,8 +62,7 @@
 #define BMP280_DELAY_READ_MS	10
 #define BMP280_DELAY_INIT_MS	50		// wait stablish after power (not in manual);
 
-
-#define BMP280_DEBUG			1
+// #define BMP280_DEBUG			1
 
 /* 
 * Pressure reads with maximum of ___ S/s and temperature of __ S/s;
@@ -75,20 +74,48 @@
 * 	- normal mode;
 * 	- forced mode.
 *
-* Sampling Mode				Parameter 				n samples	conversion time [ms]
-							Oversampling_setting
-							(OSR)				
-* 1- Ultra Low power		0						1			4.5
-* 2- Standard				1						2			7.5
-* 3- high resolution		2						4			13.5
-* 4- ultra high resolution	3						8			25.5
-*
-*
 * Table 10: mode settings (page 15)
 * mode[1:0]		Mode
 *	00			sleep mode
 * 01 or 10		Forced mode
 * 	11			Normal mode
+*
+* Table 11: t_sb settings
+* t_sb[1:0]		t_standby [ms]
+* 000			0.5
+* 001			62.5
+* 010			125
+* 011			250
+* 100			500
+* 101			1000
+* 110			2000
+* 111			4000
+*
+* Table 21: register settings osrs_p
+* osrs_p		Pressure oversampling
+* 000			Skipped (output set to 0x80000)
+* 001			x1
+* 010			x2
+* 011			x4
+* 100			x8
+* 100, others	x16 
+*
+* Table 22: register settings osrs_t
+* osrs_t		Temperature oversampling
+* 000			skipped (output set to 0x80000)
+* 001			x1
+* 010			x2
+* 011			x4
+* 100			x8
+* 101 110 111	x16
+*
+* Filter options
+* filter[2:0]	Filter coeff	Samples to reach >= 75% of step response	
+* 000			Filter off		1
+* 001			2				2	
+* 010			4				5
+* 011			8				11
+* 100			16				22
 *
 * 176 bit EEPROM is partitioned in 11 words of 16 bits each
 *
@@ -114,14 +141,15 @@ public:
 
 	// return temp in scale of 0.01 C;
 	int32_t temperature(void);
+	
+	// return the pressure in Pa
+	double pressure(void);
 
 	// return pressure in scale of 0.16 [Pa] (depends of oversampling parameters)
-	int32_t pressure(void);
-	
-	double pressure_Pa(void);
-;
+	int32_t pressure_hPa(void);
+
 	// return altitude in [m]
-	int32_t altitude(void);
+	double altitude(void);
 
 	// not tested yet. Suppose to calibrate the sea level pressure
 	void pressure_sea_level(uint32_t pressure, int32_t altitude);
@@ -138,15 +166,16 @@ private:
 	// burst reads
 
 	// registers sequence read
-	i2c_ans read_burst_reg(void);
+	i2c_ans read_burst_reg_(void);
 
 	// adc sequence read
-	i2c_ans read_burst_adc(void);
+	i2c_ans read_burst_adc_(void);
 
 	// calibration coefficients sequence read
-	i2c_ans read_burst_calib(void);
+	i2c_ans read_burst_calib_(void);
 
-	void read_calib(void);
+	// read calibration parameters one by one (not used)
+	void read_calib_(void);
 
 
 	// bit operations for config register
@@ -207,26 +236,24 @@ private:
 	// t_fine carries fine temperature as global value
 	int32_t t_fine_ = 0;
 
-	int32_t pressure_sea_level_ = 101325; 	// Pressure at sea level [Pa]
+	// Pressure at sea level [Pa]
+	int32_t pressure_sea_level_ = 101325;
 
-	// registers
+	// 8-bit registers
 	uint8_t status_reg_, ctrl_meas_reg_, config_reg_;
-
 
 	// Calibration coefficients
 	uint16_t dig_T1_, dig_P1_;
 	int16_t dig_T2_, dig_T3_, dig_P2_, dig_P3_, dig_P4_, dig_P5_, dig_P6_, dig_P7_, dig_P8_, dig_P9_;
 
 	int32_t temperature_;					// Temperature in Celcius degree;
-	uint32_t pressure_;						// Pressure in [Pa]
-	double pressure_Pa_;					// pressure in [Pa] ?
+	double pressure_;						// pressure in [Pa]
+	uint32_t pressure_hPa_;					// Pressure in [hPa]
+
 
 	// 20 bit positive integers stored on 32 bit signed integer
 	int32_t u_temperature_;					// uncompensated temperature - raw value
 	int32_t u_pressure_;					// uncompensated pressure - raw value
-
-	// Calculated coefficients;
-	// int32_t B5_, p_;
 
 	// i2c driver pointer;
 	I2C_Driver *i2c_;

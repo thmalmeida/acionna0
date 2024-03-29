@@ -17,9 +17,8 @@ bool BMP280::probe(void) {
 	return ret;
 }
 void BMP280::init(void) {
-
 	// Read eeprom calibration values;
-	read_burst_calib();
+	read_burst_calib_();
 	// read_calib();
 
 	// Configuration and control registers setup
@@ -28,7 +27,7 @@ void BMP280::init(void) {
 	osrs_p_(5);		// 101 - 16x oversampling, 20 bit;
 	mode_(3);		// 11 - normal mode (table 10, page 15/49);
 	// config register set
-	t_sb_(2);		// 001 - t_standby = 62.5 ms (table 11, pag. 17/49);
+	t_sb_(2);		// 100 - t_standby = 500 ms (table 11, pag. 17/49);
 	filter_(2);		// 2   - /4 (table 6, pag 14/49); 
 
 	// Debug purposes
@@ -44,30 +43,30 @@ void BMP280::init(void) {
 				chip_id_());
 	#endif
 }
-int32_t BMP280::altitude(void) {
+double BMP280::altitude(void) {
 	// 44330*(1-(p/p0)^(1/5.255))
-	return static_cast<int32_t>(44330.0*(1.0-pow(pressure_Pa_/static_cast<double>(pressure_sea_level_), 1.0/5.255)));
+	return 44330.0*(1.0-pow(pressure_/static_cast<double>(pressure_sea_level_), 1.0/5.255));
 }
 int32_t BMP280::temperature(void) {
 	return temperature_;
 }
-int32_t BMP280::pressure(void) {
+double BMP280::pressure(void) {
 	return pressure_;
 }
-double BMP280::pressure_Pa(void) {
-	return pressure_Pa_;
+int32_t BMP280::pressure_hPa(void) {
+	return pressure_hPa_;
 }
 void BMP280::pressure_sea_level(uint32_t pressure, int32_t altitude) {
 	// Not tested yet!
 	pressure_sea_level_ = static_cast<double>(pressure)/(pow(1.0-altitude/44330, 5.225));
 }
 void BMP280::fetch(void) {
-	read_burst_adc();
+	read_burst_adc_();
 	// u_pressure_read_();
 	// u_temperature_read_();
 	temperature_ = calc_true_temperature_(u_temperature_);
-	pressure_ = calc_true_pressure_(u_pressure_);
-	pressure_Pa_ = calc_true_pressure_2_(u_pressure_);
+	pressure_hPa_ = calc_true_pressure_(u_pressure_);
+	pressure_ = calc_true_pressure_2_(u_pressure_);
 
 	#ifdef BMP280_DEBUG
 	printf("osrs_t:%u, osrs_p:%u, mode_:%u, t_sb_:%u, filter_:%u, chip id: 0x%02x, \n",
@@ -84,15 +83,17 @@ void BMP280::reset(void) {
 	delay_ms(BMP280_DELAY_WRITE_MS);
 }
 
-i2c_ans BMP280::read_burst_reg(void) {
+i2c_ans BMP280::read_burst_reg_(void) {
 	uint8_t data[3];
 
 	i2c_ans ret = i2c_->read(BMP280_ADDR, BMP280_REG_STATUS, &data[0], 3);
 	delay_ms(BMP280_DELAY_READ_MS);
 
+	#ifdef BMP280_DEBUG
 	for(int i=0; i<3; i++) {
 		printf("data[%d]: 0x%02x\n", i, data[i]);
 	}
+	#endif'
 
 	if(ret == i2c_ans::ok) {
 		status_reg_ = data[0];
@@ -104,15 +105,17 @@ i2c_ans BMP280::read_burst_reg(void) {
 
 	return ret;
 }
-i2c_ans BMP280::read_burst_adc(void) {
+i2c_ans BMP280::read_burst_adc_(void) {
 	uint8_t data[6];
 
 	i2c_ans ret = i2c_->read(BMP280_ADDR, BMP280_REG_PRESS_MSB, &data[0], 6);
 	delay_ms(BMP280_DELAY_READ_MS);
 
+	#ifdef BMP280_DEBUG
 	for(int i=0; i<6; i++) {
 		printf("data[%d]: 0x%02x\n", i, data[i]);
 	}
+	#endif
 
 	if(ret == i2c_ans::ok) {
 		u_pressure_ = 		(data[0] << 12) | (data[1] << 4) | (data[2] >> 4);
@@ -123,7 +126,7 @@ i2c_ans BMP280::read_burst_adc(void) {
 
 	return ret;
 }
-i2c_ans BMP280::read_burst_calib(void) {
+i2c_ans BMP280::read_burst_calib_(void) {
 	uint8_t data[26];
 
 	i2c_ans ret = i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T1_LSB, &data[0], 26);
@@ -153,7 +156,7 @@ i2c_ans BMP280::read_burst_calib(void) {
 	#endif
 	return ret;
 }
-void BMP280::read_calib(void) {
+void BMP280::read_calib_(void) {
 	uint8_t MSB, LSB;
 	// Read calibration data from BMP280 internals EEPROM;
 	i2c_->read(BMP280_ADDR, BMP280_REG_DIG_T1_LSB, &LSB);
@@ -262,6 +265,7 @@ void BMP280::read_calib(void) {
 	dig_P9_ = (MSB << 8) | LSB;	
 }
 
+// pressure/temperature uncompensated values
 int32_t BMP280::u_pressure_read_(void) {
 	// i2c_->write(BMP280_ADDR, BMP280_REG_CTRL_MEAS, 0x34+(oss_()<<6));
 	// Wait 4.5 ms
@@ -283,7 +287,6 @@ int32_t BMP280::u_pressure_read_(void) {
 	#endif
 	return u_press;
 }
-// pressure/temperature uncompensated values
 int32_t BMP280::u_temperature_read_(void) {
 	// write 0x2E (addr temp) into 0x74 (press oss3 addr);
 	// i2c_->write(BMP280_ADDR, BMP280_ADDR_PRESS_OSS_3, BMP280_ADDR_TEMP); 
@@ -417,6 +420,7 @@ double BMP280::calc_true_pressure_2_(int32_t adc_P) {
 
 	return pressure;
 }
+
 // bit read/write operations for config register
 uint8_t BMP280::t_sb_(void) {
 	return (config_() >> 5) & 0x07;
@@ -459,13 +463,11 @@ uint8_t BMP280::osrs_t_(void) {
 void BMP280::osrs_t_(uint8_t value) {
 	uint8_t ctrl_meas = ctrl_meas_();
 
-	printf("osrs_t_ - ctrl_meas: 0x%02x\n", ctrl_meas);
 	ctrl_meas &= 0x1F;	// 0b 0001 1111 - clear osrs_t bits
-	printf("osrs_t_ - ctrl_meas: 0x%02x\n", ctrl_meas);
+	ctrl_meas |= (value << 5);
+
 	// ctrl_meas &= ~0xE0;
 	// ctrl_meas = ctrl_meas | (value << 5);
-	ctrl_meas |= (value << 5);
-	printf("osrs_t_ - ctrl_meas: 0x%02x\n", ctrl_meas);
 	
 	ctrl_meas_(ctrl_meas);
 }
