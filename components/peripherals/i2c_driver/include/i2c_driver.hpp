@@ -113,7 +113,7 @@ class I2C_Driver{
 
 		// Advanced
 		uint8_t probe_find(uint8_t addr_init = 0);
-		void seek_addr(void);
+		void probe_list(void);
 
 	protected:
 		int	i2c_master_port_;
