@@ -6,8 +6,17 @@
 
 #include <string.h>
 
+// 1000 8
+// 1001 9
+// 1010 A
+// 1011 B
+// 1100 C
+// 1101 D
+// 1110 E
+// 1111 F
+
 /* Command address */
-#define SSD1306_ADDR_default				0x3C	// device default address
+#define SSD1306_ADDR_default				0x3C	// device default address - 0b 0011 1100 - 0x3C
 #define SSD1304_SA0_bit						0		// depends of D/C pin. By hardware.
 
 #define SSD1306_ADDR						(SSD1306_ADDR_default 	| SSD1304_SA0_bit) //  - 0b 0011 110[SA0=0] or 0b 0011 110[SA0=1]
@@ -46,6 +55,7 @@
 #define SSD1306_CMD_MEM_ADDR_MODE			0x20
 // horizontal/vertical addressing mode
 #define SSD1306_CMD_COLUMN_ADDR				0x21	// Setup column start and end address
+#define SSD1306_CMD_PAGE_ADDR				0x22	// setup page start and end address
 
 
 // 5. Timing & Driving Scheme Setting Command Table
@@ -55,7 +65,7 @@
 // charge pump
 #define SSD1306_CMD_CHARGE_PUMP				0x8D	// charge pump cmd	
 
-#define SSD1306_CO_BIT						0
+#define SSD1306_CO_BIT						1
 #define SSD1306_DC_BIT						0
 
 #define SSD1306_DEBUG						1
@@ -99,10 +109,19 @@ addr and increase automatically.
 	Second byte is D[7:0].
 */
 
+// Addressing mode
 enum class ssd1306_addr_mode {
 	horizontal = 0,
 	vertical,
 	page
+};
+
+// Control byte types
+enum class ssd1306_ctrl_byte {
+	cmd_array = 0x00,		// Command Stream		Co = 0; D/C = 0
+	cmd_byte = 0x80,		// Single Command byte  Co = 1; D/C = 0
+	data_array = 0x40,		// data stream			Co = 0; D/C = 1
+	data_byte = 0xC0		// Single Data Byte		Co = 1; D/C = 1
 };
 
 class SSD1306 {
@@ -119,6 +138,8 @@ class SSD1306 {
 	void list_addr(void);
 
 	void draw(void);
+	void position(uint8_t x, uint8_t y);
+
 
 	private:
 
@@ -131,16 +152,30 @@ class SSD1306 {
 	// 2. Scrolling Command Table
 
 	// 3. Addressing Setting Command Table
-	// type of memory addressing (horizontal, vertical or page)
+
+	/* @brief type of memory addressing (horizontal, vertical or page)
+	* @param value ssd1306_addr_mode choose type
+	*/
 	void memory_addr_mode_(ssd1306_addr_mode value);
-	// Start Address for Page Addressing Mode
-	void set_lower_column_(uint8_t col);
-	// Set Higher Column Start Address for Page Addressing Mode
-	void set_higher_column_(uint8_t col);
-	// set start/stop column addr (hor/ver mode only)
-	void set_column_addr_(uint8_t col_start, uint8_t col_stop);
-	
+
+	// PAGE MODE - Set GDDRAM Page Start Address (PAGE0~PAGE7) for Page Addressing Mode using X[2:0].
 	void page_start_(uint8_t page);
+	// PAGE MODE - Start Address for Page Addressing Mode
+	void set_lower_column_(uint8_t col);
+	// PAGE MODE - Set Higher Column Start Address for Page Addressing Mode
+	void set_higher_column_(uint8_t col);
+
+	/* @brief HOR/VER MODE - set start/stop column addr (hor/ver mode only)
+	* @param col_start A[6:0] : Column start address, range : 0-127d, A0 (RESET=0d) 
+	* @param col_stop B[6:0]: Column end address, range : 0-127d, (RESET =127d)
+	*/
+	void set_column_addr_(uint8_t col_start, uint8_t col_end);
+	/* @brief HOR/VER MODE - Setup page start and end address
+	* @param page_start A[2:0] : Page start Address, range : 0-7d, (RESET = 0d)
+	* @param page_end Set GDDRAM Page Start Address (PAGE0~PAGE7) for Page Addressing Mode using X[2:0].
+	*/
+	void page_addr_(uint8_t page_start, uint8_t page_end);
+
 
 	// 4. Hardware Configuration (Panel resolution & layout related) Command Table
 	// hardware config - mux ratio command 
@@ -149,6 +184,7 @@ class SSD1306 {
 	void set_segment_remap_(uint8_t x0);
 
 	void mux_ratio_(uint8_t cmd);
+	uint8_t mux_ratio_read_(void);
 
 	void scan_direction_(uint8_t x3);
 
@@ -166,10 +202,6 @@ class SSD1306 {
 
 	// 4. Hardware Configuration (Panel resolution & layout related) Command Table
 	
-
-	// control byte constructor;
-	uint8_t ctrl_byte_(uint8_t co, uint8_t dc);
-
 	ssd1306_addr_mode addr_mode_;
 
 	I2C_Driver *i2c_;

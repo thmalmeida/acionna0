@@ -12,6 +12,8 @@ void SSD1306::init(void) {
 
 	// 01- Set mux ratio for ...?
 	mux_ratio_(SSD1306_CMD_MUX_RATIO_RESET);
+	
+	// mux_ratio_read_();
 
 	// 02- Set display offset
 	set_display_offset_(SSD1306_CMD_DISPLAY_OFFSET_RST);
@@ -47,7 +49,7 @@ void SSD1306::init(void) {
 	power(1);
 
 
-	draw();
+	position(0, 0);
 
 }
 bool SSD1306::probe(void) {
@@ -59,33 +61,38 @@ void SSD1306::soft_reset(void) {
 	i2c_->write(SSD1306_ADDR, SSD1306_RESET);
 	// delay_ms(SSD1306_DELAY_SOFT_RESET);
 }
-void SSD1306::power(uint8_t x0) {
-	uint8_t data[2];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
-	data[1] = SSD1306_CMD_DISPLAY_POWER | (x0 << 0);
+void SSD1306::list_addr(void) {
+	// i2c_->probe_find();
+	i2c_->probe_list();
+}
+void SSD1306::position(uint8_t x, uint8_t y) {
+	// memory_addr_mode_(ssd1306_addr_mode::horizontal);
 
-	i2c_->write(SSD1306_ADDR, &data[0], 2);
+	// set_column_addr_(0, 127);
+	// page_addr_(0, 1);
+	
+	draw();
+}
+void SSD1306::draw(void) {
+	uint8_t data[20];
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::data_array);
+	for(int i=1; i<20; i++) {
+		data[i] = 0xAA;
+	}
+
+	i2c_->write(SSD1306_ADDR, &data[0], sizeof(data));
 	#ifdef SSD1306_DEBUG
-	printf("power: ");
+	printf("draw: ");
 	for(int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
 	#endif
 }
-void SSD1306::list_addr(void) {
-	// i2c_->probe_find();
-	i2c_->probe_list();
-}
-void SSD1306::draw(void) {
-	memory_addr_mode_(ssd1306_addr_mode::page);
-
-	
-}
 // Hardware Configuration commands
 void SSD1306::mux_ratio_(uint8_t cmd) {
 	uint8_t data[3];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
 	data[1] = SSD1306_REG_MUX_RATIO;
 	data[2] = cmd;
 
@@ -100,7 +107,7 @@ void SSD1306::mux_ratio_(uint8_t cmd) {
 }
 void SSD1306::set_display_offset_(uint8_t cmd) {
 	uint8_t data[3];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
 	data[1] = SSD1306_REG_SET_DISPLAY_OFFSET;
 	data[2] = cmd;
 
@@ -115,7 +122,7 @@ void SSD1306::set_display_offset_(uint8_t cmd) {
 }
 void SSD1306::set_display_start_line_(uint8_t line) {
 	uint8_t data[3];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
 	data[1] = SSD1306_REG_DISPLAY_START_LINE;
 	data[2] = line;
 
@@ -130,7 +137,7 @@ void SSD1306::set_display_start_line_(uint8_t line) {
 }
 void SSD1306::scan_direction_(uint8_t x3) {
 	uint8_t data[2];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_byte);
 	data[1] = SSD1306_REG_SCAN_DIRECTION | (x3 << 3);
 
 	i2c_->write(SSD1306_ADDR, &data[0], 2);
@@ -144,7 +151,7 @@ void SSD1306::scan_direction_(uint8_t x3) {
 }
 void SSD1306::set_segment_remap_(uint8_t x0) {
 	uint8_t data[2];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_byte);
 	data[1] = SSD1306_CMD_SEGMENT_REMAP | x0;
 
 	i2c_->write(SSD1306_ADDR, &data[0], 2);
@@ -156,10 +163,9 @@ void SSD1306::set_segment_remap_(uint8_t x0) {
 	printf("\n");
 	#endif
 }
-
 void SSD1306::hardware_config_(uint8_t a4, uint8_t a5) {
 	uint8_t data[3];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
 	data[1] = SSD1306_REG_HARDWARE_CONFIG;
 	data[2] = 0x02 | (a5 << 1) | (a4 << 4);
 
@@ -173,10 +179,22 @@ void SSD1306::hardware_config_(uint8_t a4, uint8_t a5) {
 	#endif
 }
 
+// reads
+uint8_t SSD1306::mux_ratio_read_(void) {
+	uint8_t data;
+
+	i2c_->read(SSD1306_ADDR, SSD1306_REG_MUX_RATIO, &data);
+
+	#ifdef SSD1306_DEBUG
+	printf("mux_ratio_read_: 0x%02x\n", data);
+	#endif
+	return data;
+}
+
 // 1. Fundamental Command Table
 void SSD1306::set_contrast_(uint8_t value) {
 	uint8_t data[3];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
 	data[1] = SSD1306_REG_CONSTRAST_CONTROL;
 	data[2] = value;
 
@@ -191,7 +209,7 @@ void SSD1306::set_contrast_(uint8_t value) {
 }
 void SSD1306::entire_display_on_(uint8_t x0) {
 	uint8_t data[2];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_byte);
 	data[1] = SSD1306_REG_NORMAL_DISPLAY_MODE | x0;
 
 	i2c_->write(SSD1306_ADDR, &data[0], 2);
@@ -205,7 +223,7 @@ void SSD1306::entire_display_on_(uint8_t x0) {
 }
 void SSD1306::normal_inverse_display_(uint8_t x0) {
 	uint8_t data[2];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_byte);
 	data[1] = SSD1306_CMD_NORMAL_DISPLAY | x0;
 
 	i2c_->write(SSD1306_ADDR, &data[0], 2);
@@ -217,12 +235,27 @@ void SSD1306::normal_inverse_display_(uint8_t x0) {
 	printf("\n");
 	#endif
 }
+void SSD1306::power(uint8_t x0) {
+	uint8_t data[2];
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_byte);
+	data[1] = SSD1306_CMD_DISPLAY_POWER | (x0 << 0);
+
+	i2c_->write(SSD1306_ADDR, &data[0], 2);
+	#ifdef SSD1306_DEBUG
+	printf("power: ");
+	for(int i=0; i<sizeof(data); i++) {
+		printf("0x%02x ", data[i]);
+	}
+	printf("\n");
+	#endif
+}
+
 // 2. Scrolling Command Table
 // 3. Addressing Setting Command Table
 void SSD1306::memory_addr_mode_(ssd1306_addr_mode value) {
 	
 	uint8_t data[3];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
 	data[1] = SSD1306_CMD_MEM_ADDR_MODE;
 	data[2] = static_cast<uint8_t>(value) & 0x03;
 
@@ -237,7 +270,7 @@ void SSD1306::memory_addr_mode_(ssd1306_addr_mode value) {
 }
 void SSD1306::set_lower_column_(uint8_t col) {
 	uint8_t data[2];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_byte);
 	data[1] = SSD1306_CMD_LOWER_COLUMN | col;
 
 	i2c_->write(SSD1306_ADDR, &data[0], 2);
@@ -251,7 +284,7 @@ void SSD1306::set_lower_column_(uint8_t col) {
 }
 void SSD1306::set_higher_column_(uint8_t col) {
 	uint8_t data[2];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_byte);
 	data[1] = SSD1306_CMD_HIGHER_COLUMN | col;
 
 	i2c_->write(SSD1306_ADDR, &data[0], 2);
@@ -265,31 +298,55 @@ void SSD1306::set_higher_column_(uint8_t col) {
 }
 void SSD1306::set_column_addr_(uint8_t col_start, uint8_t col_end) {
 	uint8_t data[4];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
 	data[1] = SSD1306_CMD_MEM_ADDR_MODE;
 	data[2] = col_start;
 	data[3] = col_end;
 
 	i2c_->write(SSD1306_ADDR, &data[0], 3);
 	#ifdef SSD1306_DEBUG
-	printf("memory_addressing_mode_: ");
+	printf("set_column_addr_: ");
 	for(int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
 	#endif
 }
+void SSD1306::page_addr_(uint8_t page_start, uint8_t page_end) {
+	uint8_t data[4];
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
+	data[1] = SSD1306_CMD_PAGE_ADDR;
+	data[2] = page_start;
+	data[3] = page_end;
 
-void SSD1306::page_start_(uint8_t page) {
-
+	i2c_->write(SSD1306_ADDR, &data[0], 4);
+	#ifdef SSD1306_DEBUG
+	printf("page_addr_: ");
+	for(int i=0; i<sizeof(data); i++) {
+		printf("0x%02x ", data[i]);
+	}
+	printf("\n");
+	#endif
 }
-uint8_t SSD1306::ctrl_byte_(uint8_t co, uint8_t dc) {
-	return ((co << 7) | (dc << 6));// & 0xC0;
+void SSD1306::page_start_(uint8_t page) {
+	uint8_t data[3];
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
+	data[1] = SSD1306_CMD_PAGE_ADDR;
+	data[2] = page;
+
+	i2c_->write(SSD1306_ADDR, &data[0], 3);
+	#ifdef SSD1306_DEBUG
+	printf("page_addr_: ");
+	for(int i=0; i<sizeof(data); i++) {
+		printf("0x%02x ", data[i]);
+	}
+	printf("\n");
+	#endif
 }
 // 5. Timing & Driving Scheme Setting Command Table
 void SSD1306::set_osc_frequency_(uint8_t div, uint8_t freq_type) {
 	uint8_t data[3];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
 	data[1] = SSD1306_CMD_CLK_DIV;
 	data[2] = (freq_type << 4) | (div << 0);
 
@@ -303,10 +360,9 @@ void SSD1306::set_osc_frequency_(uint8_t div, uint8_t freq_type) {
 	#endif
 }
 
-
 void SSD1306::charge_pump_en_(uint8_t a2) {
 	uint8_t data[3];
-	data[0] = ctrl_byte_(SSD1306_CO_BIT, SSD1306_DC_BIT);
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
 	data[1] = SSD1306_CMD_CHARGE_PUMP;
 	data[2] = 0x10 | (a2 << 2);
 
@@ -319,17 +375,6 @@ void SSD1306::charge_pump_en_(uint8_t a2) {
 	printf("\n");
 	#endif
 }
-
-// 1000 8
-// 1001 9
-// 1010 A
-// 1011 B
-// 1100 C
-// 1101 D
-// 1110 E
-// 1111 F
-
-
 // uint8_t aht10::read_status_register(void) {
 
 // 	delay_ms(AHT10_DELAY_CMD);
