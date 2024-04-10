@@ -15,6 +15,8 @@
 // 1110 E
 // 1111 F
 
+/* 128x64 pixels SSD1306 OLED display drive */
+
 /* Command address */
 #define SSD1306_ADDR_default				0x3C	// device default address - 0b 0011 1100 - 0x3C
 #define SSD1304_SA0_bit						0		// depends of D/C pin. By hardware.
@@ -23,7 +25,7 @@
 
 /* list of I2C cmd addresses */
 /* 1. Fundamental command table */
-#define SSD1306_REG_SHIFT_VERTICAL			0xD3	// vertical shift
+#define SSD1306_CMD_SHIFT_VERTICAL			0xD3	// vertical shift
 #define SSD1306_RESET						0x7F	// Reset (or contrast control register?)
 #define SSD1306_REG_CONSTRAST_CONTROL		0x81	// constrast control register. 256 values - D/C = 0, set contrast mode followed by A[7:0] level byte;
 #define SSD1306_REG_NORMAL_DISPLAY_MODE		0xA4	// Entire display on - 8.5 page 23;
@@ -56,11 +58,12 @@
 // horizontal/vertical addressing mode
 #define SSD1306_CMD_COLUMN_ADDR				0x21	// Setup column start and end address
 #define SSD1306_CMD_PAGE_ADDR				0x22	// setup page start and end address
-
+#define SSD1306_CMD_PAGE_START				0xB0	// setup page start range from 0xB0 (PAGE0) to 0xB7 (PAGE7)
 
 // 5. Timing & Driving Scheme Setting Command Table
 #define SSD1306_CMD_CLK_DIV					0xD5	// display clock divide
 #define SSD1306_CMD_NOP						0xE3	// no operation command. Section 10.1.20 on page 43
+#define SSD1306_CMD_VCOM_DESELECT_LEVEL		0xDB	// Set VcomH deselect level
 
 // charge pump
 #define SSD1306_CMD_CHARGE_PUMP				0x8D	// charge pump cmd	
@@ -124,6 +127,13 @@ enum class ssd1306_ctrl_byte {
 	// data_byte = 0xC0		// Single Data Byte		Co = 1; D/C = 1, 0b1100 0000
 };
 
+// VcomH deselect levels
+enum class ssd1306_vcomh_level {
+	vcc_065 = 0x00,
+	vcc_077 = 0x20,			// ~0.77 x Vcc (Reset)
+	vcc_083 = 0x30
+};
+
 class SSD1306 {
 public:
 	SSD1306(I2C_Driver *i2c);
@@ -137,6 +147,11 @@ public:
 	void list_addr(void);
 
 	void draw(void);
+
+	/* @brief Set pointer to (x, y) coordinate 128x64 pixels
+	*  @param x 0 to 128
+	*  @param y 0 to 64
+	*/
 	void position(uint8_t x, uint8_t y);
 
 	// inits by adafruit
@@ -144,6 +159,10 @@ public:
 	void init2(void);
 	void init3(void);
 	void init4(void);
+
+	void config(void);
+
+	void refresh(void);
 
 private:
 	// 1. Fundamental commands
@@ -153,6 +172,10 @@ private:
 	void power(uint8_t state);					// display on/off (normal <---> sleep)
 
 	// 2. Scrolling Command Table
+	/* @brief Scroll enable/disable
+	* @param status true: enable; false: disable
+	*/
+	void scroll_(bool status);
 
 	// 3. Addressing Setting Command Table
 
@@ -161,31 +184,33 @@ private:
 	*/
 	void memory_addr_mode_(ssd1306_addr_mode value);
 
-	// PAGE MODE - Set GDDRAM Page Start Address (PAGE0~PAGE7) for Page Addressing Mode using X[2:0].
-	void page_start_(uint8_t page);
-	// PAGE MODE - Start Address for Page Addressing Mode
-	void set_lower_column_(uint8_t col);
-	// PAGE MODE - Set Higher Column Start Address for Page Addressing Mode
-	void set_higher_column_(uint8_t col);
-
+	// --- HORIZONTAL/VERTICAL MODES only
+	/* @brief HOR/VER MODE - Setup page start and end address
+	*  @param page_start A[2:0] : Page start Address, range : 0-7d, (RESET = 0d)
+	*  @param page_end Set GDDRAM Page Start Address (PAGE0~PAGE7) for Page Addressing Mode using X[2:0].
+	*/
+	void page_addr_(uint8_t page_start, uint8_t page_end);
 	/* @brief HOR/VER MODE - set start/stop column addr (hor/ver mode only)
 	* @param col_start A[6:0] : Column start address, range : 0-127d, A0 (RESET=0d) 
 	* @param col_stop B[6:0]: Column end address, range : 0-127d, (RESET =127d)
 	*/
-	void set_column_addr_(uint8_t col_start, uint8_t col_end);
-	/* @brief HOR/VER MODE - Setup page start and end address
-	* @param page_start A[2:0] : Page start Address, range : 0-7d, (RESET = 0d)
-	* @param page_end Set GDDRAM Page Start Address (PAGE0~PAGE7) for Page Addressing Mode using X[2:0].
-	*/
-	void page_addr_(uint8_t page_start, uint8_t page_end);
+	void column_addr_(uint8_t col_start, uint8_t col_end);
 
+	// --- PAGE MODE only
+	/* @brief PAGE MODE - Set GDDRAM Page Start Address
+	*  @param page 0 (PAGE0) to 7 (PAGE7) for Page Addressing Mode using X[2:0].
+	*/
+	void page_start_(uint8_t page);
+	/* @brief PAGE MODE - Start Address for Page Addressing Mode
+	*  @param col 
+	*/
+	void set_lower_column_(uint8_t col);
+	/* @brief PAGE MODE - Set Higher Column Start Address for Page Addressing Mode
+	*  @param col 
+	*/
+	void set_higher_column_(uint8_t col);
 
 	// 4. Hardware Configuration (Panel resolution & layout related) Command Table
-	// hardware config - mux ratio command 
-	void set_display_start_line_(uint8_t line);
-
-	void set_segment_remap_(uint8_t x0);
-
 	/* @brief Set Multiplex Ratio to N+1 MUX
 	* Range from 16MUX to 64MUX
 	* 111111b of 0x3F is 63d or 64MUX (reset)
@@ -194,22 +219,37 @@ private:
 	*/
 	void mux_ratio_(uint8_t cmd);
 
+	void set_display_offset_(uint8_t cmd);
+	
+	void set_display_start_line_(uint8_t line);
+	
 	void scan_direction_(uint8_t x3);
 
-	void set_display_offset_(uint8_t cmd);
+	/* @brief Set Segment Re-map 
+	* @param x0 0, column addr 0 set to SEG0(RESET); 1, column addr 127 set to SEG0.
+	*/
+	void segment_remap_(uint8_t x0);
 
 	void hardware_config_(uint8_t a5, uint8_t a4);
 
 	// 5. Timing & Driving Scheme Setting Command Table
+	/* @brief Set Display Clock Divide Ratio/ Oscillator Frequency (D5h)
+	* @param div range from 1 to 16
+	* @param freq has 16 values with default = 8
+	*/
 	void set_osc_frequency_(uint8_t div, uint8_t freq_type);
 
-	// void nop_(void);							// no operation
+	void set_vcomh_deselect_level_(ssd1306_vcomh_level level);
+
+	void nop_(void);						// no operation
 
 	// 1. Charge Pump Command Table
+	/* @brief Charge pump settings 
+	* @param a2 0 = disable charge pump (RESET); 1 = en charge pump during display on
+	*/
 	void charge_pump_en_(uint8_t a2);
 
-	// 4. Hardware Configuration (Panel resolution & layout related) Command Table
-
+	uint8_t buffer[1024];			// 128*64 / 8 bytes for display RAM;
 
 	ssd1306_addr_mode addr_mode_;
 
