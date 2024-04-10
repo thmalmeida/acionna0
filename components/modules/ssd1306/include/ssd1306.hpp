@@ -35,7 +35,7 @@
 #define SSD1306_CMD_MUX_RATIO_RESET			0x3F	// A[5:0] - 0b0011 1111 reset command
 #define SSD1306_DIV_CLOCK					0xD5	// A[3:0] from 1 to 16 division display fosc (verify it)
 #define SSD1306_REG_DISPLAY_START_LINE		0x40	// display start line
-#define SSD1306_REG_SCAN_DIRECTION			0xC0	// set COM output scan direction
+#define SSD1306_REG_SCAN_DIRECTION			0xC0	// set COM output scan direction/ 0xC8
 #define SSD1306_REG_HARDWARE_CONFIG			0xDA	// Set COM Pins Hardware Configuration
 
 // Hardware Configuration command
@@ -65,10 +65,10 @@
 // charge pump
 #define SSD1306_CMD_CHARGE_PUMP				0x8D	// charge pump cmd	
 
-#define SSD1306_CO_BIT						1
-#define SSD1306_DC_BIT						0
 
 #define SSD1306_DEBUG						1
+#define SSD1306_DELAY_AFTER_CMD				1
+#define SSD1306_CMD_DELAY					12		// delay after command [ms]
 
 
 /* 2. Scrolling command table */
@@ -118,15 +118,14 @@ enum class ssd1306_addr_mode {
 
 // Control byte types
 enum class ssd1306_ctrl_byte {
-	cmd_array = 0x00,		// Command Stream		Co = 0; D/C = 0
-	cmd_byte = 0x80,		// Single Command byte  Co = 1; D/C = 0
-	data_array = 0x40,		// data stream			Co = 0; D/C = 1
-	data_byte = 0xC0		// Single Data Byte		Co = 1; D/C = 1
+	cmd_array = 0x00,		// Command Stream		Co = 0; D/C = 0, 0b0000 0000
+	data_array = 0x40		// data stream			Co = 0; D/C = 1, 0b0100 0000
+	// cmd_byte = 0x80,		// Single Command byte  Co = 1; D/C = 0, 0b1000 0000
+	// data_byte = 0xC0		// Single Data Byte		Co = 1; D/C = 1, 0b1100 0000
 };
 
 class SSD1306 {
-	public:
-	
+public:
 	SSD1306(I2C_Driver *i2c);
 
 	void init(void);
@@ -140,9 +139,13 @@ class SSD1306 {
 	void draw(void);
 	void position(uint8_t x, uint8_t y);
 
+	// inits by adafruit
+	void init1(void);
+	void init2(void);
+	void init3(void);
+	void init4(void);
 
-	private:
-
+private:
 	// 1. Fundamental commands
 	void set_contrast_(uint8_t value);			// Constrast value range is 0-255
 	void entire_display_on_(uint8_t x0);		// entire display on - x0 = 0 follow RAM, x0 = 1 ignore RAM;
@@ -183,14 +186,19 @@ class SSD1306 {
 
 	void set_segment_remap_(uint8_t x0);
 
+	/* @brief Set Multiplex Ratio to N+1 MUX
+	* Range from 16MUX to 64MUX
+	* 111111b of 0x3F is 63d or 64MUX (reset)
+	* 0 to 14 are invalid entry
+	* @param cmd range from 0x0F (16MUX) to 0x3F (64MUX)
+	*/
 	void mux_ratio_(uint8_t cmd);
-	uint8_t mux_ratio_read_(void);
 
 	void scan_direction_(uint8_t x3);
 
 	void set_display_offset_(uint8_t cmd);
 
-	void hardware_config_(uint8_t a4, uint8_t a5);
+	void hardware_config_(uint8_t a5, uint8_t a4);
 
 	// 5. Timing & Driving Scheme Setting Command Table
 	void set_osc_frequency_(uint8_t div, uint8_t freq_type);
@@ -201,7 +209,8 @@ class SSD1306 {
 	void charge_pump_en_(uint8_t a2);
 
 	// 4. Hardware Configuration (Panel resolution & layout related) Command Table
-	
+
+
 	ssd1306_addr_mode addr_mode_;
 
 	I2C_Driver *i2c_;
