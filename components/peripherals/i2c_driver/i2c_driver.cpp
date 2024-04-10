@@ -28,7 +28,7 @@ I2C_Driver::~I2C_Driver() {
 	// ESP_ERROR_CHECK(i2c_master_bus_rm_device(dev_handle_));
 }
 
-i2c_ans I2C_Driver::write(uint8_t slave_addr, uint8_t *data, uint8_t len) {
+i2c_ans I2C_Driver::write(uint8_t slave_addr, uint8_t *data, size_t len) {
 	dev_cfg_.device_address = slave_addr;
 	ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle_, &dev_cfg_, &dev_handle_));
 	esp_err_t ret = i2c_master_transmit(dev_handle_, data, len, I2C_COMMAND_WAIT_MS);

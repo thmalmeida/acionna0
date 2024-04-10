@@ -98,7 +98,7 @@ class I2C_Driver{
 		i2c_ans write(uint8_t slave_addr, uint8_t reg);
 		i2c_ans write(uint8_t slave_addr, uint8_t reg, uint8_t data);
 		i2c_ans write(uint8_t slave_addr, uint8_t reg, uint8_t *data, size_t len);
-		i2c_ans write(uint8_t slave_addr, uint8_t *data, uint8_t len);
+		i2c_ans write(uint8_t slave_addr, uint8_t *data, size_t len);
 
 		// The following reads is precedded by write before read;
 		i2c_ans read(uint8_t slave_address, const uint8_t *data_write, size_t len_write, uint8_t *data_read, size_t len_read);
