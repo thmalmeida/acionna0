@@ -201,17 +201,18 @@ void BMP180::oss_(uint8_t value) {
 	uint8_t ctrl_meas;
 	i2c_->read(BMP180_ADDR, BMP180_REG_CTRL_MEAS, &ctrl_meas);
 
-	ctrl_meas &= 0x3F;
+	ctrl_meas &= 0x3F;	// apply mask to get sco and measurement control bits and clear oss[1:0] to put a new one value;
 	ctrl_meas |= (value << 6);
 
 	i2c_->write(BMP180_ADDR, BMP180_REG_CTRL_MEAS, ctrl_meas);
 }
 uint8_t BMP180::oss_(void) {
-	return ctrl_meas_() >> 6;
+	return (ctrl_meas_() >> 6) & 0x03;
 }
 uint8_t BMP180::sco_(void) {
-	return (ctrl_meas_() >> 5) & 0xFE;
+	return (ctrl_meas_() >> 5) & 0x01;
 }
+
 uint8_t BMP180::ctrl_meas_(void) {
 	uint8_t ctrl_meas_r;
 	i2c_->read(BMP180_ADDR, BMP180_REG_CTRL_MEAS, &ctrl_meas_r);

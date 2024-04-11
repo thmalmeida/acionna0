@@ -10,7 +10,7 @@
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 
-#include <i2c_master.hpp>
+#include "i2c_driver.hpp"
 #include "ds3231.hpp"
 #include "rtc_time.hpp"
 #include "time_operations.hpp"
@@ -63,7 +63,7 @@ public:
 	// uint32_t time_elapsed_on_lasts[log_n_] = {0};
 	// stop_types stops_lasts[log_n_];
 
-	Acionna(ADC_driver* adc);	// : pipe1_(&adc, 4), pipe2_(&adc, 7) {
+	Acionna(ADC_driver* adc, I2C_Driver *i2c);	// : pipe1_(&adc, 4), pipe2_(&adc, 7) {
 
 	// Initialize - should run once;
 	void init(void);
@@ -104,6 +104,12 @@ private:
 	#ifdef CONFIG_WELL_SUPPORT
 	well well1_;
 	#endif
+
+	// DS3231 rtc{&i2c};
+	Agro::RTC_Time device_clock_;
+	DateTime dt_;
+
+	// I2C_Driver *i2c_;
 
 	Pipepvc pipe1_;
 	Pipepvc pipe2_;

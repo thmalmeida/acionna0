@@ -1,7 +1,7 @@
 #ifndef __PCY8575_HPP__
 #define __PCY8575_HPP__
 
-#include "i2c_master.hpp"
+#include "i2c_driver.hpp"
 #include "esp_log.h"
 
 #include <string.h>
@@ -84,7 +84,7 @@ class pcy8575 {
 
 	public:
 
-	pcy8575(I2C_Master *i2c);
+	pcy8575(I2C_Driver *i2c);
 
 	void init(uint8_t mode);
 	bool probe(void);
@@ -109,7 +109,7 @@ class pcy8575 {
 	
 	private:
 
-	I2C_Master *i2c_;
+	I2C_Driver *i2c_;
 	uint16_t output_ = 0;
 };
 

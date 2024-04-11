@@ -2,12 +2,6 @@
 
 static const char *TAG_ACIONNA = "Acionna0";
 
-// static I2C_Master i2c(I2C_NUM_0, I2C_SCL, I2C_SDA, I2C_NORMAL_SPEED_HZ, 0);
-static I2C_Master i2c(I2C_NUM_1, I2C_SCL, I2C_SDA, I2C_NORMAL_SPEED_HZ, 1);
-static DS3231 rtc{&i2c};
-static Agro::RTC_Time device_clock;
-static DateTime dt;
-
 // static ADC_driver adc0(adc_mode::noption);
 int timeout_sensors;
 int timeout_sensors_cfg = 600;
@@ -15,7 +9,7 @@ int timeout_sensors_cfg = 600;
 volatile uint8_t flag_1sec = 0;
 volatile uint8_t flag_100ms = 0;
 
-Acionna::Acionna(ADC_driver* adc) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 220), pump1_{&epoch_time_}, valves1_{&i2c, &epoch_time_, &pressure_} {
+Acionna::Acionna(ADC_driver* adc, I2C_Driver *i2c) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 220), pump1_{&epoch_time_}, valves1_{i2c, &epoch_time_, &pressure_} {
 // Acionna::Acionna(void) : valves1_{&i2c} {
 	// ADC_driver adc0(adc_mode::oneshot);
 	// ADC_driver adc0(adc_mode::oneshot);
@@ -231,14 +225,14 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			{
 				case 0:	{ // $00; Check basic parameters{
 					if(command_str[3]==';') {
-						// int a = dt.getHour();
-						// sprintf(buffer, "%d", dt.getHour());
-						sprintf(buffer, "%.2d:%.2d:%.2d %.2d/%.2d/%.4d up:%.2d:%.2d:%.2d d:%d, s:%d m:%d tday:%lu\n", dt.getHour(),
-																						dt.getMinute(),
-																						dt.getSecond(),
-																						dt.getDay(),
-																						dt.getMonth(),
-																						dt.getYear(),
+						// int a = dt_.getHour();
+						// sprintf(buffer, "%d", dt_.getHour());
+						sprintf(buffer, "%.2d:%.2d:%.2d %.2d/%.2d/%.4d up:%.2d:%.2d:%.2d d:%d, s:%d m:%d tday:%lu\n", dt_.getHour(),
+																						dt_.getMinute(),
+																						dt_.getSecond(),
+																						dt_.getDay(),
+																						dt_.getMonth(),
+																						dt_.getYear(),
 																						timesec_to_hour(get_uptime()),
 																						timesec_to_min(get_uptime()),
 																						timesec_to_sec(get_uptime()),
@@ -489,9 +483,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						// signal_request_sensors = 1;
 						// temp_sensor.requestTemperatures();
 						// if(dht0.read2())
-						// 	sprintf(buffer, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%%\n", dt.getHour(), dt.getMinute(), dt.getSecond(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
+						// 	sprintf(buffer, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%%\n", dt_.getHour(), dt_.getMinute(), dt_.getSecond(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
 						// else
-						// 	sprintf(buffer, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%% ER\n", dt.getHour(), dt.getMinute(), dt.getSecond(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
+						// 	sprintf(buffer, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%% ER\n", dt_.getHour(), dt_.getMinute(), dt_.getSecond(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
 					}
 					break;
 				}
@@ -508,46 +502,46 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 				_aux[0] = command_str[6];
 				_aux[1] = command_str[7];
 				_aux[2] = '\0';
-				dt.setHour(atoi(_aux), ND);
+				dt_.setHour(atoi(_aux), ND);
 
 				_aux[0] = command_str[8];
 				_aux[1] = command_str[9];
 				_aux[2] = '\0';
-				dt.setMinute(static_cast<uint8_t>(atoi(_aux)));
+				dt_.setMinute(static_cast<uint8_t>(atoi(_aux)));
 
 				_aux[0] = command_str[10];
 				_aux[1] = command_str[11];
 				_aux[2] = '\0';
-				dt.setSecond(static_cast<uint8_t>(atoi(_aux)));
+				dt_.setSecond(static_cast<uint8_t>(atoi(_aux)));
 
-				// dt.setTime(0, 0, 0, ND);
-				device_clock.set_time(dt.getUnixTime());
-				time_day_sec_ = dt.getHour()*3600 + dt.getMinute()*60 + dt.getSecond();
+				// dt_.setTime(0, 0, 0, ND);
+				device_clock_.set_time(dt_.getUnixTime());
+				time_day_sec_ = dt_.getHour()*3600 + dt_.getMinute()*60 + dt_.getSecond();
 
-				sprintf(buffer, "Time: %.2d:%.2d:%.2d\n", dt.getHour(), dt.getMinute(), dt.getSecond());
+				sprintf(buffer, "Time: %.2d:%.2d:%.2d\n", dt_.getHour(), dt_.getMinute(), dt_.getSecond());
 			} else if ((command_str[3] == ':') && (command_str[4] == 'd') && (command_str[5] == ':') && (command_str[14] == ';')) {
 			// $10:d:13122022;
 				_aux[0] = command_str[6];
 				_aux[1] = command_str[7];
 				_aux[2] = '\0';
-				dt.setDay(atoi(_aux));
+				dt_.setDay(atoi(_aux));
 
 				_aux[0] = command_str[8];
 				_aux[1] = command_str[9];
 				_aux[2] = '\0';
-				dt.setMonth(static_cast<uint8_t>(atoi(_aux)));
+				dt_.setMonth(static_cast<uint8_t>(atoi(_aux)));
 
 				_aux2[0] = command_str[10];
 				_aux2[1] = command_str[11];
 				_aux2[2] = command_str[12];
 				_aux2[3] = command_str[13];
 				_aux2[4] = '\0';
-				dt.setYear(static_cast<uint16_t>(atoi(_aux2)));
+				dt_.setYear(static_cast<uint16_t>(atoi(_aux2)));
 
-				// dt.setTime(0, 0, 0, ND);
-				device_clock.set_time(dt.getUnixTime());
+				// dt_.setTime(0, 0, 0, ND);
+				device_clock_.set_time(dt_.getUnixTime());
 
-				sprintf(buffer, "Date:%.2d/%.2d/%.4d\n", dt.getDay(), dt.getMonth(), dt.getYear());
+				sprintf(buffer, "Date:%.2d/%.2d/%.4d\n", dt_.getDay(), dt_.getMonth(), dt_.getYear());
 			} // $10:d:10082022;
 			break;
 		}
@@ -1591,10 +1585,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 void Acionna::init() {
 
 	// Clock time init
-	dt.setDate(2023, 07, 10);
-	dt.setTime(0, 0, 0, ND);
-	device_clock.set_time(dt.getUnixTime());
-	time_day_sec_ = dt.getHour()*3600 + dt.getMinute()*60 + dt.getSecond();
+	dt_.setDate(2023, 07, 10);
+	dt_.setTime(0, 0, 0, ND);
+	device_clock_.set_time(dt_.getUnixTime());
+	time_day_sec_ = dt_.getHour()*3600 + dt_.getMinute()*60 + dt_.getSecond();
 
 	// wifi and ws server init - ws server will ask to init into connection_event_handler when got IP.
 	#ifdef CONFIG_IP_END_FORCE
@@ -1651,7 +1645,7 @@ void Acionna::init() {
 
 	// Network connection init
 	#if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
-		device_clock.init(rtc);
+		device_clock_.init(rtc);
 	#endif /* CONFIG_DEVICE_CLOCK_DS3231_SUPPORT */
 
 	// Sensors init
@@ -1663,7 +1657,7 @@ void Acionna::init() {
 	// ESP_LOGI(TAG_ACIONNA, "Temp sensors count: %u", temp_sensor_count);
 
 
-//		I2C_Master i2c(I2C_NUM_0, I2C_SCL, I2C_SDA, I2C_FAST_SPEED_HZ);
+//		I2C_Driver i2c(I2C_NUM_0, I2C_SCL, I2C_SDA, I2C_FAST_SPEED_HZ);
 //
 //		#if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
 //		#include "agro/types.hpp"
@@ -2429,8 +2423,8 @@ void Acionna::update_RTC() {
 
 	update_uptime();			// increment uptime system global variable
 
-	epoch_time_ = device_clock.get_time();
-	dt.setUnixTime(epoch_time_);
+	epoch_time_ = device_clock_.get_time();
+	dt_.setUnixTime(epoch_time_);
 
 	time_day_sec_++;
 	// compare time_day_sec with whole day seconds 24*60*60 = 86400
@@ -2465,7 +2459,7 @@ void Acionna::update_sensors() {
 		// temp_sensor.requestTemperatures();
 		// if(dht0.read2())
 		// {
-		// 	ESP_LOGI(TAG_ACIONNA, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%%", dt.getHour(), dt.getMinute(), dt.getSecond(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
+		// 	ESP_LOGI(TAG_ACIONNA, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%%", dt_.getHour(), dt_.getMinute(), dt_.getSecond(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
 		// }
 		// else
 		// {
@@ -2487,7 +2481,7 @@ void Acionna::update_uptime() {
 	// ESP_LOGI(TAG_ACIONNA, "uptime: %lu, esp_uptime: %ld", uptime_, static_cast<long int>(esp_timer_get_time() / 1000000);
 	// or
 	// uptime_ = esp_timer_get_time();
-	// ESP_LOGI(TAG_ACIONNA, "uptime: %d", device_clock.internal_time());
+	// ESP_LOGI(TAG_ACIONNA, "uptime: %d", device_clock_.internal_time());
 	// ESP_LOGI(TAG_ACIONNA, "uptime: %ld", static_cast<long int>((esp_timer_get_time() / 1000000)));
 }
 

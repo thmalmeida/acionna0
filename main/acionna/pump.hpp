@@ -53,23 +53,21 @@ public:
 
 //	Pump() : drive_k1_{AC_LOAD1}, drive_k2_{AC_LOAD2}, drive_k3_{AC_LOAD3}{}
 	Pump(uint32_t* epoch_time) :
-								ac_load_{{AC_LOAD1},{AC_LOAD2},{AC_LOAD3}},
+								ac_load_{{AC_LOAD1, 1},{AC_LOAD2, 1},{AC_LOAD3, 1}},
 								gpio_generic_{{GPIO_GENERIC1},{GPIO_GENERIC2},{GPIO_GENERIC3},{GPIO_GENERIC4}},
 								epoch_time_{epoch_time} {
 		// pins directions for drive switches;
-		for(std::size_t i = 0; i < ac_load_count_; i++)
-		{
-			ac_load_[i].mode(GPIO_MODE_INPUT_OUTPUT);
+		for(std::size_t i = 0; i < ac_load_count_; i++) {
+			// ac_load_[i].mode(1);
 			ac_load_[i].write(0);
 		}
 		// pins directions for thermal relay and switches
-		for(std::size_t i = 0; i < gpio_generic_count_; i++)
-		{
-			gpio_generic_[i].pull(GPIO_PULLUP_ONLY);
-			gpio_generic_[i].mode(GPIO_MODE_INPUT);
+		// for(std::size_t i = 0; i < gpio_generic_count_; i++) {
+			// gpio_generic_[i].pull(0);
+			// gpio_generic_[i].mode(0);
 			// gpio_generic_[i].enable_interrupt(GPIO_INTR_ANYEDGE);
 			// gpio_generic_[i].register_interrupt(gpio_input_interrput, nullptr);
-		}
+		// }
 
 		ESP_LOGI(TAG_PUMP, "PUMP class initialize!");
 	}

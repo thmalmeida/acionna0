@@ -93,7 +93,7 @@ i2c_ans BMP280::read_burst_reg_(void) {
 	for(int i=0; i<3; i++) {
 		printf("data[%d]: 0x%02x\n", i, data[i]);
 	}
-	#endif'
+	#endif
 
 	if(ret == i2c_ans::ok) {
 		status_reg_ = data[0];

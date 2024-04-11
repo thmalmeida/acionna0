@@ -1,7 +1,156 @@
 #include "setup.hpp"
 // #include "esp_task_wdt.h"
 
+#include "ssd1306.hpp"               // For OLED display
+#include "bmp180.hpp"
+#include "bmp280.hpp"
+#include "ahtx0.hpp"
+
 const char* TAG_SETUP = "SETUP";
+
+static void test_bmp180(void) {
+
+	I2C_Driver i2c(1, I2C_SDA, I2C_SCL);
+	BMP180 sensor0(&i2c);
+
+	if(sensor0.probe()) {
+		sensor0.init();
+		printf("Init BMP180\n");
+	}
+
+	while(1) {
+		sensor0.fetch();
+		printf("Pressure: %d Pa, Temp: %.1f C, Altitude: %ld\n", static_cast<int>(sensor0.pressure()), static_cast<double>(sensor0.temperature())/10.0, sensor0.altitude());
+
+		vTaskDelay(2000 / portTICK_PERIOD_MS);
+	}
+}
+static void test_bmp280(void) {
+	// inverted pins
+	I2C_Driver i2c(1, I2C_SDA, I2C_SCL);
+	BMP280 sensor0(&i2c);
+
+	int count = 0;
+
+	if(sensor0.probe()) {
+		sensor0.init();
+	}
+
+	while(1) {
+		sensor0.fetch();
+		printf("%02d - Pressure: %lu hPa, %.2f Pa, Temp: %.2f C, Altitude: %.1f\n", count++, sensor0.pressure_hPa(), sensor0.pressure(), static_cast<double>(sensor0.temperature())/100.0, sensor0.altitude());
+
+		vTaskDelay(2000 / portTICK_PERIOD_MS);
+	}
+}
+static void test_aht10(void) {
+	I2C_Driver i2c(I2C_NUM_1, I2C_SCL, I2C_SDA);
+	aht10 sensor0(&i2c);
+
+	int count = 0;
+
+	i2c.probe_find(0x00);
+
+	while(1) {
+		// ESP_LOGI(sensor0.get_status_bit(7, true);
+		sensor0.trig_meas();
+		ESP_LOGI(TAG_SETUP, "Count: %d, Humidity: %.2f %%, Temperature: %.2f C", count++, sensor0.get_humidity(), sensor0.get_temperature());
+		// sensor0.print_raw_data();
+		// sensor0.get_status_bit(3, true);
+		// sensor0.print_status_bits();
+		// if(((count % 3) == 0) && (!sensor0.get_status_bit(6, false)))  {
+		// 	ESP_LOGI(TAG_SETUP, "AHT init again!!!");
+		// 	sensor0.init(2);
+		// }
+		vTaskDelay(10000 / portTICK_PERIOD_MS);
+	}
+}
+static void test_ahtx0(void) {
+	I2C_Driver i2c(1, I2C_SDA, I2C_SCL);
+
+	// i2c.probe_list();
+
+	AHTX0 sensor0(&i2c);
+	BMP280 sensor1(&i2c);
+
+	sensor0.init();
+	sensor1.init();
+
+	int count = 0;
+
+	while(1) {
+		sensor0.trig_meas();
+		sensor1.fetch();
+		printf("%02d - Humidity: %.2f %%, Temperature: %.2f C, ", count++, sensor0.get_humidity(), sensor0.get_temperature());
+		printf("Pressure: %lu hPa, %.2f Pa, Temp: %.2f C, Altitude: %.1f\n", sensor1.pressure_hPa(), sensor1.pressure(), static_cast<double>(sensor1.temperature())/100.0, sensor1.altitude());
+		vTaskDelay(10000 / portTICK_PERIOD_MS);
+	}
+}
+static void test_ssd1306(void) {
+	I2C_Driver i2c(1, I2C_SDA, I2C_SCL);
+	SSD1306 d0(&i2c);
+
+	// i2c.probe_list();
+
+	d0.init();
+	d0.clear();
+
+	int count = 0;
+	uint8_t i = 0;
+	while(1) {
+
+		if(i < 64) {
+			d0.draw_pixel(i, i*2);
+			i++;
+		}
+		else {
+			i=0;
+		}
+		printf("%2d\n", count++);
+		vTaskDelay(100 / portTICK_PERIOD_MS);
+	}
+}
+static void test_ssd1306_sensors(void) {
+	I2C_Driver i2c(1, I2C_SDA, I2C_SCL);
+	SSD1306 d0(&i2c);
+
+	BMP280 s0(&i2c);
+	AHTX0 s1(&i2c);
+
+	// i2c.probe_list();
+
+	d0.init();
+	d0.clear();
+
+	s0.init();
+	s1.init();
+
+	d0.position(0, 0);
+	d0.print("Benjamin");
+
+
+	// sprintf("%02d - Prure: %lu hPa, %.2f Pa, Temp: %.2f C, Altitude: %.1f\n", count++, sensor0.pressure_hPa(), sensor0.pressure(), static_cast<double>(sensor0.temperature())/100.0, sensor0.altitude());
+	
+	// int count = 0;
+	// uint8_t i = 0;
+	char str[60];
+	while(1) {
+
+		s0.fetch();
+		s1.trig_meas();
+
+		sprintf(str, "%.1f Pa  %.2f C", s0.pressure(), static_cast<double>(s0.temperature())/100.0);
+		d0.position(16, 0);
+		d0.print(str);
+
+		sprintf(str, "%.1f %%  %.2f C", s1.get_humidity(), s1.get_temperature());
+		d0.position(32, 0);
+		d0.print(str);
+
+		vTaskDelay(5000 / portTICK_PERIOD_MS);
+	}
+}
+
 
 static void test_chip_info(void) {
 	/* Print chip information */
@@ -31,7 +180,7 @@ static void test_chip_info(void) {
 }
 void test_i2c_to_gpio(void *pvParameter) {
 
-	I2C_Master i2c0(I2C_NUM_1, I2C_SCL, I2C_SDA, I2C_NORMAL_SPEED_HZ, 1);
+	I2C_Driver i2c0(I2C_NUM_1, I2C_SCL, I2C_SDA);
 	// pcy8575 i2c_to_gpio(&i2c);
 
 	// uint8_t data[4];
@@ -54,11 +203,11 @@ void test_i2c_to_gpio(void *pvParameter) {
 
 	uint8_t T0 = 0;
 
-	int ret;
+	i2c_ans ret;
 
 	while(1) {
 		if(T0) {
-			i2c0.read(slave_addr, 0xAF, &data_rx[0], n_bytes, true);
+			i2c0.read(slave_addr, 0xAF, &data_rx[0], n_bytes);
 			// i2c0.read_only(slave_addr, &data_rx[0], n_bytes, true);
 			for(int i=0; i<n_bytes; i++) {
 				ESP_LOGI(TAG_SETUP, "Read byte[%d]: 0x%02x",i, data_rx[i]);
@@ -67,9 +216,9 @@ void test_i2c_to_gpio(void *pvParameter) {
 
 		}
 		else{
-			ret = i2c0.write(slave_addr, data_tx[0], &data_tx[1], n_bytes, true);
+			ret = i2c0.write(slave_addr, data_tx[0], &data_tx[1], n_bytes);
 			
-			if(ret) {
+			if(ret == i2c_ans::ok) {
 				for(i=0; i<n_bytes; i++) {
 							ESP_LOGI(TAG_SETUP, "writing byte data_tx[%d]: 0x%02x", i, data_tx[i]);
 							data_tx[i]++;
@@ -79,20 +228,17 @@ void test_i2c_to_gpio(void *pvParameter) {
 			else {
 				switch (ret) 
 				{
-					case -1:
-						ESP_LOGI(TAG_SETUP, "Error write");
-						break;
-
-					case -2:
+					case i2c_ans::error_read:
 						ESP_LOGI(TAG_SETUP, "Error read");
 						break;
-
-					case -3:
+					case i2c_ans::error_write:
+						ESP_LOGI(TAG_SETUP, "Error write");
+						break;
+					case i2c_ans::error_ack:
 						ESP_LOGI(TAG_SETUP, "Error ACK");
 						break;
-
 					default:
-						ESP_LOGI(TAG_SETUP, "Error: %d", ret);
+						ESP_LOGI(TAG_SETUP, "Error: %d", static_cast<int>(ret));
 						break;
 				}
 			}
@@ -116,6 +262,12 @@ void test_i2c_to_gpio(void *pvParameter) {
 	}
 }
 void test_sensors(void *pvParameter) {
+	// test_bmp280();
+	// test_bmp180();
+	// test_aht10();
+	// test_ahtx0();
+	// test_ssd1306();
+	test_ssd1306_sensors();
 	// Hello answer test
 	// if(sensor0.probe()) {
 	// 	ESP_LOGI(TAG_SETUP, "AHT10 answer OK!");
@@ -128,26 +280,6 @@ void test_sensors(void *pvParameter) {
 	// 	}
 	// }
 	// sensor0.init(2);
-	I2C_Master i2c(I2C_NUM_1, I2C_SCL, I2C_SDA, I2C_NORMAL_SPEED_HZ, 1);
-	aht10 sensor0(&i2c);
-
-	int count = 0;
-
-	i2c.probe_find(0x00);
-
-	while(1) {
-		// ESP_LOGI(sensor0.get_status_bit(7, true);
-		sensor0.trig_meas();
-		ESP_LOGI(TAG_SETUP, "Count: %d, Humidity: %.2f %%, Temperature: %.2f C", count++, sensor0.get_humidity(), sensor0.get_temperature());
-		// sensor0.print_raw_data();
-		// sensor0.get_status_bit(3, true);
-		// sensor0.print_status_bits();
-		// if(((count % 3) == 0) && (!sensor0.get_status_bit(6, false)))  {
-		// 	ESP_LOGI(TAG_SETUP, "AHT init again!!!");
-		// 	sensor0.init(2);
-		// }
-		vTaskDelay(10000 / portTICK_PERIOD_MS);
-	}
 }
 void test_adc_dma(void *pvParameter) {
 	
@@ -273,8 +405,10 @@ void isr_100ms(void *pvParameter) {
 
 void machine_run(void *pvParameter) {
 
+	I2C_Driver i2c(I2C_NUM_1, I2C_SCL, I2C_SDA);
+	
 	ADC_driver adc0(adc_mode::oneshot);
-	Acionna acionna0(&adc0);
+	Acionna acionna0(&adc0, &i2c);
 
 	xTaskCreate(&isr_1sec, "isr_1sec_", 1024, NULL, 5, NULL);
 

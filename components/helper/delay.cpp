@@ -2,10 +2,12 @@
 
 void delay_ms(uint32_t milliseconds)
 {
-	// delay_ms(milliseconds*1000.0);
+	vTaskDelay(milliseconds / portTICK_PERIOD_MS);
+	// uint32_t remainderUS = (milliseconds % portTICK_PERIOD_MS)*1000;
+	// if(remainderUS) delayMicroseconds(remainderUS);
 
 	// old way (not recommended)
-	sys_delay_ms(milliseconds);
+	// sys_delay_ms(milliseconds);
 }
 void delay_us(uint32_t microseconds)
 {

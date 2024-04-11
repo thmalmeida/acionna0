@@ -49,7 +49,7 @@
 
 #define DS3231_ADDR		0b01101000	// 0x68 >> 1
 
-DS3231::DS3231(I2C_Master *i2c, uint8_t time_mode /* = FORMAT_24H */)
+DS3231::DS3231(I2C_Driver *i2c, uint8_t time_mode /* = FORMAT_24H */)
 	: _i2c(i2c), _time_mode(time_mode)
 {}
 
@@ -359,23 +359,23 @@ float DS3231::getTemp()
 /* Private */
 void DS3231::_send(uint8_t reg, uint8_t* data, size_t length)
 {
-	_i2c->write(DS3231_ADDR, reg, data, length, true);
+	_i2c->write(DS3231_ADDR, reg, data, length);
 }
 
 void DS3231::_send(uint8_t reg,uint8_t data)
 {
-	_i2c->write(DS3231_ADDR, reg, data, true);
+	_i2c->write(DS3231_ADDR, reg, data);
 }
 
 void DS3231::_receive(uint8_t reg,uint8_t* data, size_t length)
 {
-	_i2c->read(DS3231_ADDR, reg, data, length, true);
+	_i2c->read(DS3231_ADDR, reg, data, length);
 }
 
 uint8_t DS3231::_receive(uint8_t reg)
 {
 	uint8_t data;
-	_i2c->read(DS3231_ADDR, reg, &data, true);
+	_i2c->read(DS3231_ADDR, reg, &data);
 
 	return data;
 }

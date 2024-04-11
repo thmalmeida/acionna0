@@ -1,5 +1,5 @@
-#ifndef _VALVES_HPP__
-#define _VALVES_HPP__
+#ifndef VALVES_HPP__
+#define VALVES_HPP__
 
 #include <adc.hpp>
 #include <pinout.hpp>
@@ -54,7 +54,7 @@ public:
 
 	// uint16_t* stream_array;
 
-	Valves(I2C_Master* i2c, uint32_t* epoch_time, int* pressure) : load_{i2c}, epoch_time_{epoch_time}, pressure_mca_{pressure} {
+	Valves(I2C_Driver* i2c, uint32_t* epoch_time, int* pressure) : load_{i2c}, epoch_time_{epoch_time}, pressure_mca_{pressure} {
 		init_valve_parameters();
 	}
 	// Valves() : ac_load_{{VALVE_01},{VALVE_02},{VALVE_03},{VALVE_04},{VALVE_05},{VALVE_06},{VALVE_07},{VALVE_08},{VALVE_09},{VALVE_10},{VALVE_11}} {

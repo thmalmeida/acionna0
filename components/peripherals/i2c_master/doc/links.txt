@@ -1,2 +1,0 @@
-http://www.ti.com/lit/an/slva704/slva704.pdf
-https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/i2c.html

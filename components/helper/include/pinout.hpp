@@ -6,16 +6,16 @@
 #define I2C_SDA				GPIO_NUM_0
 #define I2C_SCL				GPIO_NUM_4
 
-#define AC_LOAD1			GPIO_NUM_21		//n-board 21: contator
-#define AC_LOAD2			GPIO_NUM_18
-#define AC_LOAD3			GPIO_NUM_5
+#define AC_LOAD1			21 				// drive K1 (GPIO_NUM_21)
+#define AC_LOAD2			18 				// drive k2 (GPIO_NUM_18)
+#define AC_LOAD3			5 				// drive k3 (GPIO_NUM_5)
 
-#define DS18B20_DATA		GPIO_NUM_17
+#define DS18B20_DATA		17 				// GPIO_NUM_17
 
-#define GPIO_GENERIC1		GPIO_NUM_23		// K1: contator
-#define GPIO_GENERIC2		GPIO_NUM_22		// K2
-#define GPIO_GENERIC3		GPIO_NUM_19     // K3
-#define GPIO_GENERIC4		GPIO_NUM_33		// T1: relé térmico
+#define GPIO_GENERIC1		23				// K1: contator (GPIO_NUM_23)
+#define GPIO_GENERIC2		22				// K2           (GPIO_NUM_22)
+#define GPIO_GENERIC3		19				// K3/T2		(GPIO_NUM_29)
+#define GPIO_GENERIC4		33				// T1: thermal relay (GPIO_NUM_33)
 
 #define WATER_LEVEL1		GPIO_NUM_26
 #define WATER_LEVEL2		GPIO_NUM_14
@@ -47,6 +47,6 @@
 #define HUMIDITY_SENSOR     GPIO_NUM_13 // with jump J19
 
 
-#define LED_0				GPIO_NUM_2
+#define LED_0				2 			// GPIO_NUM_2
 
 #endif /* AGRO_MESH_PINOUT_HPP__ */

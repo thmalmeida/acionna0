@@ -37,7 +37,7 @@
  */
 
 #include "datetime.h"
-#include "i2c_master.hpp"
+#include "i2c_driver.hpp"
 
 //Frequency of Square Wave output
 typedef enum DS3231SQWrate{
@@ -87,7 +87,7 @@ class DS3231{
 	public:
 		static constexpr const uint8_t reg = 0b01101000;
 
-		DS3231(I2C_Master *i2c, uint8_t mode = FORMAT_24H);
+		DS3231(I2C_Driver *i2c, uint8_t mode = FORMAT_24H);
 
 		bool probe() noexcept;
 
@@ -125,7 +125,7 @@ class DS3231{
 		float getTemp();
 
 	protected:
-		I2C_Master *_i2c;
+		I2C_Driver *_i2c;
 
 		uint8_t _time_mode;
 

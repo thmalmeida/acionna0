@@ -1,7 +1,7 @@
 #ifndef __AHT10_HPP__
 #define __AHT10_HPP__
 
-#include "i2c_master.hpp"
+#include "i2c_driver.hpp"
 #include "esp_log.h"
 
 #include <string.h>
@@ -11,7 +11,7 @@
 */
 
 /* list of I2C addresses */
-#define AHT10_ADDR						0x38	// device address
+#define AHT10_ADDR						0x38 // device address
 
 /* list of command registers */
 #define AHT10_REG_INIT					0xE1 // Is this a calibration command for measuring
@@ -33,22 +33,23 @@
 #define AHT10_NOP_CTRL					0x00 // NOP control, send after start measurement control
 
 /* sensor delays */
-#define AHT10_DELAY_CMD					10 //delay between commands, in milliseconds
-#define AHT10_DELAY_MEASUREMENT			75 //wait for measurement to complete, in milliseconds
-#define AHT10_DELAY_POWER_ON			40 //wait for AHT1x to initialize after power-on, in milliseconds
-#define AHT10_DELAY_SOFT_RESET			20 //less than 20 milliseconds
+#define AHT10_DELAY_CMD					10	 //delay between commands, in milliseconds
+#define AHT10_DELAY_MEASUREMENT			75	 //wait for measurement to complete, in milliseconds
+#define AHT10_DELAY_POWER_ON			40	 //wait for AHT1x to initialize after power-on, in milliseconds
+#define AHT10_DELAY_SOFT_RESET			20	 //less than 20 milliseconds
 
-#define AHT10_ERROR						0xFF				// returns 255, if communication error is occurred
+#define AHT10_ERROR						0xFF // returns 255, if communication error is occurred
 
-/* Status bit description
-	 _________________________________________________________
-*	|7		|6		5		|4		|3		|2		1		0 |
-*	|status,|status_mode,___|CRC,	|calibr,|FIFO[en full empt|
+/* AHT10 - Status register byte with its bits description
+	 _______________________________________________________________
+*	|7		|6		|5		|4		|3		|2		|1		| 0		|
+*	|status,|status_mode,___|CRC,	|calibr,|FIFO[en full empt		|
 *
 *	Status mode:
-		 	 0		0	NOR
-			 0		1	CYC
-			 1		x	CMD
+*		 	 0		0	NOR
+*			 0		1	CYC
+*			 1		x	CMD
+*
 */
 #define AHT10_STATUS_BIT_BUSY		7	// Busy indication. 1: busy, measurement state, 0: device idle
 #define AHT10_STATUS_BIT_MODE6		6	// current working mode. 00: NOR, 01: CYC, 1x CMD
@@ -69,8 +70,8 @@ enum class aht10_mode {
 
 class aht10 {
 	public:
-	
-	aht10(I2C_Master *i2c);
+		
+	aht10(I2C_Driver *i2c);
 
 	void init(aht10_mode mode = aht10_mode::NORMAL_MODE);	
 	bool probe(void);
@@ -87,7 +88,7 @@ class aht10 {
 	
 	private:
 
-	I2C_Master *i2c_;
+	I2C_Driver *i2c_;
 	uint8_t status_byte_, data_raw_[6], first_init_ = 1;
 };
 

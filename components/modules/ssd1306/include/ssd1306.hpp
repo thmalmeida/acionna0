@@ -6,6 +6,8 @@
 
 #include <string.h>
 
+#include "fonts.h"
+
 // 1000 8
 // 1001 9
 // 1010 A
@@ -69,9 +71,9 @@
 #define SSD1306_CMD_CHARGE_PUMP				0x8D	// charge pump cmd	
 
 
-#define SSD1306_DEBUG						1
-#define SSD1306_DELAY_AFTER_CMD				1
-#define SSD1306_CMD_DELAY					12		// delay after command [ms]
+// #define SSD1306_DEBUG						1
+// #define SSD1306_DELAY_AFTER_CMD				1
+#define SSD1306_CMD_DELAY					10		// delay after command [ms]
 
 
 /* 2. Scrolling command table */
@@ -140,17 +142,20 @@ public:
 
 	void init(void);
 	bool probe(void);
-	void soft_reset(void);
+	// void soft_reset(void);
 
-	// void clear(void);
+	void clear(void);
 
 	void list_addr(void);
 
 	void draw(void);
 
+	void print(char c);
+	void print(const char *s);
+
 	/* @brief Set pointer to (x, y) coordinate 128x64 pixels
-	*  @param x 0 to 128
-	*  @param y 0 to 64
+	*  @param x 0 to 127
+	*  @param y 0 to 63
 	*/
 	void position(uint8_t x, uint8_t y);
 
@@ -161,6 +166,10 @@ public:
 	void init4(void);
 
 	void config(void);
+
+	void config2(void);
+
+	void draw_pixel(uint8_t x, uint8_t y);
 
 	void refresh(void);
 
