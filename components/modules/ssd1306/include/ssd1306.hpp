@@ -139,19 +139,11 @@ enum class ssd1306_vcomh_level {
 class SSD1306 {
 public:
 	SSD1306(I2C_Driver *i2c);
-
-	void init(void);
+	
 	bool probe(void);
-	// void soft_reset(void);
-
+	void init(void);
+	void config(void);
 	void clear(void);
-
-	void list_addr(void);
-
-	void draw(void);
-
-	void print(char c);
-	void print(const char *s);
 
 	/* @brief Set pointer to (x, y) coordinate 128x64 pixels
 	*  @param x 0 to 127
@@ -159,26 +151,23 @@ public:
 	*/
 	void position(uint8_t x, uint8_t y);
 
-	// inits by adafruit
-	void init1(void);
-	void init2(void);
-	void init3(void);
-	void init4(void);
+	void print(char c);
+	void print(uint8_t x, uint8_t y, char c);
+	
+	void print(const char *s);
+	void print(uint8_t x, uint8_t y, const char *s);
 
-	void config(void);
-
-	void config2(void);
+	void print_large(char c);
+	// void print_large(uint8_t x, uint8_t y, const char *s);
 
 	void draw_pixel(uint8_t x, uint8_t y);
 
-	void refresh(void);
-
+	void power(uint8_t state);					// display on/off (normal <---> sleep)
 private:
 	// 1. Fundamental commands
 	void set_contrast_(uint8_t value);			// Constrast value range is 0-255
 	void entire_display_on_(uint8_t x0);		// entire display on - x0 = 0 follow RAM, x0 = 1 ignore RAM;
 	void normal_inverse_display_(uint8_t x0);	// Normal or inverse display
-	void power(uint8_t state);					// display on/off (normal <---> sleep)
 
 	// 2. Scrolling Command Table
 	/* @brief Scroll enable/disable

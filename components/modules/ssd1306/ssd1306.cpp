@@ -15,6 +15,10 @@ SSD1306::SSD1306(I2C_Driver *i2c) : i2c_(i2c) {
 	// init4();
 	// power(1);
 }
+bool SSD1306::probe(void) {
+	bool alive = i2c_->probe(SSD1306_ADDR);
+	return alive;
+}
 void SSD1306::init(void) {
 
 	// 00- set display off - 0xAE
@@ -71,92 +75,6 @@ void SSD1306::init(void) {
 	// segment_remap_(0);
 	// scan_direction_(1);
 }
-void SSD1306::init1(void) {
-	uint8_t data[5];
-	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
-	data[1] = SSD1306_CMD_DISPLAY_POWER;
-	data[2] = SSD1306_DIV_CLOCK;
-	data[3] = 0x80;		// suggested ratio
-	data[4] = SSD1306_REG_MUX_RATIO;
-
-	i2c_->write(SSD1306_ADDR, &data[0], 5);
-	#ifdef SSD1306_DEBUG
-	printf("init1: ");
-	for(int i=0; i<sizeof(data); i++) {
-		printf("0x%02x ", data[i]);
-	}
-	printf("\n");
-	#endif	
-}
-void SSD1306::init2(void) {
-	uint8_t data[5];
-	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
-	data[1] = SSD1306_CMD_SHIFT_VERTICAL;
-	data[2] = 0x00;		// no offset
-	data[3] = SSD1306_REG_DISPLAY_START_LINE | 0x00; // line 0
-	data[4] = SSD1306_CMD_CHARGE_PUMP;
-
-	i2c_->write(SSD1306_ADDR, &data[0], 5);
-	#ifdef SSD1306_DEBUG
-	printf("init2: ");
-	for(int i=0; i<sizeof(data); i++) {
-		printf("0x%02x ", data[i]);
-	}
-	printf("\n");
-	#endif	
-}
-void SSD1306::init3(void) {
-	uint8_t data[5];
-	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
-	data[1] = SSD1306_CMD_MEM_ADDR_MODE;
-	data[2] = 0x00;		// act like ks0108
-	data[3] = SSD1306_CMD_SEGMENT_REMAP | 0x01;
-	data[4] = SSD1306_REG_SCAN_DIRECTION | (1 << 3);
-
-	i2c_->write(SSD1306_ADDR, &data[0], 5);
-	#ifdef SSD1306_DEBUG
-	printf("init2: ");
-	for(int i=0; i<sizeof(data); i++) {
-		printf("0x%02x ", data[i]);
-	}
-	printf("\n");
-	#endif	
-}
-void SSD1306::init4(void) {
-	uint8_t data[5];
-	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
-	data[1] = SSD1306_CMD_MEM_ADDR_MODE;
-	data[2] = 0x00;		// act like ks0108
-	data[3] = SSD1306_CMD_SEGMENT_REMAP | 0x01;
-	data[4] = SSD1306_REG_SCAN_DIRECTION | (1 << 3);
-
-	i2c_->write(SSD1306_ADDR, &data[0], 5);
-	#ifdef SSD1306_DEBUG
-	printf("init2: ");
-	for(int i=0; i<sizeof(data); i++) {
-		printf("0x%02x ", data[i]);
-	}
-	printf("\n");
-	#endif	
-}
-bool SSD1306::probe(void) {
-	bool alive = i2c_->probe(SSD1306_ADDR);
-	return alive;
-}
-// void SSD1306::soft_reset(void) {
-// 	// printf("cmd soft reset\n");
-// 	i2c_->write(SSD1306_ADDR, SSD1306_RESET);
-// 	// delay_ms(SSD1306_DELAY_SOFT_RESET);
-// }
-void SSD1306::list_addr(void) {
-	// i2c_->probe_find();
-	i2c_->probe_list();
-}
-void SSD1306::position(uint8_t line, uint8_t y) {
-	// memory_addr_mode_(ssd1306_addr_mode::horizontal);
-	page_addr_(line/8, 7);
-	column_addr_(y, 127);
-}
 void SSD1306::clear(void) {
 
 	position(0, 0);
@@ -188,21 +106,10 @@ void SSD1306::clear(void) {
 		#endif
 	// }
 }
-void SSD1306::draw(void) {
-	uint8_t data[1025];
-	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::data_array);
-	for(int i=1; i<sizeof(data); i++) {
-		data[i] = 0x01;
-	}
-
-	i2c_->write(SSD1306_ADDR, &data[0], sizeof(data));
-	#ifdef SSD1306_DEBUG
-	printf("draw: ");
-	for(int i=0; i<sizeof(data); i++) {
-		printf("0x%02x ", data[i]);
-	}
-	printf("\n");
-	#endif
+void SSD1306::position(uint8_t x, uint8_t y) {
+	// memory_addr_mode_(ssd1306_addr_mode::horizontal);
+	page_addr_(y/8, 7);
+	column_addr_(x, 127);
 }
 void SSD1306::draw_pixel(uint8_t x, uint8_t y) {
 	
@@ -253,17 +160,8 @@ void SSD1306::config(void) {
 	column_addr_(0, 127);
 	page_addr_(0, 7);
 }
-void SSD1306::config2(void) {
-	column_addr_(50, 80);
-	page_addr_(1, 1);
-}
-void SSD1306::refresh(void) {
-
-}
 void SSD1306::print(char c) {
-
 	int offset = 5*(static_cast<int>(c)-32);
-
 	uint8_t data[7];
 	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::data_array);
 	for(int i=0; i<5; i++) {
@@ -291,6 +189,44 @@ void SSD1306::print(const char *s) {
 		print(*s);
 		s++;
 	}
+}
+void SSD1306::print_large(char c) {
+
+	// using Arial16x24 font
+	// Each character has 49 bytes
+	int n_bytes = 49;
+	int n_cols = 16;
+	int n_rows = 3;
+	
+	int offset = n_bytes*(static_cast<int>(c)-32);
+
+	uint8_t data[17];
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::data_array); 
+
+	for(int j=0; j<n_rows; j++) {
+		for(int i=1; i<17; i++) {
+			data[i] = Arial16x24[offset + ((i-1)*n_rows + (j+1))];
+		}
+
+		// 1 4 7 10 13
+		// 2 5 8 11 14
+		// 3 6 9 12 15
+
+		position(0, 8*j);
+		i2c_->write(SSD1306_ADDR, &data[0], sizeof(data));
+	}
+
+	#ifdef SSD1306_DELAY_AFTER_CMD
+	delay_ms(SSD1306_CMD_DELAY);
+	#endif
+
+	#ifdef SSD1306_DEBUG
+	printf("print: %c, %d, o:%d  - ", c, static_cast<int>(c), offset);
+	for(int i=0; i<sizeof(data); i++) {
+		printf("0x%02x ", data[i]);
+	}
+	printf("\n");
+	#endif
 }
 // 1. Fundamental Command Table
 void SSD1306::set_contrast_(uint8_t value) {
@@ -712,3 +648,81 @@ void SSD1306::charge_pump_en_(uint8_t a2) {
 	printf("\n");
 	#endif
 }
+
+
+
+
+// void SSD1306::soft_reset(void) {
+// 	// printf("cmd soft reset\n");
+// 	i2c_->write(SSD1306_ADDR, SSD1306_RESET);
+// 	// delay_ms(SSD1306_DELAY_SOFT_RESET);
+// }
+
+// void SSD1306::init1(void) {
+// 	uint8_t data[5];
+// 	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
+// 	data[1] = SSD1306_CMD_DISPLAY_POWER;
+// 	data[2] = SSD1306_DIV_CLOCK;
+// 	data[3] = 0x80;		// suggested ratio
+// 	data[4] = SSD1306_REG_MUX_RATIO;
+
+// 	i2c_->write(SSD1306_ADDR, &data[0], 5);
+// 	#ifdef SSD1306_DEBUG
+// 	printf("init1: ");
+// 	for(int i=0; i<sizeof(data); i++) {
+// 		printf("0x%02x ", data[i]);
+// 	}
+// 	printf("\n");
+// 	#endif	
+// }
+// void SSD1306::init2(void) {
+// 	uint8_t data[5];
+// 	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
+// 	data[1] = SSD1306_CMD_SHIFT_VERTICAL;
+// 	data[2] = 0x00;		// no offset
+// 	data[3] = SSD1306_REG_DISPLAY_START_LINE | 0x00; // line 0
+// 	data[4] = SSD1306_CMD_CHARGE_PUMP;
+
+// 	i2c_->write(SSD1306_ADDR, &data[0], 5);
+// 	#ifdef SSD1306_DEBUG
+// 	printf("init2: ");
+// 	for(int i=0; i<sizeof(data); i++) {
+// 		printf("0x%02x ", data[i]);
+// 	}
+// 	printf("\n");
+// 	#endif	
+// }
+// void SSD1306::init3(void) {
+// 	uint8_t data[5];
+// 	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
+// 	data[1] = SSD1306_CMD_MEM_ADDR_MODE;
+// 	data[2] = 0x00;		// act like ks0108
+// 	data[3] = SSD1306_CMD_SEGMENT_REMAP | 0x01;
+// 	data[4] = SSD1306_REG_SCAN_DIRECTION | (1 << 3);
+
+// 	i2c_->write(SSD1306_ADDR, &data[0], 5);
+// 	#ifdef SSD1306_DEBUG
+// 	printf("init2: ");
+// 	for(int i=0; i<sizeof(data); i++) {
+// 		printf("0x%02x ", data[i]);
+// 	}
+// 	printf("\n");
+// 	#endif	
+// }
+// void SSD1306::init4(void) {
+// 	uint8_t data[5];
+// 	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::cmd_array);
+// 	data[1] = SSD1306_CMD_MEM_ADDR_MODE;
+// 	data[2] = 0x00;		// act like ks0108
+// 	data[3] = SSD1306_CMD_SEGMENT_REMAP | 0x01;
+// 	data[4] = SSD1306_REG_SCAN_DIRECTION | (1 << 3);
+
+// 	i2c_->write(SSD1306_ADDR, &data[0], 5);
+// 	#ifdef SSD1306_DEBUG
+// 	printf("init2: ");
+// 	for(int i=0; i<sizeof(data); i++) {
+// 		printf("0x%02x ", data[i]);
+// 	}
+// 	printf("\n");
+// 	#endif	
+// }
