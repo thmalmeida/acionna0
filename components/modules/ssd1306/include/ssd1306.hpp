@@ -144,25 +144,30 @@ public:
 	void init(void);
 	void config(void);
 	void clear(void);
-
+	void power(uint8_t state);					// display on/off (normal <---> sleep)
 	/* @brief Set pointer to (x, y) coordinate 128x64 pixels
 	*  @param x 0 to 127
 	*  @param y 0 to 63
 	*/
 	void position(uint8_t x, uint8_t y);
 
+	// Character print functions
 	void print(char c);
 	void print(uint8_t x, uint8_t y, char c);
 	
 	void print(const char *s);
 	void print(uint8_t x, uint8_t y, const char *s);
 
-	void print_large(char c);
-	// void print_large(uint8_t x, uint8_t y, const char *s);
+	void print_Arial16x24(uint8_t x, uint8_t line, char c);
+	void print_Arial16x24(uint8_t x, uint8_t line, const char* s);
 
+	void print_Arial24x32(uint8_t x, uint8_t y, char c);
+	void print_Arial24x32(uint8_t x, uint8_t y, const char *s);
+
+	// draw tools
 	void draw_pixel(uint8_t x, uint8_t y);
+	void draw_point(uint8_t x, uint8_t y, uint8_t size);
 
-	void power(uint8_t state);					// display on/off (normal <---> sleep)
 private:
 	// 1. Fundamental commands
 	void set_contrast_(uint8_t value);			// Constrast value range is 0-255

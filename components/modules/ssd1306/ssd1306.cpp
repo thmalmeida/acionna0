@@ -111,6 +111,9 @@ void SSD1306::position(uint8_t x, uint8_t y) {
 	page_addr_(y/8, 7);
 	column_addr_(x, 127);
 }
+void SSD1306::draw_point(uint8_t x, uint8_t y, uint8_t size) {
+
+}
 void SSD1306::draw_pixel(uint8_t x, uint8_t y) {
 	
 	uint8_t line, line_pixel;
@@ -119,9 +122,6 @@ void SSD1306::draw_pixel(uint8_t x, uint8_t y) {
 
 	page_addr_(line, 7);
 	column_addr_(y, 127);
-
-	printf("x:%d, y:%d\n", x, y);
-	printf("line:%d, y:%d\n", line, y);
 
 	uint8_t data[2];
 	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::data_array);
@@ -138,6 +138,8 @@ void SSD1306::draw_pixel(uint8_t x, uint8_t y) {
 	for(int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
+	printf("x:%d, y:%d\n", x, y);
+	printf("line:%d, y:%d\n", line, y);
 	printf("\n");
 	#endif	
 }
@@ -165,7 +167,7 @@ void SSD1306::print(char c) {
 	uint8_t data[7];
 	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::data_array);
 	for(int i=0; i<5; i++) {
-		data[i+1] = FontNew[offset+i];
+		data[i+1] = FontNew5x8[offset+i];
 	}
 
 	data[6] = 0x00;
@@ -190,29 +192,41 @@ void SSD1306::print(const char *s) {
 		s++;
 	}
 }
-void SSD1306::print_large(char c) {
-
-	// using Arial16x24 font
-	// Each character has 49 bytes
+void SSD1306::print(uint8_t x, uint8_t y, const char *s) {
+	position(x, y);
+	print(s);
+}
+void SSD1306::print_Arial16x24(uint8_t x, uint8_t line, const char* s) {
+	// Arial16x24 font
+	int k = 0;
+	while(*s) {
+		print_Arial16x24(x + 16*k, line, *s);
+		s++;
+		k++;
+	}
+}
+void SSD1306::print_Arial16x24(uint8_t x, uint8_t y, char c) {
+	// Arial16x24 font
+	// Each character has 49 bytes (exclude the first one)
 	int n_bytes = 49;
 	int n_cols = 16;
 	int n_rows = 3;
-	
+
 	int offset = n_bytes*(static_cast<int>(c)-32);
 
-	uint8_t data[17];
+	uint8_t data[n_cols+1];
 	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::data_array); 
 
 	for(int j=0; j<n_rows; j++) {
-		for(int i=1; i<17; i++) {
+		for(int i=1; i<n_cols+1; i++) {
 			data[i] = Arial16x24[offset + ((i-1)*n_rows + (j+1))];
 		}
 
-		// 1 4 7 10 13
-		// 2 5 8 11 14
-		// 3 6 9 12 15
+		// 1 4 7 10 13 ... (16 bytes length)
+		// 2 5 8 11 14 ...
+		// 3 6 9 12 15 ...
 
-		position(0, 8*j);
+		position(x, 8*j+y);
 		i2c_->write(SSD1306_ADDR, &data[0], sizeof(data));
 	}
 
@@ -228,6 +242,42 @@ void SSD1306::print_large(char c) {
 	printf("\n");
 	#endif
 }
+void SSD1306::print_Arial24x32(uint8_t x, uint8_t y, char c) {
+	// Arial24x32 font
+	// Each character has 121 bytes (exclude the first one)
+	int n_bytes = 97;
+	int n_cols = 24;
+	int n_rows = 4;
+
+	int offset = n_bytes*(static_cast<int>(c)-32);
+
+	uint8_t data[n_cols+1];
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::data_array); 
+
+	for(int j=0; j<n_rows; j++) {
+		for(int i=1; i<n_cols+1; i++) {
+			data[i] = Arial24x32[offset + ((i-1)*n_rows + (j+1))];
+		}
+
+		// 01 05 09 13 17 ... (16 bytes length)
+		// 02 06 10 14 18 ...
+		// 03 07 11 15 19 ...
+		// 04 08 12 16 20
+
+		position(x, 8*j+y);
+		i2c_->write(SSD1306_ADDR, &data[0], sizeof(data));
+	}
+}
+void SSD1306::print_Arial24x32(uint8_t x, uint8_t y, const char *s) {
+	// Arial24x32 font
+	int k = 0;
+	while(*s) {
+		print_Arial24x32(x + 24*k, y, *s);
+		s++;
+		k++;
+	}
+}
+
 // 1. Fundamental Command Table
 void SSD1306::set_contrast_(uint8_t value) {
 	uint8_t data[3];
