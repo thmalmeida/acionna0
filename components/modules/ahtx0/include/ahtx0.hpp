@@ -85,16 +85,25 @@ class AHTX0 {
 public:
 		
 	AHTX0(I2C_Driver *i2c, ahtx0_model model = ahtx0_model::aht10);
-
+	/* @brief init function must called after power on/reset
+	*  @param mode operation mode, leave it blank to normal mode select */
 	void init(ahtx0_mode mode = ahtx0_mode::NORMAL_MODE);	
+
 	bool probe(void);
+	/* @brief Soft reset by command */
 	void reset(void);
 
-	void trig_meas(void);
-	// bool get_status_bit(uint8_t bit_value, bool new_read);
-	float get_humidity(void);
-	float get_temperature(void);
+	/* @brief Fetch function trigger measures */
+	void fetch(void);
+	/* @brief Get humidity
+	*  @return humidity in float */
+	float humidity(void);
+
+	/* @brief Get the temperature
+	*  @return temperature in degrees using float point */
+	float temperature(void);
 	
+	/* Debug functions */
 	void print_status_bits(void);
 	void print_raw_data(void);
 

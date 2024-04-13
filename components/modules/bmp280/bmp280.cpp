@@ -47,8 +47,8 @@ double BMP280::altitude(void) {
 	// 44330*(1-(p/p0)^(1/5.255))
 	return 44330.0*(1.0-pow(pressure_/static_cast<double>(pressure_sea_level_), 1.0/5.255));
 }
-int32_t BMP280::temperature(void) {
-	return temperature_;
+double BMP280::temperature(void) {
+	return static_cast<double>(temperature_/100.0);
 }
 double BMP280::pressure(void) {
 	return pressure_;

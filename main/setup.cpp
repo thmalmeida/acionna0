@@ -54,7 +54,7 @@ static void test_aht10(void) {
 	while(1) {
 		// ESP_LOGI(sensor0.get_status_bit(7, true);
 		sensor0.trig_meas();
-		ESP_LOGI(TAG_SETUP, "Count: %d, Humidity: %.2f %%, Temperature: %.2f C", count++, sensor0.get_humidity(), sensor0.get_temperature());
+		ESP_LOGI(TAG_SETUP, "Count: %d, Humidity: %.2f %%, Temperature: %.2f C", count++, sensor0.humidity(), sensor0.temperature());
 		// sensor0.print_raw_data();
 		// sensor0.get_status_bit(3, true);
 		// sensor0.print_status_bits();
@@ -79,9 +79,9 @@ static void test_ahtx0(void) {
 	int count = 0;
 
 	while(1) {
-		sensor0.trig_meas();
+		sensor0.fetch();
 		sensor1.fetch();
-		printf("%02d - Humidity: %.2f %%, Temperature: %.2f C, ", count++, sensor0.get_humidity(), sensor0.get_temperature());
+		printf("%02d - Humidity: %.2f %%, Temperature: %.2f C, ", count++, sensor0.humidity(), sensor0.temperature());
 		printf("Pressure: %lu hPa, %.2f Pa, Temp: %.2f C, Altitude: %.1f\n", sensor1.pressure_hPa(), sensor1.pressure(), static_cast<double>(sensor1.temperature())/100.0, sensor1.altitude());
 		vTaskDelay(10000 / portTICK_PERIOD_MS);
 	}
@@ -111,9 +111,10 @@ static void test_ssd1306(void) {
 	}
 }
 static void test_ssd1306_sensors(void) {
+	
 	I2C_Driver i2c(1, I2C_SDA, I2C_SCL);
+	
 	SSD1306 d0(&i2c);
-
 	BMP280 s0(&i2c);
 	AHTX0 s1(&i2c);
 
@@ -125,27 +126,47 @@ static void test_ssd1306_sensors(void) {
 	s0.init();
 	s1.init();
 
-	d0.position(0, 0);
-	d0.print("Benjamin");
-
-
-	// sprintf("%02d - Prure: %lu hPa, %.2f Pa, Temp: %.2f C, Altitude: %.1f\n", count++, sensor0.pressure_hPa(), sensor0.pressure(), static_cast<double>(sensor0.temperature())/100.0, sensor0.altitude());
-	
-	// int count = 0;
-	// uint8_t i = 0;
 	char str[60];
+
+	double temp_f;
+	int temp_int;
+	int temp_dec;
+	int count = 0;
+
 	while(1) {
 
 		s0.fetch();
-		s1.trig_meas();
+		s1.fetch();
 
-		sprintf(str, "%.1f Pa  %.2f C", s0.pressure(), static_cast<double>(s0.temperature())/100.0);
-		d0.position(16, 0);
-		d0.print(str);
+		// Get temperature
+		temp_f = s1.temperature();
 
-		sprintf(str, "%.1f %%  %.2f C", s1.get_humidity(), s1.get_temperature());
-		d0.position(32, 0);
-		d0.print(str);
+		// separate integer from decimal part
+		temp_int = static_cast<int>(temp_f);
+		temp_dec = static_cast<int>((temp_f-static_cast<double>(temp_int))*10.0);
+
+		// print temperature value
+		// sprintf(str, "%d", temp_int);
+		// d0.print_Arial24x32(0,0, str);
+		// sprintf(str, "%d", temp_dec);
+		// d0.print_Arial24x32(48,0, str);
+		
+		// print temp value 2
+		sprintf(str, "%.1f", s0.temperature());
+		d0.print_Arial24x32(0, 0, str);
+
+		// print degree unit
+		sprintf(str, "%c", 127);
+		d0.print_Arial24x32(96,0, str);
+		d0.print_Arial24x32(105,0, 'C');
+
+		// Get humidity
+		sprintf(str, "%.1f", s1.humidity());
+		d0.print_Arial16x24(0, 40, str);
+		d0.print_Arial16x24(4*16+10, 40, "%");
+
+		// Debug console print
+		printf("%d:  %.2f°C,  %.2f%%, %.2f°C, %.2fPa\n", count++, s1.temperature(), s1.humidity(), s0.temperature(), s0.pressure());
 
 		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	}

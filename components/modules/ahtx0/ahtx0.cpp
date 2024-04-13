@@ -102,7 +102,7 @@ void AHTX0::reset(void) {
 	i2c_->write(AHTX0_ADDR, AHTX0_REG_SOFT_RST);
 	delay_ms(AHTX0_DELAY_SOFT_RESET);
 }
-float AHTX0::get_humidity(void) {
+float AHTX0::humidity(void) {
 	uint32_t humidity   = data_raw_[1];                          //20-bit raw humidity data
 	humidity <<= 8;
 	humidity  |= data_raw_[2];
@@ -113,7 +113,7 @@ float AHTX0::get_humidity(void) {
 
 	return ((float)humidity / 0x100000) * 100;
 }
-float AHTX0::get_temperature(void) {
+float AHTX0::temperature(void) {
 	uint32_t temperature   = data_raw_[3] & 0x0F;                //20-bit raw temperature data
 	temperature <<= 8;
 	temperature  |= data_raw_[4];
@@ -122,7 +122,7 @@ float AHTX0::get_temperature(void) {
 
 	return ((float)temperature / 0x100000) * 200 - 50;
 }
-void AHTX0::trig_meas(void) {
+void AHTX0::fetch(void) {
 	
 	// Delay before execute some command
 	delay_ms(AHTX0_DELAY_CMD);
@@ -208,7 +208,7 @@ void AHTX0::print_raw_data(void) {
 		printf("data[%d]= %d",i, data_raw_[i]);
 	}
 
-	printf("humidity: %f, temperature: %f", get_humidity(), get_temperature());
+	printf("humidity: %f, temperature: %f", humidity(), temperature());
 }
 // bool AHTX0::get_status_bit(uint8_t bit_select, bool new_read) {
 

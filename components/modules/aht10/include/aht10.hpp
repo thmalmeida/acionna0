@@ -80,8 +80,8 @@ class aht10 {
 	uint8_t read_status_register(void);
 	void trig_meas(void);
 	bool get_status_bit(uint8_t bit_value, bool new_read);
-	float get_humidity(void);
-	float get_temperature(void);
+	float humidity(void);
+	float temperature(void);
 	
 	void print_status_bits(void);
 	void print_raw_data(void);

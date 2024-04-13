@@ -119,7 +119,7 @@ bool aht10::get_status_bit(uint8_t bit_select, bool new_read) {
 
 	return (status_byte_ & (1 << bit_select));
 }
-float aht10::get_humidity(void) {
+float aht10::humidity(void) {
 	uint32_t humidity   = data_raw_[1];                          //20-bit raw humidity data
 	humidity <<= 8;
 	humidity  |= data_raw_[2];
@@ -130,7 +130,7 @@ float aht10::get_humidity(void) {
 
 	return ((float)humidity / 0x100000) * 100;
 }
-float aht10::get_temperature(void) {
+float aht10::temperature(void) {
 	uint32_t temperature   = data_raw_[3] & 0x0F;                //20-bit raw temperature data
 	temperature <<= 8;
 	temperature  |= data_raw_[4];
@@ -165,5 +165,5 @@ void aht10::print_raw_data(void) {
 		printf("data[%d]= %d",i, data_raw_[i]);
 	}
 
-	printf("humidity: %f, temperature: %f", get_humidity(), get_temperature());
+	printf("humidity: %f, temperature: %f", humidity(), temperature());
 }

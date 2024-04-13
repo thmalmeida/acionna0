@@ -140,7 +140,7 @@ public:
 	void init(void);
 
 	// return temp in scale of 0.01 C;
-	int32_t temperature(void);
+	double temperature(void);
 	
 	// return the pressure in Pa
 	double pressure(void);
