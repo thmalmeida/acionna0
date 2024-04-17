@@ -19,6 +19,8 @@
 #define DS1307_RAM_END		0x3F	// RAM end address
 #define DS1307_RAM_SIZE		56		// RAM size in bytes
 
+#define DS1307_MILLENNIUM	2000	// Current millenium - suppose to be changed when achieve the year 2100
+
 enum class ds1307_ctrl {
 	sqw_1_Hz = 0,					// RS[1:0] = 00, bit4 = 1, SQW has 1 Hz, OUT to X
 	sqw_4096_Hz,					// RS[1:0] = 01, bit4 = 1, SQW has 4092 Hz, OUT to X
@@ -82,7 +84,7 @@ private:
 	uint8_t decode_week_day_(uint8_t data_raw);
 	uint8_t decode_day_(uint8_t data_raw);
 	uint8_t decode_month_(uint8_t data_raw);
-	uint16_t decode_year_(uint8_t data_raw);
+	uint8_t decode_year_(uint8_t data_raw);
 
 	// Encode functions - convert decimal value to byte register DS1307 format
 	uint8_t encode_second_(uint8_t sec);
@@ -100,7 +102,7 @@ private:
 	uint8_t week_day_;			// day of week 1-7;
 	uint8_t day_;				// day of month 1-31;
 	uint8_t month_;				// month 1-12
-	uint16_t year_;				// year 00-99;
+	uint8_t year_;				// year 00-99;
 
 	uint8_t ctrl_;				// control byte
 

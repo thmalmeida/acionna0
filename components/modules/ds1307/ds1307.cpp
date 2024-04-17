@@ -15,12 +15,12 @@ void DS1307::init(void) {
 	// 3- Set hour format
 	format(ds1307_format::H24);
 
-	// 3- enable RTC;
+	// 4- enable RTC;
 	enable(1);
 
 	// 4- Set date and time
-	date(2024, 4, 17);
-	time(06, 05, 20);
+	// date(2024, 4, 17);
+	// time(06, 05, 20);
 }
 void DS1307::fetch(void) {
 
@@ -135,8 +135,8 @@ uint8_t DS1307::decode_day_(uint8_t data_raw) {
 uint8_t DS1307::decode_month_(uint8_t data_raw) {
 	return (data_raw >> 4)*10 + (data_raw & 0x0F);
 }
-uint16_t DS1307::decode_year_(uint8_t data_raw) {
-	return (data_raw >> 4)*10 + (data_raw & 0x0F) + 2000;
+uint8_t DS1307::decode_year_(uint8_t data_raw) {
+	return (data_raw >> 4)*10 + (data_raw & 0x0F);
 }
 
 // Encode - prepare decimal value to register format to DS1307
@@ -209,5 +209,5 @@ uint8_t DS1307::month(void) {
 	return month_;
 }
 uint16_t DS1307::year(void) {
-	return year_;
+	return year_ + DS1307_MILLENNIUM;
 }
