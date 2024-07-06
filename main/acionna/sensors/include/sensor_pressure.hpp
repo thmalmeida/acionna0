@@ -1,13 +1,12 @@
 #ifndef SENSOR_PRESSURE_HPP__
 #define SENSOR_PRESSURE_HPP__
 
-#include <adc.hpp>
+#include "adc.hpp"
 // #include <gpio_driver.h>
-#include <pinout.hpp>
+// #include <pinout.hpp>
 
 class sensor_pressure {
 public:
-	// Pipe
 	int PRess;								// last pressure converted;
 	int PRessHold;							// max pressure converted on turned on period;
 
@@ -23,7 +22,13 @@ public:
 	uint8_t flag_timeMatch = 0;				// flag when turn on time occurs;
 
 	// functions
-	double get_Pressure();
+	double pressure(void) {
+
+		return 0.0;
+	}
+
+private:
+	ADC_Driver *adc_;
 };
 
 #endif /* P_SENSOR_HPP__ */

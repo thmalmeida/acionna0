@@ -1,6 +1,6 @@
 #include "ahtx0.hpp"
 
-const char* TAG_AHT10 = "AHTX0";
+// const char* TAG_AHT10 = "AHTX0";
 
 AHTX0::AHTX0(I2C_Driver *i2c, ahtx0_model model) : i2c_(i2c) {
 	// wait stablish the power connections

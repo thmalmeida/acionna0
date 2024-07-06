@@ -1,6 +1,6 @@
 #include "aht10.hpp"
 
-const char* TAG_AHT10 = "AHT10";
+// const char* TAG_AHT10 = "AHT10";
 
 aht10::aht10(I2C_Driver *i2c) : i2c_(i2c) {
 

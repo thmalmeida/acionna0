@@ -1,45 +1,50 @@
-#ifndef _ACIONNA_HPP__
-#define _ACIONNA_HPP__
+#ifndef ACIONNA_HPP__
+#define ACIONNA_HPP__
 
-#include <iostream>
-#include <sstream>
-#include <string>
-
-#include <adc.hpp>
-
+// esp32 specifics
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 
+// peripherals
+#include "adc.hpp"
 #include "i2c_driver.hpp"
+#include "timer_driver.hpp"
+
+// math
+#include "dsp.hpp"
+
+// Sensors
+// #include "aht10.hpp"
+// #include "bmp180.hpp"
+
+// Time clock
+#include "clockin.hpp"
+
+#include "date_time.hpp"
 #include "ds3231.hpp"
-#include "rtc_time.hpp"
+// #include "rtc_time.hpp"
 #include "time_operations.hpp"
 
-#ifdef CONFIG_BT_ENABLE
-#include "bt_setup.hpp"
-#endif
+// system 
+#include "json/ArduinoJson-v6.19.4.h"
+#include "helper.hpp"
+#include "convert_char_to_hex.h"
+
+// connectivity
 #include "wifi_setup.hpp"
 #include "https_ota.hpp"
 #include "native_ota.hpp"
-
-#include "json/ArduinoJson-v6.19.4.h"
-
-#ifdef CONFIG_WELL_SUPPORT
-#include "well.hpp"
+#ifdef CONFIG_BT_ENABLE
+#include "bt_setup.hpp"
 #endif
 
+// Acionna parts
 #include "pump.hpp"
 #include "pipepvc.hpp"
 #include "valves.hpp"
-
-// Sensors
-#include "bmp180.hpp"
-#include "aht10.hpp"
-#include "dsp.hpp"
-#include "timer_driver.hpp"
-
-#include "helper.hpp"
-#include "convert_char_to_hex.h"
+#ifdef CONFIG_WELL_SUPPORT
+#include "well.hpp"
+#endif
 
 volatile extern uint8_t flag_1sec;
 volatile extern uint8_t flag_100ms;
@@ -63,7 +68,7 @@ public:
 	// uint32_t time_elapsed_on_lasts[log_n_] = {0};
 	// stop_types stops_lasts[log_n_];
 
-	Acionna(ADC_driver* adc, I2C_Driver *i2c);	// : pipe1_(&adc, 4), pipe2_(&adc, 7) {
+	Acionna(ADC_Driver *adc, I2C_Driver *i2c);	// : pipe1_(&adc, 4), pipe2_(&adc, 7) {
 
 	// Initialize - should run once;
 	void init(void);
@@ -80,7 +85,7 @@ public:
 
 	uint32_t get_uptime();
 
-	void update_RTC();
+	void update_clock();
 	void update_objects();
 	void update_stored_data();
 	void update_uptime();
@@ -106,10 +111,11 @@ private:
 	#endif
 
 	// DS3231 rtc{&i2c};
-	Agro::RTC_Time device_clock_;
-	DateTime dt_;
+	// RTC_Time device_clock_;
+	// Date_Time dt_;
+	// RTC_Time rtc0_;
 
-	// I2C_Driver *i2c_;
+	Clockin dt_;
 
 	Pipepvc pipe1_;
 	Pipepvc pipe2_;
@@ -209,6 +215,6 @@ private:
 	void sys_reset_reason_(char* buffer_str);
 	void sys_restart_(void);
 	void sys_ticks_per_us(char *buffer_str);
-	void sensor_dht(void);
+	void sensor_(void);
 };
 #endif

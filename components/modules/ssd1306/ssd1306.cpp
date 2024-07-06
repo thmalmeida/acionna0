@@ -1,9 +1,15 @@
 #include "ssd1306.hpp"
 
+/* created by thmalmeida on 20240401
+*
+* lasts modified: 20240507
+*
+*/
+
 const char* TAG_SSD1306 = "SSD1306";
 
 SSD1306::SSD1306(I2C_Driver *i2c) : i2c_(i2c) {
-	// init();
+	init();
 
 	// init1();
 	// init2();
@@ -135,7 +141,7 @@ void SSD1306::draw_pixel(uint8_t x, uint8_t y) {
 
 	#ifdef SSD1306_DEBUG
 	printf("draw_pixel: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("x:%d, y:%d\n", x, y);
@@ -180,7 +186,7 @@ void SSD1306::print(char c) {
 
 	#ifdef SSD1306_DEBUG
 	printf("print: %c, %d, o:%d  - ", c, static_cast<int>(c), offset);
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -192,20 +198,20 @@ void SSD1306::print(const char *s) {
 		s++;
 	}
 }
-void SSD1306::print(uint8_t x, uint8_t y, const char *s) {
+void SSD1306::print(const char *s, uint8_t x, uint8_t y) {
 	position(x, y);
 	print(s);
 }
-void SSD1306::print_Arial16x24(uint8_t x, uint8_t line, const char* s) {
+void SSD1306::print_Arial16x24(const char* s, uint8_t x, uint8_t y) {
 	// Arial16x24 font
 	int k = 0;
 	while(*s) {
-		print_Arial16x24(x + 16*k, line, *s);
+		print_Arial16x24(*s, x + 16*k, y);
 		s++;
 		k++;
 	}
 }
-void SSD1306::print_Arial16x24(uint8_t x, uint8_t y, char c) {
+void SSD1306::print_Arial16x24(char c, uint8_t x, uint8_t y) {
 	// Arial16x24 font
 	// Each character has 49 bytes (exclude the first one)
 	int n_bytes = 49;
@@ -222,9 +228,10 @@ void SSD1306::print_Arial16x24(uint8_t x, uint8_t y, char c) {
 			data[i] = Arial16x24[offset + ((i-1)*n_rows + (j+1))];
 		}
 
-		// 1 4 7 10 13 ... (16 bytes length)
-		// 2 5 8 11 14 ...
-		// 3 6 9 12 15 ...
+		// Bytes write sequence (16 bytes length at column * 3 bytes row (3 * 8 bits = 24 bits) = 48 bytes).
+		// 1 4 7 10 13 ... 43 46
+		// 2 5 8 11 14 ... 44 47
+		// 3 6 9 12 15 ... 45 48
 
 		position(x, 8*j+y);
 		i2c_->write(SSD1306_ADDR, &data[0], sizeof(data));
@@ -236,13 +243,13 @@ void SSD1306::print_Arial16x24(uint8_t x, uint8_t y, char c) {
 
 	#ifdef SSD1306_DEBUG
 	printf("print: %c, %d, o:%d  - ", c, static_cast<int>(c), offset);
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
 	#endif
 }
-void SSD1306::print_Arial24x32(uint8_t x, uint8_t y, char c) {
+void SSD1306::print_Arial24x32(char c, uint8_t x, uint8_t y) {
 	// Arial24x32 font
 	// Each character has 121 bytes (exclude the first one)
 	int n_bytes = 97;
@@ -268,15 +275,55 @@ void SSD1306::print_Arial24x32(uint8_t x, uint8_t y, char c) {
 		i2c_->write(SSD1306_ADDR, &data[0], sizeof(data));
 	}
 }
-void SSD1306::print_Arial24x32(uint8_t x, uint8_t y, const char *s) {
+void SSD1306::print_Arial24x32(const char *s, uint8_t x, uint8_t y) {
 	// Arial24x32 font
 	int k = 0;
 	while(*s) {
-		print_Arial24x32(x + 24*k, y, *s);
+		print_Arial24x32(*s, x + 24*k, y);
 		s++;
 		k++;
 	}
 }
+void SSD1306::print_Arial24x32_Numbers(char c, uint8_t x, uint8_t y) {
+	// Arial24x32 font
+	// Each character has 121 bytes (exclude the first one)
+	int n_bytes = 97;
+	int n_cols = 24;
+	int n_rows = 4;
+
+	int offset = n_bytes*(static_cast<int>(c)-32-16);
+
+	uint8_t data[n_cols+1];
+	data[0] = static_cast<uint8_t>(ssd1306_ctrl_byte::data_array); 
+
+	for(int j=0; j<n_rows; j++) {
+		for(int i=1; i<n_cols+1; i++) {
+			if(c == ' ') {
+				data[i] = 0x00;
+			} else {
+				data[i] = Arial24x32_Numbers[offset + ((i-1)*n_rows + (j+1))];
+			}
+		}
+
+		// 01 05 09 13 17 ... (16 bytes length)
+		// 02 06 10 14 18 ...
+		// 03 07 11 15 19 ...
+		// 04 08 12 16 20
+
+		position(x, 8*j+y);
+		i2c_->write(SSD1306_ADDR, &data[0], sizeof(data));
+	}
+}
+void SSD1306::print_Arial24x32_Numbers(const char *s, uint8_t x, uint8_t y) {
+	// Arial24x32 font
+	int k = 0;
+	while(*s) {
+		print_Arial24x32_Numbers(*s, x + 24*k, y);
+		s++;
+		k++;
+	}
+}
+
 
 // 1. Fundamental Command Table
 void SSD1306::set_contrast_(uint8_t value) {
@@ -293,7 +340,7 @@ void SSD1306::set_contrast_(uint8_t value) {
 
 	#ifdef SSD1306_DEBUG
 	printf("set_contrast_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -312,7 +359,7 @@ void SSD1306::entire_display_on_(uint8_t x0) {
 
 	#ifdef SSD1306_DEBUG
 	printf("entire_display_on_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -331,7 +378,7 @@ void SSD1306::normal_inverse_display_(uint8_t x0) {
 
 	#ifdef SSD1306_DEBUG
 	printf("set_normal_display_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -350,12 +397,13 @@ void SSD1306::power(uint8_t x0) {
 
 	#ifdef SSD1306_DEBUG
 	printf("power: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
 	#endif
 }
+
 // 2. Scrolling Command Table
 void SSD1306::scroll_(bool status) {
 	uint8_t data[2];
@@ -370,12 +418,13 @@ void SSD1306::scroll_(bool status) {
 
 	#ifdef SSD1306_DEBUG
 	printf("scroll_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
 	#endif	
 }
+
 // 3. Addressing Setting Command Table
 void SSD1306::memory_addr_mode_(ssd1306_addr_mode value) {
 	
@@ -392,7 +441,7 @@ void SSD1306::memory_addr_mode_(ssd1306_addr_mode value) {
 
 	#ifdef SSD1306_DEBUG
 	printf("memory_addressing_mode_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -413,7 +462,7 @@ void SSD1306::page_addr_(uint8_t page_start, uint8_t page_end) {
 
 	#ifdef SSD1306_DEBUG
 	printf("page_addr_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -434,7 +483,7 @@ void SSD1306::column_addr_(uint8_t col_start, uint8_t col_end) {
 
 	#ifdef SSD1306_DEBUG
 	printf("set_column_addr_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -454,7 +503,7 @@ void SSD1306::page_start_(uint8_t page) {
 
 	#ifdef SSD1306_DEBUG
 	printf("page_addr_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -473,7 +522,7 @@ void SSD1306::set_lower_column_(uint8_t col) {
 
 	#ifdef SSD1306_DEBUG
 	printf("set_lower_column: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -492,12 +541,13 @@ void SSD1306::set_higher_column_(uint8_t col) {
 
 	#ifdef SSD1306_DEBUG
 	printf("set_higher_column: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
 	#endif
 }
+
 // 4. Hardware Configuration commands
 void SSD1306::mux_ratio_(uint8_t cmd) {
 	uint8_t data[3];
@@ -513,7 +563,7 @@ void SSD1306::mux_ratio_(uint8_t cmd) {
 
 	#ifdef SSD1306_DEBUG
 	printf("mux_ratio_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -533,7 +583,7 @@ void SSD1306::set_display_offset_(uint8_t cmd) {
 
 	#ifdef SSD1306_DEBUG
 	printf("set_display_offset_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -553,7 +603,7 @@ void SSD1306::set_display_start_line_(uint8_t line) {
 
 	#ifdef SSD1306_DEBUG
 	printf("set_display_start_line_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -572,7 +622,7 @@ void SSD1306::scan_direction_(uint8_t x3) {
 
 	#ifdef SSD1306_DEBUG
 	printf("scan_direction_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -591,7 +641,7 @@ void SSD1306::segment_remap_(uint8_t x0) {
 
 	#ifdef SSD1306_DEBUG
 	printf("segment_remap_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -611,12 +661,13 @@ void SSD1306::hardware_config_(uint8_t a5, uint8_t a4) {
 
 	#ifdef SSD1306_DEBUG
 	printf("hardware_config_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
 	#endif
 }
+
 // 5. Timing & Driving Scheme Setting Command Table
 void SSD1306::set_osc_frequency_(uint8_t div, uint8_t freq_type) {
 	uint8_t data[3];
@@ -632,7 +683,7 @@ void SSD1306::set_osc_frequency_(uint8_t div, uint8_t freq_type) {
 
 	#ifdef SSD1306_DEBUG
 	printf("set_osc_frequency_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -652,7 +703,7 @@ void SSD1306::set_vcomh_deselect_level_(ssd1306_vcomh_level level) {
 
 	#ifdef SSD1306_DEBUG
 	printf("set_vcomh_deselect_level_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
@@ -671,12 +722,13 @@ void SSD1306::nop_(void) {
 
 	#ifdef SSD1306_DEBUG
 	printf("nop_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
 	#endif	
 }
+
 // 1. Charge Pump Command Table
 void SSD1306::charge_pump_en_(uint8_t a2) {
 	uint8_t data[3];
@@ -692,12 +744,16 @@ void SSD1306::charge_pump_en_(uint8_t a2) {
 
 	#ifdef SSD1306_DEBUG
 	printf("charge_pump_en_: ");
-	for(int i=0; i<sizeof(data); i++) {
+	for(unsigned int i=0; i<sizeof(data); i++) {
 		printf("0x%02x ", data[i]);
 	}
 	printf("\n");
 	#endif
 }
+
+
+
+
 
 
 
@@ -719,7 +775,7 @@ void SSD1306::charge_pump_en_(uint8_t a2) {
 // 	i2c_->write(SSD1306_ADDR, &data[0], 5);
 // 	#ifdef SSD1306_DEBUG
 // 	printf("init1: ");
-// 	for(int i=0; i<sizeof(data); i++) {
+// 	for(unsigned int i=0; i<sizeof(data); i++) {
 // 		printf("0x%02x ", data[i]);
 // 	}
 // 	printf("\n");
@@ -736,7 +792,7 @@ void SSD1306::charge_pump_en_(uint8_t a2) {
 // 	i2c_->write(SSD1306_ADDR, &data[0], 5);
 // 	#ifdef SSD1306_DEBUG
 // 	printf("init2: ");
-// 	for(int i=0; i<sizeof(data); i++) {
+// 	for(unsigned int i=0; i<sizeof(data); i++) {
 // 		printf("0x%02x ", data[i]);
 // 	}
 // 	printf("\n");
@@ -753,7 +809,7 @@ void SSD1306::charge_pump_en_(uint8_t a2) {
 // 	i2c_->write(SSD1306_ADDR, &data[0], 5);
 // 	#ifdef SSD1306_DEBUG
 // 	printf("init2: ");
-// 	for(int i=0; i<sizeof(data); i++) {
+// 	for(unsigned int i=0; i<sizeof(data); i++) {
 // 		printf("0x%02x ", data[i]);
 // 	}
 // 	printf("\n");
@@ -770,7 +826,7 @@ void SSD1306::charge_pump_en_(uint8_t a2) {
 // 	i2c_->write(SSD1306_ADDR, &data[0], 5);
 // 	#ifdef SSD1306_DEBUG
 // 	printf("init2: ");
-// 	for(int i=0; i<sizeof(data); i++) {
+// 	for(unsigned int i=0; i<sizeof(data); i++) {
 // 		printf("0x%02x ", data[i]);
 // 	}
 // 	printf("\n");

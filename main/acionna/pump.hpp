@@ -1,11 +1,11 @@
 #ifndef _PUMP_HPP__
 #define _PUMP_HPP__
 
-#include <adc.hpp>
-#include <gpio_driver.h>
-#include <pinout.hpp>
-
 #include "esp_log.h"
+
+#include "adc.hpp"
+#include "gpio_driver.h"
+#include <pinout.hpp>
 
 #include "helper.hpp"
 #include "delay.hpp"
@@ -50,8 +50,6 @@ public:
 	int time_k2_off_ = 0;
 	int time_k3_off_ = 0;
 
-
-//	Pump() : drive_k1_{AC_LOAD1}, drive_k2_{AC_LOAD2}, drive_k3_{AC_LOAD3}{}
 	Pump(uint32_t* epoch_time) :
 								ac_load_{{AC_LOAD1, 1},{AC_LOAD2, 1},{AC_LOAD3, 1}},
 								gpio_generic_{{GPIO_GENERIC1},{GPIO_GENERIC2},{GPIO_GENERIC3},{GPIO_GENERIC4}},

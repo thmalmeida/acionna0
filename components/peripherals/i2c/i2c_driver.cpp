@@ -1,13 +1,20 @@
 #include "i2c_driver.hpp"
 
-static const char *TAG_I2C = "I2C";
+static const char *TAG_I2C = "I2C";		// ESP32 debug print purpose
 
-I2C_Driver::I2C_Driver(int port, int scl, int sda, uint32_t freq) : i2c_master_port_(port) {
+I2C_Driver::I2C_Driver(int port, int scl, int sda, uint32_t freq) : i2c_master_port_(port), pin_scl_(scl), pin_sda_(sda), freq_(freq) {
+	init();
+}
+I2C_Driver::~I2C_Driver() {
+	deinit();
+}
+
+void I2C_Driver::init(void) {
 	// Bus configuration
 	i2c_master_bus_config_t bus_cfg;
-	bus_cfg.i2c_port = static_cast<i2c_port_num_t>(port);
-	bus_cfg.scl_io_num = static_cast<gpio_num_t>(scl);
-	bus_cfg.sda_io_num = static_cast<gpio_num_t>(sda);
+	bus_cfg.i2c_port = static_cast<i2c_port_num_t>(i2c_master_port_);
+	bus_cfg.scl_io_num = static_cast<gpio_num_t>(pin_scl_);
+	bus_cfg.sda_io_num = static_cast<gpio_num_t>(pin_sda_);
 	bus_cfg.clk_source = I2C_CLK_SRC_DEFAULT;
 	bus_cfg.intr_priority = 0;
 	bus_cfg.trans_queue_depth = 0;
@@ -16,11 +23,11 @@ I2C_Driver::I2C_Driver(int port, int scl, int sda, uint32_t freq) : i2c_master_p
 	ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &bus_handle_));
 
 	dev_cfg_.dev_addr_length = I2C_ADDR_BIT_LEN_7;
-	dev_cfg_.scl_speed_hz = freq;
+	dev_cfg_.scl_speed_hz = freq_;
 	
 	ESP_LOGI(TAG_I2C, "I2C bus init done!");
 }
-I2C_Driver::~I2C_Driver() {
+void I2C_Driver::deinit(void) {
 	// Deinitialize the I2C master bus and delete the handle.
 	ESP_ERROR_CHECK(i2c_del_master_bus(bus_handle_));
 
@@ -28,6 +35,25 @@ I2C_Driver::~I2C_Driver() {
 	// ESP_ERROR_CHECK(i2c_master_bus_rm_device(dev_handle_));
 }
 
+i2c_ans I2C_Driver::write(uint8_t slave_addr, uint8_t reg) {
+	return write(slave_addr, &reg, 1);
+}
+i2c_ans I2C_Driver::write(uint8_t slave_addr, uint8_t reg, uint8_t data) {
+	
+	uint8_t frame[2];
+	frame[0] = reg;
+	frame[1] = data;
+
+	return write(slave_addr, &frame[0], 2);
+}
+i2c_ans I2C_Driver::write(uint8_t slave_addr, uint8_t reg, uint8_t *data, size_t len) {
+
+	uint8_t frame[len+1];
+	frame[0] = reg;
+	memcpy(&frame[1], data, len);
+
+	return write(slave_addr, &frame[0], len+1);
+}
 i2c_ans I2C_Driver::write(uint8_t slave_addr, uint8_t *data, size_t len) {
 	dev_cfg_.device_address = slave_addr;
 	ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle_, &dev_cfg_, &dev_handle_));
@@ -41,30 +67,32 @@ i2c_ans I2C_Driver::write(uint8_t slave_addr, uint8_t *data, size_t len) {
 	else
 		return i2c_ans::ok;
 }
-i2c_ans I2C_Driver::write(uint8_t slave_addr, uint8_t reg, uint8_t *data, size_t len) {
 
-	uint8_t frame[len+1];
-	frame[0] = reg;
-	memcpy(&frame[1], data, len);
-
-	return write(slave_addr, &frame[0], len+1);
+i2c_ans I2C_Driver::read(uint8_t slave_addr, uint8_t *data) {
+	return read(slave_addr, data, 1);
 }
-i2c_ans I2C_Driver::write(uint8_t slave_addr, uint8_t reg, uint8_t data) {
-	
-	uint8_t frame[2];
-	frame[0] = reg;
-	frame[1] = data;
-
-	return write(slave_addr, &frame[0], 2);
-}
-i2c_ans I2C_Driver::write(uint8_t slave_addr, uint8_t reg) {
-	return write(slave_addr, &reg, 1);
-}
-
-i2c_ans I2C_Driver::read(uint8_t slave_addr, const uint8_t *data_write, size_t len_write, uint8_t *data_read, size_t len_read) {
+i2c_ans I2C_Driver::read(uint8_t slave_addr, uint8_t *data, size_t len) {
 	dev_cfg_.device_address = slave_addr;
 	ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle_, &dev_cfg_, &dev_handle_));
-	esp_err_t ret = i2c_master_transmit_receive(dev_handle_, data_write, len_write, data_read, len_read, I2C_COMMAND_WAIT_MS);
+	esp_err_t ret = i2c_master_receive(dev_handle_, data, len, I2C_COMMAND_WAIT_MS);
+	ESP_ERROR_CHECK(i2c_master_bus_rm_device(dev_handle_));
+
+	if(ret != ESP_OK) {
+		return i2c_ans::error_read;
+	}
+	else
+		return i2c_ans::ok;
+}
+i2c_ans I2C_Driver::read(uint8_t slave_addr, uint8_t reg, uint8_t *data) {
+	return read(slave_addr, &reg, 1, data, 1);
+}
+i2c_ans I2C_Driver::read(uint8_t slave_addr, uint8_t reg, uint8_t *data, size_t len) {
+	return read(slave_addr, &reg, 1, data, len);
+}
+i2c_ans I2C_Driver::read(uint8_t slave_addr, const uint8_t *write_buffer, size_t write_buffer_len, uint8_t *read_buffer, size_t read_buffer_len) {
+	dev_cfg_.device_address = slave_addr;
+	ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle_, &dev_cfg_, &dev_handle_));
+	esp_err_t ret = i2c_master_transmit_receive(dev_handle_, write_buffer, write_buffer_len, read_buffer, read_buffer_len, I2C_COMMAND_WAIT_MS);
 	ESP_ERROR_CHECK(i2c_master_bus_rm_device(dev_handle_));
 
 	if(ret != ESP_OK) {
@@ -74,26 +102,7 @@ i2c_ans I2C_Driver::read(uint8_t slave_addr, const uint8_t *data_write, size_t l
 	else
 		return i2c_ans::ok;
 }
-i2c_ans I2C_Driver::read(uint8_t slave_addr, uint8_t *data, size_t len) {
-	dev_cfg_.device_address = slave_addr;
-	ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle_, &dev_cfg_, &dev_handle_));
-	esp_err_t ret = i2c_master_receive(dev_handle_, data, len, I2C_COMMAND_WAIT_MS);
 
-	if(ret != ESP_OK) {
-		return i2c_ans::error_read;
-	}
-	else
-		return i2c_ans::ok;
-}
-i2c_ans I2C_Driver::read(uint8_t slave_addr, uint8_t *data) {
-	return read(slave_addr, data, 1);
-}
-i2c_ans I2C_Driver::read(uint8_t slave_addr, uint8_t reg, uint8_t *data, size_t len) {
-	return read(slave_addr, &reg, 1, data, len);
-}
-i2c_ans I2C_Driver::read(uint8_t slave_addr, uint8_t reg, uint8_t *data) {
-	return read(slave_addr, &reg, 1, data, 1);
-}
 
 bool I2C_Driver::probe(uint8_t addr) noexcept {
 	if(i2c_master_probe(bus_handle_, addr, I2C_COMMAND_WAIT_MS) == ESP_OK)

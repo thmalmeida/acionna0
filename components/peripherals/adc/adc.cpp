@@ -2,36 +2,109 @@
 
 static const char *TAG_ADC = "ADC";
 
-ADC_driver::ADC_driver(adc_mode mode = adc_mode::oneshot) : mode_{mode} {
+ADC_Driver::ADC_Driver(adc_mode mode = adc_mode::oneshot) : mode_{mode} {
+	init();
+}
+ADC_Driver::~ADC_Driver(void) {
+	if(mode_ == adc_mode::oneshot) {
+		oneshot_deinit_();
+	} else {
+		stream_deinit_();
+	}
+}
 
-	switch (mode) {
+// Common member functions (public)
+void ADC_Driver::init(void) {
+	switch (mode_) {
+		case adc_mode::oneshot:
+			oneshot_init_();
+			break;
+		case adc_mode::stream:
+			stream_init_();
+			break;
+	}
+}
+void ADC_Driver::channel_config(int channel, int attenuation, int bitwidth) {
+		pattern_table_current_index++;
+		pattern_table_[pattern_table_current_index].channel = static_cast<adc_channel_t>(channel);
+		pattern_table_[pattern_table_current_index].atten = static_cast<adc_atten_t>(attenuation);
+		pattern_table_[pattern_table_current_index].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
+		pattern_table_[pattern_table_current_index].unit = ADC_UNIT_1;
+		
+		if(mode_ == adc_mode::oneshot) {
+			oneshot_channel_config_(channel, attenuation, bitwidth);
+
+		} else if(mode_ == adc_mode::stream) {
+			pattern_table_current_index++;
+			pattern_table_[pattern_table_current_index].channel = static_cast<adc_channel_t>(channel);
+			pattern_table_[pattern_table_current_index].atten = static_cast<adc_atten_t>(attenuation);
+			pattern_table_[pattern_table_current_index].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
+			pattern_table_[pattern_table_current_index].unit = ADC_UNIT_1;
+		}
+}
+void ADC_Driver::channel_config(int channel, int attenuation) {
+	channel_config(channel, attenuation, 12);
+}
+void ADC_Driver::set_channel(int channel) {
+    channel_ = static_cast<adc_channel_t>(channel);
+}
+int ADC_Driver::read(int channel, int num_samples) {
+/*
+ * @brief stream read using oneshot method
+ * 
+ * Copy adc raw values on specific frequency using single shot to it's pointer
+ * 
+ * @param channel channel desired
+ * @param v pointer to receive the copy
+ * @param length the length of array
+ * @param frequency the signal frequency
+ * 
+ * @return nothing, just copy the samples to v pointer
+*/
+	int adc_raw = read(channel);
+	int filtered = static_cast<long int>(adc_raw);
+
+	for(int i=1; i<num_samples; i++) {
+		// v[i] = 0.8*v[i-1] + 0.2*read(channel);
+		adc_raw = 0.8*adc_raw + 0.2*read(channel);
+		filtered += (adc_raw + 1);
+		filtered >>= 1;
+	}
+	return filtered;
+}
+void ADC_Driver::read(int channel, int* v, int length, int frequency) {
+	switch (mode_) {
 		case adc_mode::oneshot: {
-			oneshot_init();
+			int Ts = static_cast<int>(1.0/static_cast<double>(frequency)*1000000.0);
+			for(int i=0; i<length; i++) {
+				v[i] = read(channel);
+				delay_us(Ts);
+			}
 			break;
 		}
 		case adc_mode::stream: {
-			stream_init();
-			break;
-		}
-		default: {
-			break;
+			// stream_read_(channel, v, length);
 		}
 	}
 }
-ADC_driver::~ADC_driver(void) {
-	oneshot_deinit();
+void ADC_Driver::read(int channel, uint16_t *v, int length) {
+	stream_read_(channel, v, length);
+}
+int ADC_Driver::read(int channel) {
+/*
+* @brief makes n reads and return an average 
+*
+* @return the average of n reads
+*/	
+	int data_adc_raw;
+	ESP_ERROR_CHECK(adc_oneshot_read(oneshot_handle_, static_cast<adc_channel_t>(channel), &data_adc_raw));
+
+	return data_adc_raw;
 }
 
 // Oneshot functions - ADC single mode
-void ADC_driver::oneshot_init(void) {
+void ADC_Driver::oneshot_init_(void) {
 	// 1 - Resource Allocation (init)
-	// adc_oneshot_unit_handle_t oneshot_handle_;
-	// adc_oneshot_unit_init_cfg_t init_config1 = {
-		// .unit_id = unit_,							// ADC select
-		// .ulp_mode = ADC_ULP_MODE_DISABLE,
-		// .clk_src = ADC_RTC_CLK_SRC_DEFAULT
-	// };
-	
 	adc_oneshot_unit_init_cfg_t init_config1 = {};
 	init_config1.unit_id = unit_;
 	init_config1.ulp_mode = ADC_ULP_MODE_DISABLE;
@@ -43,26 +116,22 @@ void ADC_driver::oneshot_init(void) {
 	// Config channel to read
 	// channel_config_oneshot();
 }
-void ADC_driver::set_channel(int channel) {
-    channel_ = static_cast<adc_channel_t>(channel);
-}
-void ADC_driver::oneshot_deinit(void) {
-
+void ADC_Driver::oneshot_deinit_(void) {
 	ESP_ERROR_CHECK(adc_oneshot_del_unit(oneshot_handle_));
 	if (do_calibration1) {
-		adc_calibration_deinit(adc1_cali_handle_);
+		calibration_deinit_(adc1_cali_handle_);
 	}
 }
-void ADC_driver::oneshot_channel_config(int channel) {
-	oneshot_channel_config(channel, 0, 12);
+void ADC_Driver::oneshot_channel_config_(int channel) {
+	// attenuation to 0 dB and bit width to 12-bit;
+	oneshot_channel_config_(channel, 0, 12);
 }
-void ADC_driver::oneshot_channel_config(int channel, int attenuation, int bitwidth) {
+void ADC_Driver::oneshot_channel_config_(int channel, int attenuation, int bitwidth) {
 	/* This function setup:
 	- channel number;
 	- attenuation;
 	- bit width.
 	*/
-
 	switch(attenuation) {
 		case 0: {
 			attenuation_ = ADC_ATTEN_DB_0;
@@ -118,56 +187,9 @@ void ADC_driver::oneshot_channel_config(int channel, int attenuation, int bitwid
 	};
 	ESP_ERROR_CHECK(adc_oneshot_config_channel(oneshot_handle_, static_cast<adc_channel_t>(channel), &config));
 }
-int ADC_driver::read(int channel) {
-
-	int data_adc_raw;
-	// ESP_ERROR_CHECK(adc_oneshot_read(oneshot_handle_, static_cast<adc_channel_t>(channel), &data_adc_raw));
-	adc_oneshot_read(oneshot_handle_, static_cast<adc_channel_t>(channel), &data_adc_raw);
-	// ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ADC1_CHAN0, data_adc_raw);
-	// ESP_ERROR_CHECK(adc_oneshot_read(oneshot_handle_, ADC1_CHAN1, &adc_raw[0][1]));
-	// ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, ADC1_CHAN1, adc_raw[0][1]);
-
-	return data_adc_raw;
-}
-/*
- * @brief makes n reads and return an average 
- *
- * @return the average of n reads
-*/
-int ADC_driver::read(int channel, int num_samples) {
-	int adc_raw = read(channel);
-	int filtered = static_cast<long int>(adc_raw);
-
-	for(int i=1; i<num_samples; i++) {
-		// v[i] = 0.8*v[i-1] + 0.2*read(channel);
-		adc_raw = 0.8*adc_raw + 0.2*read(channel);
-		filtered += (adc_raw + 1);
-		filtered >>= 1;
-	}
-	return filtered;
-}
-/*
- * @brief stream read using oneshot method
- * 
- * Copy adc raw values on specific frequency using single shot to it's pointer
- * 
- * @param channel channel desired
- * @param v pointer to receive the copy
- * @param length the length of array
- * @param frequency the signal frequency
- * 
- * @return nothing, just copy the samples to v pointer
-*/
-void ADC_driver::read(int channel, int* v, int length, int frequency) {
-	int Ts = static_cast<int>(1.0/static_cast<double>(frequency)*1000000.0);
-	for(int i=0; i<length; i++) {
-		v[i] = read(channel);
-		delay_us(Ts);	
-	}
-}
 
 // Stream functions - ADC DMA Continuous mode
-void ADC_driver::stream_init(void) {
+void ADC_Driver::stream_init_(void) {
 
 	// ----- Resource Allocation -----
 
@@ -183,19 +205,19 @@ void ADC_driver::stream_init(void) {
 
 	// stream_config();
 }
-void ADC_driver::stream_callback_config(void) {
+void ADC_Driver::stream_callback_config_(void) {
 	// callback config
 	// stream_callback.on_conv_done = 
 	// ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(stream_handle_))
 }
-void ADC_driver::stream_config(int channel, int attenuation) {
-	int _channels_list[1];
-	int _attenuations_list[1];
-	_channels_list[0] = channel;
-	_attenuations_list[0] = attenuation;
-	stream_config(&_channels_list[0], &_attenuations_list[0], 1);
+void ADC_Driver::stream_config_(int channel, int attenuation) {
+	int channels_list[1];
+	int attenuations_list[1];
+	channels_list[0] = channel;
+	attenuations_list[0] = attenuation;
+	stream_config_(&channels_list[0], &attenuations_list[0], 1);
 }
-void ADC_driver::stream_config(int* channels_list, int* attenuations_list, int n_channels) {
+void ADC_Driver::stream_config_(int* channels_list, int* attenuations_list, int n_channels) {
 	
 	// Configurations of ADC - fill the pattern table
 	adc_digi_pattern_config_t pattern_table[n_channels];
@@ -220,18 +242,18 @@ void ADC_driver::stream_config(int* channels_list, int* attenuations_list, int n
 
 	ESP_ERROR_CHECK(adc_continuous_config(stream_handle_, &stream_dig_config));
 }
-void ADC_driver::stream_start(void) {
+void ADC_Driver::stream_start_(void) {
 	adc_continuous_start(stream_handle_);
 	stream_state_ = adc_stream_states::running;
 }
-void ADC_driver::stream_stop(void) {
+void ADC_Driver::stream_stop_(void) {
 	ESP_ERROR_CHECK(adc_continuous_stop(stream_handle_));
 	stream_state_ = adc_stream_states::stopped;
 }
-void ADC_driver::stream_read(int channel, uint16_t* buffer, int length) {
+void ADC_Driver::stream_read_(int channel, uint16_t* buffer, int length) {
 
 	if(stream_state_ == adc_stream_states::stopped) {
-		stream_start();
+		stream_start_();
 	}
 
 	uint32_t length_out = 0;
@@ -266,13 +288,23 @@ void ADC_driver::stream_read(int channel, uint16_t* buffer, int length) {
 	// ESP_LOGI(TAG_ADC, "RAM free:%lu, min:%lu", esp_get_free_internal_heap_size(), esp_get_minimum_free_heap_size());
 	// ESP_LOGI(TAG_ADC, "len_exp: %lu, len_out:%lu, i:%d, j:%d", length_exp, length_out, i, j);
 }
-void ADC_driver::stream_deinit(void) {
+void ADC_Driver::stream_deinit_(void) {
 	// Recycle the ADC Unit
 	adc_continuous_deinit(stream_handle_);
 }
 
 // Calibration functions
-bool ADC_driver::adc_calibration_init(adc_unit_t unit, adc_atten_t atten, adc_cali_handle_t *out_handle)
+void ADC_Driver::calibrate(void) {
+
+	// if (do_calibration1) {
+	// 	ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_handle_, adc_raw[0][0], &voltage[0][0]));
+	// 	ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC1_CHAN0, voltage[0][0]);
+
+	// 	ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_handle_, adc_raw[0][1], &voltage[0][1]));
+	// 	ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC1_CHAN1, voltage[0][1]);
+	// }
+}
+bool ADC_Driver::calibration_init_(adc_unit_t unit, adc_atten_t atten, adc_cali_handle_t *out_handle)
 {
 	adc_cali_handle_t handle = NULL;
 	esp_err_t ret = ESP_FAIL;
@@ -321,8 +353,7 @@ bool ADC_driver::adc_calibration_init(adc_unit_t unit, adc_atten_t atten, adc_ca
 
     return calibrated;
 }
-void ADC_driver::adc_calibration_deinit(adc_cali_handle_t handle)
-{
+void ADC_Driver::calibration_deinit_(adc_cali_handle_t handle) {
 #if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
     ESP_LOGI(TAG_ADC, "deregister %s calibration scheme", "Curve Fitting");
     ESP_ERROR_CHECK(adc_cali_delete_scheme_curve_fitting(handle));
@@ -332,21 +363,6 @@ void ADC_driver::adc_calibration_deinit(adc_cali_handle_t handle)
     ESP_ERROR_CHECK(adc_cali_delete_scheme_line_fitting(handle));
 #endif
 }
-void ADC_driver::calibrate(void) {
-
-	// if (do_calibration1) {
-	// 	ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_handle_, adc_raw[0][0], &voltage[0][0]));
-	// 	ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC1_CHAN0, voltage[0][0]);
-
-	// 	ESP_ERROR_CHECK(adc_cali_raw_to_voltage(adc1_cali_handle_, adc_raw[0][1], &voltage[0][1]));
-	// 	ESP_LOGI(TAG_ADC, "ADC%d Channel[%d] Cali Voltage: %d mV", ADC_UNIT_1 + 1, ADC1_CHAN1, voltage[0][1]);
-	// }
-}
-
-
-
-
-
 
 // Callback implementation
 // static TaskHandle_t s_task_handle;
@@ -358,6 +374,6 @@ void ADC_driver::calibrate(void) {
 // 	return (mustYield == pdTRUE);
 // }
 
-// ADC_driver::ADC_driver(int channel) : channel_{static_cast<adc_channel_t>(channel)} {
+// ADC_Driver::ADC_Driver(int channel) : channel_{static_cast<adc_channel_t>(channel)} {
 // 	init_driver_oneshot();
 // }

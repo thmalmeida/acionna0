@@ -1,9 +1,9 @@
 #ifndef PIPEPVC_HPP
 #define PIPEPVC_HPP
 
-#include <adc.hpp>
-
+#include "adc.hpp"
 #include "helper.hpp"
+
 
 enum class air_detect_states {
 	pressure_low_idle = 0,
@@ -44,20 +44,18 @@ public:
 //	uint8_t flag_PressureUnstable = 1;
 //	uint8_t flag_PressureDown = 0;		// flag for pressure down occurrence;
 
-	Pipepvc(ADC_driver *adc, int channel, int sensor_pressure_factory) : sensor_pressure_ref(sensor_pressure_factory), adc_(adc),  channel_(channel) {
-		adc_->oneshot_channel_config(channel_, 0, 12);
+	Pipepvc(ADC_Driver *adc, int channel, int sensor_pressure_factory) : sensor_pressure_ref(sensor_pressure_factory), adc_(adc),  channel_(channel) {
+		adc_->channel_config(channel_);
 	}
 	void update(void) {
 		update_pressure_();
 	}
 	/* Return the last current pipe pressure found
 	*/
-	int pressure_mca(void)
-	{
+	int pressure_mca(void) {
 		return pressure_mca_;
 	}
-	int air_intake_detect(states_motor state_motor, states_motor state_motor_ref, int pressure_expected)
-	{
+	int air_intake_detect(states_motor state_motor, states_motor state_motor_ref, int pressure_expected) {
 		switch (air_detect_state) 
 		{
 			case air_detect_states::pressure_low_idle: {
@@ -155,13 +153,12 @@ public:
 	int air_intake_detect_state(void) {
 		return static_cast<int>(air_detect_state);
 	}
-	int broke_pipe_detect(int pump_state)
-	{
+	int broke_pipe_detect(int pump_state) {
 		return 0;
 	}
 
 private:
-	ADC_driver *adc_;
+	ADC_Driver *adc_;
 	int channel_;
 	int pressure_mca_ = 0;					// converted value [m.c.a.];
 	int pressure_psi_ = 0;					// converted value [psi];

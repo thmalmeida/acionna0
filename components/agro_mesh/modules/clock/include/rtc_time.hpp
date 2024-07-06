@@ -1,46 +1,46 @@
-#ifndef RTC_TIME_HPP__
-#define RTC_TIME_HPP__
+// #ifndef RTC_TIME_HPP__
+// #define RTC_TIME_HPP__
 
-#include <cstdint>
-#include "ds3231.hpp"
+// #include <cstdint>
+// #include "ds3231.hpp"
 
-#include "nvs_flash.h"
-#include "esp_timer.h"
+// #include "nvs_flash.h"
+// #include "esp_timer.h"
 
-namespace Agro{
+// namespace Agro{
 
-using value_time = std::uint32_t;
-using fuse_type = int;
+// using value_time = std::uint32_t;
+// using fuse_type = int;
 
-class RTC_Time{
-	public:
-		RTC_Time();
+// class RTC_Time{
+// 	public:
+// 		RTC_Time();
 
-		void init() noexcept;
-#if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
-		void init(DS3231& i2c) noexcept;
-#endif /* DEVICE_CLOCK_DS3231_SUPPORT */
+// 		void init() noexcept;
+// #if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
+// 		void init(DS3231& i2c) noexcept;
+// #endif /* DEVICE_CLOCK_DS3231_SUPPORT */
 
-		bool has_rtc() const noexcept;
+// 		bool has_rtc() const noexcept;
 
-		fuse_type fuse() const noexcept;
-		void fuse(fuse_type) noexcept;
+// 		fuse_type fuse() const noexcept;
+// 		void fuse(fuse_type) noexcept;
 
-		value_time get_time() noexcept;
-		value_time get_local_time() noexcept;
+// 		value_time get_time() noexcept;
+// 		value_time get_local_time() noexcept;
 
-		value_time internal_time() const noexcept;
-		void set_time(value_time time) noexcept;
-	private:
-#if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
-		DS3231*			rtc_ = nullptr;
-		bool			rtc_present_ = false;
-#endif /* CONFIG_DEVICE_CLOCK_DS3231_SUPPORT */
-		value_time		uptime_sec_ = 0;
-		value_time		time_ = 0;
-		fuse_type		fuse_;
-};
+// 		value_time internal_time() const noexcept;
+// 		void set_time(value_time time) noexcept;
+// 	private:
+// #if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
+// 		DS3231*			rtc_ = nullptr;
+// 		bool			rtc_present_ = false;
+// #endif /* CONFIG_DEVICE_CLOCK_DS3231_SUPPORT */
+// 		value_time		uptime_sec_ = 0;
+// 		value_time		time_ = 0;
+// 		fuse_type		fuse_;
+// };
 
-}//Agro
+// }//Agro
 
-#endif /* AGRO_DAEMON_RTC_TIME_HPP__ */
+// #endif /* AGRO_DAEMON_RTC_TIME_HPP__ */

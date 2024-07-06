@@ -35,7 +35,7 @@ enum class ds1307_format {
 	H12
 };
 
-enum class ds1307_AM_PM {
+enum class ds1307_period {
 	AM = 0,
 	PM = 1
 };
@@ -45,9 +45,11 @@ public:
 
 	DS1307(I2C_Driver *i2c);
 
+	// ping module answer
+	bool probe(void) noexcept;
 	// initialize the module
 	void init(void);
-	// get date time raw data by one i2c read
+	// get raw date and time data by one i2c read in sequence and decode it
 	void fetch(void);
 	// enable/disable RTC 
 	void enable(uint8_t status);
@@ -56,7 +58,7 @@ public:
 	// set time format 12/24 hrs
 	void format(ds1307_format format);
 	// get AM/PM time for 12 hrs only
-	ds1307_AM_PM AM_PM(void);
+	ds1307_period period(void);
 
 	// update RTC DS1307 registers
 	void date_time(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t min, uint8_t sec);
@@ -64,18 +66,36 @@ public:
 	void time(uint8_t hour, uint8_t min, uint8_t sec);
 
 	// Get functions. Should run fetch before any get.
-	uint8_t second(void);
-	uint8_t minute(void);
-	uint8_t hour(void);
-	uint8_t week_day(void);
-	uint8_t day(void);
-	uint8_t month(void);
 	uint16_t year(void);
+	uint8_t month(void);
+	uint8_t day(void);
+	uint8_t week_day(void);
+	uint8_t hour(void);
+	uint8_t minute(void);
+	uint8_t second(void);
 
 	// void unix_time(uint32_t time);
 	// uint32_t unix_time(void);
 
 private:
+	// Time/register values
+	uint8_t sec_;				// sec range from 0-59;
+	uint8_t min_;				// min range from 0-59;
+	uint8_t hour_;				// hour 1-12 for 12hrs format; 0-23 for 24 hrs format;
+	uint8_t week_day_;			// day of week 1-7;
+	uint8_t day_;				// day of month 1-31;
+	uint8_t month_;				// month 1-12
+	uint8_t year_;				// year 00-99;
+
+	uint8_t ctrl_;				// control byte
+
+	ds1307_format format_;		// 1- 12 hours (1-12); 0- 24 hours format range is 0-23.
+	ds1307_period period_;		// 0- AM; 1- PM;
+
+	uint8_t data_raw_[8];		// Data raw readed from DS1307 registers
+	// uint8_t data_RAM_[56];		// data RAM readed from DS1307 RAM - not used here
+
+	I2C_Driver *i2c_;			// pointer to I2C peripheral driver
 
 	// Decode functions - convert register data raw readed from DS1307 to decimal readable value
 	uint8_t decode_second_(uint8_t data_raw);
@@ -94,25 +114,6 @@ private:
 	uint8_t encode_day_(uint8_t day);
 	uint8_t encode_month_(uint8_t month);
 	uint8_t encode_year_(uint16_t year);
-
-	// Time/register values
-	uint8_t sec_;				// sec range from 0-59;
-	uint8_t min_;				// min range from 0-59;
-	uint8_t hour_;				// hour 1-12 for 12hrs format; 0-23 for 24 hrs format;
-	uint8_t week_day_;			// day of week 1-7;
-	uint8_t day_;				// day of month 1-31;
-	uint8_t month_;				// month 1-12
-	uint8_t year_;				// year 00-99;
-
-	uint8_t ctrl_;				// control byte
-
-	ds1307_format format_;		// 1- 12 hours (1-12); 0- 24 hours format range is 0-23.
-	ds1307_AM_PM AM_PM_;				// 0- AM; 1- PM;
-
-	uint8_t data_raw_[8];		// Data raw readed from DS1307 registers
-	// uint8_t data_RAM_[56];		// data RAM readed from DS1307 RAM - not used here
-
-	I2C_Driver *i2c_;			// pointer to I2C peripheral driver
 };
 
 #endif

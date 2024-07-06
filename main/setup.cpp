@@ -5,10 +5,12 @@
 #include "bmp180.hpp"
 #include "bmp280.hpp"
 #include "ahtx0.hpp"
+#include "aht10.hpp"
+#include "ds1307.hpp"
 
 const char* TAG_SETUP = "SETUP";
 
-static void test_bmp180(void) {
+void test_bmp180(void) {
 
 	I2C_Driver i2c(1, I2C_SDA, I2C_SCL);
 	BMP180 sensor0(&i2c);
@@ -25,7 +27,7 @@ static void test_bmp180(void) {
 		vTaskDelay(2000 / portTICK_PERIOD_MS);
 	}
 }
-static void test_bmp280(void) {
+void test_bmp280(void) {
 	// inverted pins
 	I2C_Driver i2c(1, I2C_SDA, I2C_SCL);
 	BMP280 sensor0(&i2c);
@@ -43,7 +45,7 @@ static void test_bmp280(void) {
 		vTaskDelay(2000 / portTICK_PERIOD_MS);
 	}
 }
-static void test_aht10(void) {
+void test_aht10(void) {
 	I2C_Driver i2c(I2C_NUM_1, I2C_SCL, I2C_SDA);
 	aht10 sensor0(&i2c);
 
@@ -65,28 +67,27 @@ static void test_aht10(void) {
 		vTaskDelay(10000 / portTICK_PERIOD_MS);
 	}
 }
-static void test_ahtx0(void) {
+void test_ahtx0(void) {
 	I2C_Driver i2c(1, I2C_SDA, I2C_SCL);
 
 	// i2c.probe_list();
 
 	AHTX0 sensor0(&i2c);
-	BMP280 sensor1(&i2c);
+	// BMP280 sensor1(&i2c);
 
 	sensor0.init();
-	sensor1.init();
+	// sensor1.init();
 
 	int count = 0;
-
 	while(1) {
 		sensor0.fetch();
-		sensor1.fetch();
-		printf("%02d - Humidity: %.2f %%, Temperature: %.2f C, ", count++, sensor0.humidity(), sensor0.temperature());
-		printf("Pressure: %lu hPa, %.2f Pa, Temp: %.2f C, Altitude: %.1f\n", sensor1.pressure_hPa(), sensor1.pressure(), static_cast<double>(sensor1.temperature())/100.0, sensor1.altitude());
-		vTaskDelay(10000 / portTICK_PERIOD_MS);
+		// sensor1.fetch();
+		printf("%02d - Humidity: %.2f %%, Temperature: %.2f C\n", count++, sensor0.humidity(), sensor0.temperature());
+		// printf("Pressure: %lu hPa, %.2f Pa, Temp: %.2f C, Altitude: %.1f\n", sensor1.pressure_hPa(), sensor1.pressure(), static_cast<double>(sensor1.temperature())/100.0, sensor1.altitude());
+		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	}
 }
-static void test_ssd1306(void) {
+void test_ssd1306(void) {
 	I2C_Driver i2c(1, I2C_SDA, I2C_SCL);
 	SSD1306 d0(&i2c);
 
@@ -110,40 +111,39 @@ static void test_ssd1306(void) {
 		vTaskDelay(100 / portTICK_PERIOD_MS);
 	}
 }
-static void test_ssd1306_sensors(void) {
+void test_ssd1306_sensors(void) {
 	
 	I2C_Driver i2c(1, I2C_SDA, I2C_SCL);
-	
-	SSD1306 d0(&i2c);
-	BMP280 s0(&i2c);
-	AHTX0 s1(&i2c);
-
 	// i2c.probe_list();
+
+	SSD1306 d0(&i2c);
+	// BMP280 s0(&i2c);
+	AHTX0 s1(&i2c);
 
 	d0.init();
 	d0.clear();
 
-	s0.init();
+	// s0.init();
 	s1.init();
 
 	char str[60];
 
-	double temp_f;
-	int temp_int;
-	int temp_dec;
-	int count = 0;
+	// double temp_f;
+	// int temp_int;
+	// int temp_dec;
+	// int count = 0;
 
 	while(1) {
 
-		s0.fetch();
+		// s0.fetch();
 		s1.fetch();
 
 		// Get temperature
-		temp_f = s1.temperature();
+		// temp_f = s1.temperature();
 
 		// separate integer from decimal part
-		temp_int = static_cast<int>(temp_f);
-		temp_dec = static_cast<int>((temp_f-static_cast<double>(temp_int))*10.0);
+		// temp_int = static_cast<int>(temp_f);
+		// temp_dec = static_cast<int>((temp_f-static_cast<double>(temp_int))*10.0);
 
 		// print temperature value
 		// sprintf(str, "%d", temp_int);
@@ -152,28 +152,42 @@ static void test_ssd1306_sensors(void) {
 		// d0.print_Arial24x32(48,0, str);
 		
 		// print temp value 2
-		sprintf(str, "%.1f", s0.temperature());
-		d0.print_Arial24x32(0, 0, str);
+		sprintf(str, "%.1f", s1.temperature());
+		d0.print_Arial24x32(str, 0, 0);
 
 		// print degree unit
 		sprintf(str, "%c", 127);
-		d0.print_Arial24x32(96,0, str);
-		d0.print_Arial24x32(105,0, 'C');
+		d0.print_Arial24x32(str, 96, 0);
+		d0.print_Arial24x32('C', 105, 0);
 
 		// Get humidity
 		sprintf(str, "%.1f", s1.humidity());
-		d0.print_Arial16x24(0, 40, str);
-		d0.print_Arial16x24(4*16+10, 40, "%");
+		d0.print_Arial16x24(str, 0, 40);
+		d0.print_Arial16x24("%", 4*16+10, 40);
 
 		// Debug console print
-		printf("%d:  %.2f°C,  %.2f%%, %.2f°C, %.2fPa\n", count++, s1.temperature(), s1.humidity(), s0.temperature(), s0.pressure());
+		// printf("%d:  %.2f°C,  %.2f%%, %.2f°C, %.2fPa\n", count++, s1.temperature(), s1.humidity(), s0.temperature(), s0.pressure());
 
 		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	}
 }
+void test_ds1307(void) {
+	I2C_Driver i2c(1, I2C_SCL, I2C_SDA);
+	i2c.probe_list();
 
+	DS1307 rtc0(&i2c);
+	rtc0.init();
+	rtc0.date_time(2024, 04, 17, 10, 28, 10);
 
-static void test_chip_info(void) {
+	int count = 0;
+	while(1) {
+		rtc0.fetch();
+		printf("%03d - %02d/%02d/%d %02d:%02d:%02d\n", count++, rtc0.day(), rtc0.month(), rtc0.year(), rtc0.hour(), rtc0.minute(), rtc0.second());
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+	}
+}
+
+void test_chip_info(void) {
 	/* Print chip information */
 	esp_chip_info_t chip_info;
 	uint32_t flash_size;
@@ -283,29 +297,19 @@ void test_i2c_to_gpio(void *pvParameter) {
 	}
 }
 void test_sensors(void *pvParameter) {
-	// test_bmp280();
 	// test_bmp180();
+	// test_bmp280();
 	// test_aht10();
 	// test_ahtx0();
 	// test_ssd1306();
 	test_ssd1306_sensors();
-	// Hello answer test
-	// if(sensor0.probe()) {
-	// 	ESP_LOGI(TAG_SETUP, "AHT10 answer OK!");
-	// }
-	// else {
-	// 	while(!sensor0.probe())
-	// 	{
-	// 		ESP_LOGI(TAG_SETUP, "Trying to probe");
-	// 		vTaskDelay(2000 / portTICK_PERIOD_MS);
-	// 	}
-	// }
-	// sensor0.init(2);
+	// test_ds1307();
 }
 void test_adc_dma(void *pvParameter) {
 	
-	ADC_driver adc0(adc_mode::stream);
-	adc0.stream_config(0, 3);
+	ADC_Driver adc0(adc_mode::stream);
+	// adc0.stream_config(0, 3);
+	adc0.channel_config(0, 3);
 
 	// Number of samples depends of sample frequency, signal frequency and number of cycles;
 	const int n_samples = POINTS_PER_CYCLE*N_CYCLES;
@@ -325,7 +329,8 @@ void test_adc_dma(void *pvParameter) {
 	while(1) {
 
 		// Read stream array from ADC using DMA;
-		adc0.stream_read(0, &adc_buffer[0], n_samples);
+		// adc0.stream_read(0, &adc_buffer[0], n_samples);
+		adc0.read(0, &adc_buffer[0], n_samples);
 
 		// Convert digital ADC raw array to iL(t) signal;
 		s0.calc_iL_t(&adc_buffer[0], &iL_t[0], n_samples);
@@ -348,8 +353,9 @@ void test_adc_dma(void *pvParameter) {
 }
 void test_adc(void *pvParameter) {
 	
-	ADC_driver adc0(adc_mode::oneshot);
-	adc0.oneshot_channel_config(0, 3, 12);
+	ADC_Driver adc0(adc_mode::oneshot);
+	// adc0.oneshot_channel_config(0, 3, 12);
+	adc0.channel_config(0, 3, 12);
 
 	uint16_t adc_data;
 	uint16_t adc_data_ss;
@@ -369,9 +375,10 @@ void test_adc(void *pvParameter) {
 }
 void test_timer(void *pvParameter) {
 	TIMER_driver tim0(1, 0, 1000000);
-	ADC_driver adc0(adc_mode::oneshot);
+	ADC_Driver adc0(adc_mode::oneshot);
 
-	adc0.oneshot_channel_config(0, 3, 12);
+	// adc0.oneshot_channel_config(0, 3, 12);
+	adc0.channel_config(0, 3);
 
 	tim0.enable();
 	tim0.start();
@@ -426,10 +433,10 @@ void isr_100ms(void *pvParameter) {
 
 void machine_run(void *pvParameter) {
 
+	ADC_Driver adc(adc_mode::oneshot);
 	I2C_Driver i2c(I2C_NUM_1, I2C_SCL, I2C_SDA);
-	
-	ADC_driver adc0(adc_mode::oneshot);
-	Acionna acionna0(&adc0, &i2c);
+
+	Acionna acionna0(&adc, &i2c);
 
 	xTaskCreate(&isr_1sec, "isr_1sec_", 1024, NULL, 5, NULL);
 

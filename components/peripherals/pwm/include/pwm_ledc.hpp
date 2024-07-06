@@ -123,7 +123,7 @@ public:
 		// must be called to update;
 		ledc_update_duty(static_cast<ledc_mode_t>(timer_module_), static_cast<ledc_channel_t>(channel_));
 
-		ESP_LOGI(TAG_PWM, "pwm_ledc duty change");
+		ESP_LOGI(TAG_PWM, "pwm_ledc duty change to %lu", duty_percent);
 	}
 	void set_count(uint16_t value) {
 

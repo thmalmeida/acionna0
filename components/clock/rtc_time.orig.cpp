@@ -1,11 +1,16 @@
 #include "rtc_time.hpp"
-#include "date_time.hpp"
+#include "datetime.h"
+
+namespace Agro{
 
 static constexpr const fuse_type default_fuse = -3 * 60 * 60;
 
-RTC_Time::RTC_Time() : fuse_(default_fuse) {}
+RTC_Time::RTC_Time()
+	: fuse_(default_fuse)
+{}
 
-void RTC_Time::init() noexcept {
+void RTC_Time::init() noexcept
+{
 	nvs_handle_t handle;
 	esp_err_t err = nvs_open("storage", NVS_READONLY, &handle);
 	if (err == ESP_OK)
@@ -26,6 +31,7 @@ void RTC_Time::init() noexcept {
 		nvs_close(handle);
 	}
 }
+
 #if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
 void RTC_Time::init(DS3231& rtc) noexcept
 {
@@ -39,6 +45,7 @@ void RTC_Time::init(DS3231& rtc) noexcept
 	init();
 }
 #endif /* CONFIG_DEVICE_CLOCK_DS3231_SUPPORT */
+
 bool RTC_Time::has_rtc() const noexcept
 {
 #if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
@@ -47,11 +54,14 @@ bool RTC_Time::has_rtc() const noexcept
 	return false;
 #endif /* CONFIG_DEVICE_CLOCK_DS3231_SUPPORT */
 }
+
 fuse_type RTC_Time::fuse() const noexcept
 {
 	return fuse_;
 }
-void RTC_Time::fuse(fuse_type f) noexcept {
+
+void RTC_Time::fuse(fuse_type f) noexcept
+{
 	nvs_handle_t handle;
 	esp_err_t err = nvs_open("storage", NVS_READWRITE, &handle);
 	if (err == ESP_OK)
@@ -63,7 +73,9 @@ void RTC_Time::fuse(fuse_type f) noexcept {
 	}
 	fuse_ = f;
 }
-value_time RTC_Time::get_time() noexcept {
+
+value_time RTC_Time::get_time() noexcept
+{
 #if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
 	if(rtc_present_)
 	{
@@ -74,13 +86,19 @@ value_time RTC_Time::get_time() noexcept {
 #endif /* CONFIG_DEVICE_CLOCK_DS3231_SUPPORT */
 	return internal_time();
 }
-value_time RTC_Time::get_local_time() noexcept {
+
+value_time RTC_Time::get_local_time() noexcept
+{
 	return get_time() + fuse_;
 }
-value_time RTC_Time::internal_time() const noexcept {
+
+value_time RTC_Time::internal_time() const noexcept
+{
 	return time_ + (static_cast<value_time>(esp_timer_get_time() / 1000000) - uptime_sec_);
 }
-void RTC_Time::set_time(std::uint32_t time) noexcept {
+
+void RTC_Time::set_time(std::uint32_t time) noexcept
+{
 #if CONFIG_DEVICE_CLOCK_DS3231_SUPPORT
 	if(rtc_present_)
 	{
@@ -92,3 +110,5 @@ void RTC_Time::set_time(std::uint32_t time) noexcept {
 	time_ = time;
 	uptime_sec_ = static_cast<value_time>(esp_timer_get_time() / 1000000);
 }
+
+}//Agro

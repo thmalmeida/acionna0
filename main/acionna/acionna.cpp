@@ -2,17 +2,17 @@
 
 static const char *TAG_ACIONNA = "Acionna0";
 
-// static ADC_driver adc0(adc_mode::noption);
+// static ADC_Driver adc0(adc_mode::noption);
 int timeout_sensors;
 int timeout_sensors_cfg = 600;
 
 volatile uint8_t flag_1sec = 0;
 volatile uint8_t flag_100ms = 0;
 
-Acionna::Acionna(ADC_driver* adc, I2C_Driver *i2c) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 220), pump1_{&epoch_time_}, valves1_{i2c, &epoch_time_, &pressure_} {
+Acionna::Acionna(ADC_Driver* adc, I2C_Driver *i2c) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 220), pump1_{&epoch_time_}, valves1_{i2c, &epoch_time_, &pressure_} {
 // Acionna::Acionna(void) : valves1_{&i2c} {
-	// ADC_driver adc0(adc_mode::oneshot);
-	// ADC_driver adc0(adc_mode::oneshot);
+	// ADC_Driver adc0(adc_mode::oneshot);
+	// ADC_Driver adc0(adc_mode::oneshot);
 	// pipe1_(&adc0, 4, 150);
 	// pipe2_(&adc0, 7, 100);
 	init();
@@ -68,12 +68,12 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 		$10:c;					- Shows the LSI current prescaler value;
 		$10:c:40123;			- Set new prescaler value;
 
-	$2X;						(not implemented)
+	$2X;						- PWM led change
 		$20:DevName;			- Change bluetooth name;
 		$20:n:
 		$21:i:30;				- lo;		- Altera o nome do bluetooth para "Vassalo";
-		$21:d:099;				- pwm: change duty cicle [%];
-		$21:f:0001				- pwm: change frequency [Hz];
+		$21:d:099;				- pwm led: change duty cicle [%];
+		$21:f:0001				- pwm led: change frequency [Hz];
 
 	$3X;						- Acionamento do motor;
 		$30;					- desliga todos contatores;
@@ -221,18 +221,17 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 	switch (opcode0) {
 		case 0: { // $0X; Check status
-			switch (opcode1) 
-			{
+			switch (opcode1) {
 				case 0:	{ // $00; Check basic parameters{
 					if(command_str[3]==';') {
-						// int a = dt_.getHour();
-						// sprintf(buffer, "%d", dt_.getHour());
-						sprintf(buffer, "%.2d:%.2d:%.2d %.2d/%.2d/%.4d up:%.2d:%.2d:%.2d d:%d, s:%d m:%d tday:%lu\n", dt_.getHour(),
-																						dt_.getMinute(),
-																						dt_.getSecond(),
-																						dt_.getDay(),
-																						dt_.getMonth(),
-																						dt_.getYear(),
+						// int a = dt_.hour();
+						// sprintf(buffer, "%d", dt_.hour());
+						sprintf(buffer, "%.2d:%.2d:%.2d %.2d/%.2d/%.4d up:%.2d:%.2d:%.2d d:%d, s:%d m:%d tday:%lu\n", dt_.hour(),
+																						dt_.minute(),
+																						dt_.second(),
+																						dt_.day(),
+																						dt_.month(),
+																						dt_.year(),
 																						timesec_to_hour(get_uptime()),
 																						timesec_to_min(get_uptime()),
 																						timesec_to_sec(get_uptime()),
@@ -261,15 +260,15 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						// $01; lasts time on values and reasons to shutdown
 						memset(buffer, 0, sizeof(buffer));
 						char buffer_temp[60];
-						DateTime dt0;
+						Date_Time dt0;
 						
 						for(int i=0; i<pump1_.log_n; i++)
 						{
-							dt0.setUnixTime(pump1_.log_motors[i].time_start);
-							sprintf(buffer_temp, "%.2d- %.2d/%.2d %.2d:%.2d m:%d t:%lu:%.2u r:%u\n", i+1, dt0.getDay(),
-																								dt0.getMonth(),
-																								dt0.getHour(),
-																								dt0.getMinute(),
+							dt0.unix_time(pump1_.log_motors[i].time_start);
+							sprintf(buffer_temp, "%.2d- %.2d/%.2d %.2d:%.2d m:%d t:%lu:%.2u r:%u\n", i+1, dt0.day(),
+																								dt0.month(),
+																								dt0.hour(),
+																								dt0.minute(),
 																								static_cast<int>(pump1_.log_motors[i].start_mode),
 																								pump1_.log_motors[i].time_elapsed_on/60,
 																								timesec_to_sec(pump1_.log_motors[i].time_elapsed_on),
@@ -483,9 +482,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						// signal_request_sensors = 1;
 						// temp_sensor.requestTemperatures();
 						// if(dht0.read2())
-						// 	sprintf(buffer, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%%\n", dt_.getHour(), dt_.getMinute(), dt_.getSecond(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
+						// 	sprintf(buffer, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%%\n", dt_.hour(), dt_.minute(), dt_.second(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
 						// else
-						// 	sprintf(buffer, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%% ER\n", dt_.getHour(), dt_.getMinute(), dt_.getSecond(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
+						// 	sprintf(buffer, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%% ER\n", dt_.hour(), dt_.minute(), dt_.second(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
 					}
 					break;
 				}
@@ -502,46 +501,48 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 				_aux[0] = command_str[6];
 				_aux[1] = command_str[7];
 				_aux[2] = '\0';
-				dt_.setHour(atoi(_aux), ND);
+				dt_.hour(atoi(_aux));
 
 				_aux[0] = command_str[8];
 				_aux[1] = command_str[9];
 				_aux[2] = '\0';
-				dt_.setMinute(static_cast<uint8_t>(atoi(_aux)));
+				dt_.minute(static_cast<uint8_t>(atoi(_aux)));
 
 				_aux[0] = command_str[10];
 				_aux[1] = command_str[11];
 				_aux[2] = '\0';
-				dt_.setSecond(static_cast<uint8_t>(atoi(_aux)));
+				dt_.second(static_cast<uint8_t>(atoi(_aux)));
 
 				// dt_.setTime(0, 0, 0, ND);
-				device_clock_.set_time(dt_.getUnixTime());
-				time_day_sec_ = dt_.getHour()*3600 + dt_.getMinute()*60 + dt_.getSecond();
+				// device_clock_.set_time(dt_.unix_time());
+				dt_.update();
+				time_day_sec_ = dt_.hour()*3600 + dt_.minute()*60 + dt_.second();
 
-				sprintf(buffer, "Time: %.2d:%.2d:%.2d\n", dt_.getHour(), dt_.getMinute(), dt_.getSecond());
+				sprintf(buffer, "Time: %.2d:%.2d:%.2d\n", dt_.hour(), dt_.minute(), dt_.second());
 			} else if ((command_str[3] == ':') && (command_str[4] == 'd') && (command_str[5] == ':') && (command_str[14] == ';')) {
 			// $10:d:13122022;
 				_aux[0] = command_str[6];
 				_aux[1] = command_str[7];
 				_aux[2] = '\0';
-				dt_.setDay(atoi(_aux));
+				dt_.day(atoi(_aux));
 
 				_aux[0] = command_str[8];
 				_aux[1] = command_str[9];
 				_aux[2] = '\0';
-				dt_.setMonth(static_cast<uint8_t>(atoi(_aux)));
+				dt_.month(static_cast<uint8_t>(atoi(_aux)));
 
 				_aux2[0] = command_str[10];
 				_aux2[1] = command_str[11];
 				_aux2[2] = command_str[12];
 				_aux2[3] = command_str[13];
 				_aux2[4] = '\0';
-				dt_.setYear(static_cast<uint16_t>(atoi(_aux2)));
+				dt_.year(static_cast<uint16_t>(atoi(_aux2)));
 
 				// dt_.setTime(0, 0, 0, ND);
-				device_clock_.set_time(dt_.getUnixTime());
+				// device_clock_.set_time(dt_.unix_time());
+				dt_.update();
 
-				sprintf(buffer, "Date:%.2d/%.2d/%.4d\n", dt_.getDay(), dt_.getMonth(), dt_.getYear());
+				sprintf(buffer, "Date:%.2d/%.2d/%.4d\n", dt_.day(), dt_.month(), dt_.year());
 			} // $10:d:10082022;
 			break;
 		}
@@ -1203,15 +1204,15 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					// $80:h;	// show valves sequence history
 						char buffer_temp[85] = {};
 						sprintf(buffer, "Valves history: \n");
-						DateTime dt0;
+						Date_Time dt0;
 
 						for(auto i=0; i<valves1_.log_n; i++) {
-							dt0.setUnixTime(valves1_.log_valves[i].started_time);
+							dt0.unix_time(valves1_.log_valves[i].started_time);
 							sprintf(buffer_temp, "%.2d- %.2d/%.2d %.2d:%.2d v%d t:%d:%.2u p:%d\n", i+1,
-																						dt0.getDay(),
-																						dt0.getMonth(),
-																						dt0.getHour(),
-																						dt0.getMinute(),
+																						dt0.day(),
+																						dt0.month(),
+																						dt0.hour(),
+																						dt0.minute(),
 																						valves1_.log_valves[i].valve_id,
 																						static_cast<int>(valves1_.log_valves[i].elapsed_time/60.0),
 																						timesec_to_sec(valves1_.log_valves[i].elapsed_time),
@@ -1585,10 +1586,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 void Acionna::init() {
 
 	// Clock time init
-	dt_.setDate(2023, 07, 10);
-	dt_.setTime(0, 0, 0, ND);
-	device_clock_.set_time(dt_.getUnixTime());
-	time_day_sec_ = dt_.getHour()*3600 + dt_.getMinute()*60 + dt_.getSecond();
+	dt_.date_time(2023, 07, 10, 0, 0, 0);
+	dt_.update();
+
+	time_day_sec_ = dt_.hour()*3600 + dt_.minute()*60 + dt_.second();
 
 	// wifi and ws server init - ws server will ask to init into connection_event_handler when got IP.
 	#ifdef CONFIG_IP_END_FORCE
@@ -1608,7 +1609,7 @@ void Acionna::init() {
 							{"84:cc:a8:69:f6:f0"},	// .31 - test device;
 							{"84:cc:a8:69:97:7c"},	// .32 - poço cacimba;
 							{"84:cc:a8:69:9c:4c"},	// .33 - irrigação.
-							{"84:cc:a8:69:41:34"}};	// .34 - new one.
+							{"08:d1:f9:c7:f1:74"}};	// .34 - artesiano
 
 	// Converting uint8_t vector mac address to string
 	for(int i=0; i<6; i++) {
@@ -1710,12 +1711,11 @@ void Acionna::msg_fetch_(void) {
 void Acionna::msg_exec_(void) {
 
 	#ifdef CONFIG_BT_ENABLE
-		if((bt_ans_flag_ == states_flag::enable) || (ws_server_ans_flag_ == states_flag::enable) || (ws_client_ans_flag_ == states_flag::enable)) {
+		if((bt_ans_flag_ == states_flag::enable) || (ws_server_ans_flag_ == states_flag::enable) || (ws_client_ans_flag_ == states_flag::enable))			
 	#else
-		if((ws_server_ans_flag_ == states_flag::enable) || (ws_client_ans_flag_ == states_flag::enable)) {
+		if((ws_server_ans_flag_ == states_flag::enable) || (ws_client_ans_flag_ == states_flag::enable))
 	#endif
 		msg_back_str_ = handle_message(command_str_);
-	}
 }
 void Acionna::msg_back_(void) {
 
@@ -2370,68 +2370,26 @@ void Acionna::sys_wifi_mac_(char* buffer_str) {
 		strcat(buffer_str, buffer_temp);
 	}
 }
-void Acionna::sensor_dht(void) {
+void Acionna::sensor_(void) {
 
-
-	// ESP_LOGI(TAG_SENSORS, "signal_request_sensors:%d", acionna0.signal_request_sensors);
-	// acionna0.signal_request_sensors = 0;
-
-	// char buffer[100] = "not changed!!\n";
-	// _delay_ms(2000);
-	// temp_sensor.requestTemperatures();
-
-	// if(dht0.read2())
-	// sprintf(buffer, "Tout:%.2f, Tin:%.1f, Humidity: %.1f%%\n", temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
-	// else
-	// sprintf(buffer, "Tout:%.2f, Tin:%.1f, Humidity: %.1f%% ER\n", temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
-	// _delay_ms(1000);
-
-
-	// if(dht0.read2())
-	// {
-	// ESP_LOGI(TAG_SENSORS, "Temp outside: %.2f, Temp inside: %.2f, Humidity: %.2f%%", temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
-	// // count_down = 10*60;
-	// }
-	// else
-	// {
-	// ESP_LOGI(TAG_DHT, "error reading");
-	// }
-	// }
-
-	// if(acionna0.signal_DS18B20)
-	// {
-	// if(temp_sensor_count)
-	// {
-	// temp_sensor.requestTemperatures();
-	// temp_sensor.getTempCByIndex(0);
-	// }
-	// }
-
-		// dht0.begin();
-	// temp_sensor.begin();
-	// temp_sensor_count = temp_sensor.getDeviceCount();
-	// ESP_LOGI(TAG_SENSORS, "Temp sensors count: %u", temp_sensor_count)
 }
 void Acionna::update_all() {
-	update_RTC();				// update RTC time
+	update_clock();				// update clock RTC time
 	update_objects();			// call valves, pump and pipe one second update
 	update_stored_data();		// do nothing
-
 	// update_sensors();		// test sensors
 }
-void Acionna::update_RTC() {
+void Acionna::update_clock() {
 
-	update_uptime();			// increment uptime system global variable
+	dt_.fetch();
+	epoch_time_ = dt_.unix_time();
 
-	epoch_time_ = device_clock_.get_time();
-	dt_.setUnixTime(epoch_time_);
+	uptime_++;					// increment uptime system global variable
+	time_day_sec_++;			// time of day in seconds
 
-	time_day_sec_++;
 	// compare time_day_sec with whole day seconds 24*60*60 = 86400
-	if(time_day_sec_ == 86400) {
-		// time_day_sec_ ^= time_day_sec_;
+	if(time_day_sec_ == 86400)
 		time_day_sec_ = 0;
-	}
 }
 void Acionna::update_objects() {
 
@@ -2441,12 +2399,12 @@ void Acionna::update_objects() {
 
 	pipe2_.update();
 
-	// #ifdef CONFIG_WELL_SUPPORT
-	// well1_.update();
-	// #endif
-
 	// #ifdef CONFIG_VALVES_SUPPORT
 	valves1_.update();
+	// #endif
+
+	// #ifdef CONFIG_WELL_SUPPORT
+	// well1_.update();
 	// #endif
 }
 void Acionna::update_sensors() {
@@ -2459,7 +2417,7 @@ void Acionna::update_sensors() {
 		// temp_sensor.requestTemperatures();
 		// if(dht0.read2())
 		// {
-		// 	ESP_LOGI(TAG_ACIONNA, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%%", dt_.getHour(), dt_.getMinute(), dt_.getSecond(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
+		// 	ESP_LOGI(TAG_ACIONNA, "Time: %.2d:%.2d:%.2d, Tout:%.2f, Tin:%.1f, Humidity: %.1f%%", dt_.hour(), dt_.minute(), dt_.second(), temp_sensor.getTempCByIndex(0), (float)dht0.getTempCelsius(0)*0.1, (float)dht0.getHumidity(0)*0.1);
 		// }
 		// else
 		// {
@@ -2476,15 +2434,6 @@ void Acionna::update_sensors() {
 }
 void Acionna::update_stored_data() {
 }
-void Acionna::update_uptime() {
-	uptime_++;
-	// ESP_LOGI(TAG_ACIONNA, "uptime: %lu, esp_uptime: %ld", uptime_, static_cast<long int>(esp_timer_get_time() / 1000000);
-	// or
-	// uptime_ = esp_timer_get_time();
-	// ESP_LOGI(TAG_ACIONNA, "uptime: %d", device_clock_.internal_time());
-	// ESP_LOGI(TAG_ACIONNA, "uptime: %ld", static_cast<long int>((esp_timer_get_time() / 1000000)));
-}
-
 
 
 

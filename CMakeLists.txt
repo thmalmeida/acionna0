@@ -2,11 +2,10 @@
 # CMakeLists in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.25)
 
-set(PROJECT_VER "v1.0.24-20240321-1200")
-
 set(EXTRA_COMPONENT_DIRS
-						components/agro_mesh/modules/clock
+						# components/agro_mesh/modules/clock
 						components/basic_defines
+						components/clock
 						components/connections
 						components/crc
 						components/eeprom
@@ -28,3 +27,6 @@ project(acionna0)
 
 #idf_build_set_property(COMPILE_OPTIONS "-Wno-error=class-memaccess" APPEND)
 #idf_build_set_property(COMPILE_OPTIONS "-fdiagnostics-color=always" APPEND)
+
+set(PROJECT_VER "v1.0.26-20240705-2114")
+# set(PROJECT_VER "v1.0.25-20240629-2109")

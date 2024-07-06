@@ -68,22 +68,24 @@ void Date_Time::date_time(uint16_t yr, uint8_t mo, uint8_t da, uint8_t hor, uint
 }
 
 void Date_Time::unix_time(uint32_t ut) {
-	unsigned long day, mins, secs, year, leap;
+	// since 1970-01-01 00:00:00
+	unsigned long days, mins, secs, years, leap;
 
-	day = ut/(24L*60*60);
+	days = ut/(24L*60*60);
 	secs = ut % (24L*60*60);
 	second_ = secs % 60;
 	mins = secs / 60;
 	hour_ = mins / 60;
 	minute_ = mins % 60;
-	year = (((day * 4) + 2)/1461);
-	year_ = year + 1970;
+	// ??
+	years = (((days * 4) + 2)/1461);
+	year_ = years + 1970;
 	leap = !(year_ & 3);
-	day -= ((year * 1461) + 1) / 4;
-//	day_ = day;
-	day += (day > 58 + leap) ? ((leap) ? 1 : 2) : 0;
-	month_ = ((day * 12) + 6)/367 + 1;
-	day_ = day + 1 - (((month_ - 1) * 367) + 5)/12;
+	days -= ((years * 1461) + 1) / 4;
+//	day_ = days;
+	days += (days > 58 + leap) ? ((leap) ? 1 : 2) : 0;
+	month_ = ((days * 12) + 6)/367 + 1;
+	day_ = days + 1 - (((month_ - 1) * 367) + 5)/12;
 }
 
 // Get functions
@@ -153,14 +155,21 @@ int8_t Date_Time::time_fuse(void) {
 	return time_fuse_;
 }
 /* Ref.: https://en.wikipedia.org/wiki/Leap_year
- * Não considera a exceção de anos divisiveis por 100 não é ano bissexto
- * Não considera a exceção da exceção que anos diviveis por 400 é ano bissexto
+ * Each leap year has 366 days instead of 365. This extra leap day occurs
+ * in each year that is a multiple of 4, except for years evenly divisible
+ * by 100 but not by 400.
  */
 bool Date_Time::leap_year(void) {
-	if(year_ % 4) return false;
-	if(year_ % 100) return true;
-	if(year_ % 400) return false;
-	return true;
+	if(year_ % 4)			
+		return false;
+
+	if(year_ % 100)
+		return true;	// [YES] divided by 4 only
+
+	if(year_ % 400)
+		return false;	// [NO] divided by 4 and divided by 100
+
+	return true;		// [YES] divided by 4, divided by 100 and 400
 }
 /*
  * https://en.wikipedia.org/wiki/Zeller%27s_congruence

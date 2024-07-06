@@ -1,12 +1,16 @@
 #include "ds1307.hpp"
 
 DS1307::DS1307(I2C_Driver *i2c) : i2c_(i2c) {
+	init();
+}
 
+bool DS1307::probe(void) {
+	return i2c_->probe(DS1307_ADDR);
 }
 
 void DS1307::init(void) {
 
-	// 1- data raw fetch get read all registers;
+	// 1- data raw fetch read all registers;
 	fetch();
 
 	// 2- setup control register for SQW/OUTPUT signal
@@ -35,14 +39,14 @@ void DS1307::fetch(void) {
 	year_ = decode_year_(data_raw_[6]);
 	ctrl_ = data_raw_[7];
 
-	// Read the bit 6 for hour register from DS1307
+	// Read the bit 6 of hour register from 02h addr (DS1307/DS3231)
 	if((data_raw_[2] >> 6) & 0x01) {
 		format_ = ds1307_format::H12;
 
 		if((data_raw_[2] >> 5) & 0x01)
-			AM_PM_ = ds1307_AM_PM::PM;
+			period_ = ds1307_period::PM;
 		else
-			AM_PM_ = ds1307_AM_PM::AM;
+			period_ = ds1307_period::AM;
 	}
 	else
 		format_ = ds1307_format::H24;
@@ -108,9 +112,60 @@ void DS1307::format(ds1307_format format) {
 		i2c_->write(DS1307_ADDR, DS1307_REG_HOURS, data_raw_[2]);
 	}
 }
-ds1307_AM_PM DS1307::AM_PM(void) {
-	return AM_PM_;
+ds1307_period DS1307::period(void) {
+	return period_;
 }
+
+// Set functions - update DS1307 registers
+void DS1307::date_time(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t min, uint8_t sec) {
+	data_raw_[0] = encode_second_(sec);
+	data_raw_[1] = encode_minute_(min);
+	data_raw_[2] = encode_hour_(hour);
+	data_raw_[3] = encode_week_day_(1);
+	data_raw_[4] = encode_day_(day);
+	data_raw_[5] = encode_month_(month);
+	data_raw_[6] = encode_year_(year);
+
+	i2c_->write(DS1307_ADDR, DS1307_REG_SECONDS, &data_raw_[0], 7);
+}
+void DS1307::date(uint16_t year, uint8_t month, uint8_t day) {
+	data_raw_[4] = encode_day_(day);
+	data_raw_[5] = encode_month_(month);
+	data_raw_[6] = encode_year_(year);
+
+	i2c_->write(DS1307_ADDR, DS1307_REG_DAY, &data_raw_[4], 3);
+}
+void DS1307::time(uint8_t hour, uint8_t min, uint8_t sec) {
+	data_raw_[0] = encode_second_(sec);
+	data_raw_[1] = encode_minute_(min);
+	data_raw_[2] = encode_hour_(hour);
+
+	i2c_->write(DS1307_ADDR, DS1307_REG_SECONDS, &data_raw_[0], 3);
+}
+
+// Get functions
+uint16_t DS1307::year(void) {
+	return year_ + DS1307_MILLENNIUM;
+}
+uint8_t DS1307::month(void) {
+	return month_;
+}
+uint8_t DS1307::day(void) {
+	return day_;
+}
+uint8_t DS1307::week_day(void) {
+	return week_day_;
+}
+uint8_t DS1307::hour(void) {
+	return hour_;
+}
+uint8_t DS1307::minute(void) {
+	return min_;
+}
+uint8_t DS1307::second(void) {
+	return sec_;
+}
+
 // Decode - convert DS1307 byte format to decimal value
 uint8_t DS1307::decode_second_(uint8_t data_raw) {
 	return ((data_raw >> 4) & 0x07)*10 + (data_raw & 0x0F);
@@ -160,54 +215,4 @@ uint8_t DS1307::encode_month_(uint8_t month) {
 }
 uint8_t DS1307::encode_year_(uint16_t year) {
 	return ((year-2000)/10 << 4) | ((year-2000)%10);
-}
-
-// Set functions - update DS1307 registers
-void DS1307::date_time(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t min, uint8_t sec) {
-	data_raw_[0] = encode_second_(sec);
-	data_raw_[1] = encode_minute_(min);
-	data_raw_[2] = encode_hour_(hour);
-	data_raw_[3] = encode_week_day_(1);
-	data_raw_[4] = encode_day_(day);
-	data_raw_[5] = encode_month_(month);
-	data_raw_[6] = encode_year_(year);
-
-	i2c_->write(DS1307_ADDR, DS1307_REG_SECONDS, &data_raw_[0], 7);
-}
-void DS1307::date(uint16_t year, uint8_t month, uint8_t day) {
-	data_raw_[4] = encode_day_(day);
-	data_raw_[5] = encode_month_(month);
-	data_raw_[6] = encode_year_(year);
-
-	i2c_->write(DS1307_ADDR, DS1307_REG_DAY, &data_raw_[4], 3);
-}
-void DS1307::time(uint8_t hour, uint8_t min, uint8_t sec) {
-	data_raw_[0] = encode_second_(sec);
-	data_raw_[1] = encode_minute_(min);
-	data_raw_[2] = encode_hour_(hour);
-
-	i2c_->write(DS1307_ADDR, DS1307_REG_SECONDS, &data_raw_[0], 3);
-}
-
-// Get functions
-uint8_t DS1307::second(void) {
-	return sec_;
-}
-uint8_t DS1307::minute(void) {
-	return min_;
-}
-uint8_t DS1307::hour(void) {
-	return hour_;
-}
-uint8_t DS1307::week_day(void) {
-	return week_day_;
-}
-uint8_t DS1307::day(void) {
-	return day_;
-}
-uint8_t DS1307::month(void) {
-	return month_;
-}
-uint16_t DS1307::year(void) {
-	return year_ + DS1307_MILLENNIUM;
 }

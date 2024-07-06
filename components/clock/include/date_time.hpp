@@ -2,16 +2,19 @@
 #define DATE_TIME_HPP__
 
 #include <stdio.h>
-#include <stdint.h>
+// #include <stdint.h>
+#include <cstdint>
 
 // #include <time.hpp>
 
-/*
- * Começando a semana em 1, baseado na iso
- * https://en.wikipedia.org/wiki/ISO_week_date
+/* Refs.:
+ * 	1- https://howardhinnant.github.io/date_algorithms.html
+ *	2- https://en.wikipedia.org/wiki/ISO_week_date
+ *	3- https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/system_time.html
+ *	4- https://www.geeksforgeeks.org/measure-execution-time-function-cpp/
  */
 
-typedef enum {
+enum class week_day {
 	MONDAY = 1,
 	TUESDAY,
 	WEDNEDAY,
@@ -19,7 +22,7 @@ typedef enum {
 	FRIDAY,
 	SATURDAY,
 	SUNDAY
-} week_day;
+};
 
 enum class time_format {
 	H24 = 0,
@@ -53,6 +56,7 @@ class Date_Time {
 
 		void unix_time(uint32_t ut);
 
+
 		// Get functions
 		uint16_t year(void);
 		uint8_t month(void);
@@ -62,12 +66,15 @@ class Date_Time {
 		uint8_t minute(void);
 		uint8_t second(void);
 
+		uint32_t unix_time(void);
+
+
+		// Setting using this class
 		void date(Date_Time *date);
 		void time(Date_Time *time);
 		void date_time(Date_Time *dt);
 
-		uint32_t unix_time(void);
-
+	
 		// Other features
 		day_period period(void);
 		time_format time_mode(void);
