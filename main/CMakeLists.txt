@@ -8,6 +8,7 @@ idf_component_register(SRCS main.cpp
 							acionna/valves.cpp
 							acionna/well.cpp
                     		INCLUDE_DIRS "."
+							INCLUDE_DIRS "acionna/sensors/include"
 							REQUIRES adc aht10 ahtx0 bmp180 bmp280 clock connections ds3231 ds1307 eeprom helper i2c math ota pcy8575 pwm ssd1306 timer)
 
 
