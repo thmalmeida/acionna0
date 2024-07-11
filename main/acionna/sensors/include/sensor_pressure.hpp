@@ -64,7 +64,7 @@
 class Sensor_Pressure {
 public:
 	Sensor_Pressure(ADC_Driver *adc, int channel, int pressure_psi_max) : adc_(adc), channel_(channel), pressure_psi_max_(pressure_psi_max) {
-
+		adc_->channel_config(channel_);
 	}
 
 	int PRess;								// last pressure converted;
@@ -83,10 +83,9 @@ public:
 
 	// functions
 	double pressure_psi(void) {
-		const double d_max = 3878.0;	// 4500 mV
-		const double d_min = 124.0; 	// 502 mV
+
 		int data_12bits = adc_->read(channel_);
-		return static_cast<double>(pressure_psi_max_)*(data_12bits - d_min)/(d_max-d_min);
+		return static_cast<double>(pressure_psi_max_)*(data_12bits - d_min_)/(d_max_-d_min_);
 	}
 	double pressure_mca(void) {
 		return pressure_psi()*K_PSI_MCA;
@@ -97,11 +96,13 @@ public:
 	int pressure_psi_max(void) {
 		return pressure_psi_max_;
 	}
-
+	
 private:
 	ADC_Driver *adc_;
 	int channel_;
 	int pressure_psi_max_;
+	const double d_max_ = 3878.0;	// 4500 mV
+	const double d_min_ = 124.0; 	// 502 mV
 };
 
 #endif /* P_SENSOR_HPP__ */

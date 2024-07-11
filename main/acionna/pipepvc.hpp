@@ -17,9 +17,8 @@ public:
 	
 	int pressure_max = 56;							// max supported pressure by pipe [m.c.a];
 	int pressure_min = 30;							// min threshold pressure for indicate some problem;
-	int sensor_pressure_ref;						// sensor max pressure [psi];
 	int pressure_mca_fi = 0;						// pressure value after dig low pass filter
-	
+
 	// Variables for low pressure detection algorithm
 	int air_detect_pressure_low_ref = 10;			// after stable, min threshold pressure to find air intake;
 	uint32_t air_detect_timer_increase = 0;
@@ -44,7 +43,6 @@ public:
 //	uint8_t flag_PressureDown = 0;		// flag for pressure down occurrence;
 
 	Pipepvc(ADC_Driver *adc, int channel, int press_psi_factory) : sensor0(adc, channel, press_psi_factory) {
-		// adc_->channel_config(channel_);
 	}
 	void update(void) {
 		pressure_mca_ = sensor0.pressure_mca();
@@ -54,6 +52,14 @@ public:
 	int pressure_mca(void) {
 		return pressure_mca_;
 	}
+	// int sensor_pressure_ref;						// sensor max pressure [psi];
+	int sensor_pressure_ref(void) {
+		return sensor0.pressure_psi_max();
+	}
+	void sensor_pressure_ref(int value) {
+		sensor0.pressure_psi_max(value);
+	}
+	
 	int air_intake_detect(states_motor state_motor, states_motor state_motor_ref, int pressure_expected) {
 		switch (air_detect_state) 
 		{

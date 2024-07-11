@@ -407,9 +407,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux2[3] = command_str[9];		// '0' in uint8_t is 48. ASCII
 						_aux2[4] = '\0';
 
-						pipe1_.sensor_pressure_ref = atoi(_aux2);
+						pipe1_.sensor_pressure_ref(atoi(_aux2));
 
-						sprintf(buffer, "set press1 max ref: %d\n", pipe1_.sensor_pressure_ref);
+						sprintf(buffer, "set press1 max ref: %d\n", pipe1_.sensor_pressure_ref());
 					} // 	$03:p1:100;	- Set 100 psi the max pressure of sensor;
 					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == '2') && (command_str[6] == ':') && (command_str[10] == ';')) {
 						_aux2[0] = '0';
@@ -418,15 +418,15 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux2[3] = command_str[9];		// '0' in uint8_t is 48. ASCII
 						_aux2[4] = '\0';
 
-						pipe2_.sensor_pressure_ref = atoi(_aux2);
+						pipe2_.sensor_pressure_ref(atoi(_aux2));
 
-						sprintf(buffer, "set press2 max ref: %d\n", pipe2_.sensor_pressure_ref);
+						sprintf(buffer, "set press2 max ref: %d\n", pipe2_.sensor_pressure_ref());
 					} // 	$03:p2:100;	- Set 100 psi the max pressure of sensor;
 					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == '1') && (command_str[6] == ';')) {
-						sprintf(buffer, "press1 max ref: %d\n", pipe1_.sensor_pressure_ref);
+						sprintf(buffer, "press1 max ref: %d\n", pipe1_.sensor_pressure_ref());
 					} // 	$03:p1;	- Show max pressure of sensor;
 					else if((command_str[3] == ':') && (command_str[4] == 'p') && (command_str[5] == '2') && (command_str[6] == ';')) {
-						sprintf(buffer, "press1 max ref: %d\n", pipe2_.sensor_pressure_ref);
+						sprintf(buffer, "press1 max ref: %d\n", pipe2_.sensor_pressure_ref());
 					} // 	$03:p1;	- Show max pressure of sensor;
 					else if((command_str[3] == ':') && (command_str[4] == 'b') && (command_str[5] == '2') && (command_str[6] == ';')) {
 						sprintf(buffer, "State:%d, count:%lu \n", pipe2_.air_intake_detect_state(), pipe2_.air_detect_count_increase);
@@ -1754,6 +1754,8 @@ void Acionna::msg_json_back_(void) {
 			char buffer_str[150];
 			DynamicJsonDocument doc(1024);
 			doc["id"] = wifi_ip_end;
+			// doc["t0"] = dt_.unix_time();
+			doc["c0"] = time_day_sec_;
 			doc["p1"] = pipe1_.pressure_mca();
 			doc["p2"] = pipe2_.pressure_mca();
 			doc["ton"] = pump1_.time_on();
