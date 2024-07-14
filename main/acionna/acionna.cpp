@@ -2,14 +2,10 @@
 
 static const char *TAG_ACIONNA = "Acionna0";
 
-// static ADC_Driver adc0(adc_mode::noption);
-int timeout_sensors;
-int timeout_sensors_cfg = 600;
-
 volatile uint8_t flag_1sec = 0;
 volatile uint8_t flag_100ms = 0;
 
-Acionna::Acionna(ADC_Driver* adc, I2C_Driver *i2c) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 220), pump1_{&epoch_time_}, valves1_{i2c, &epoch_time_, &pressure_} {
+Acionna::Acionna(ADC_Driver* adc, I2C_Driver *i2c) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 220), pump1_{&epoch_time_}, valves1_{i2c, &epoch_time_, &pressure_}, s0_(i2c), i2c_(i2c) {
 // Acionna::Acionna(void) : valves1_{&i2c} {
 	// ADC_Driver adc0(adc_mode::oneshot);
 	// ADC_Driver adc0(adc_mode::oneshot);
@@ -59,6 +55,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			$07:0;				- ADC reference change; AREF
 			$07:1;				- AVCC with external cap at AREF pin
 			$07:2;				- Internal 1.1 Voltage reference.
+		$08;					- I2C sensor addr list;
+			$08:s[n];			- Sensor n probe;
+			$08:
 
 	$10:h:HHMMSS;				- Ajustes do calendário;
 		$10:h:HHMMSS;			- Ajusta o horário do sistema;
@@ -226,7 +225,8 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					if(command_str[3]==';') {
 						// int a = dt_.hour();
 						// sprintf(buffer, "%d", dt_.hour());
-						sprintf(buffer, "%.2d:%.2d:%.2d %.2d/%.2d/%.4d up:%.2d:%.2d:%.2d d:%d, s:%d m:%d tday:%lu\n", dt_.hour(),
+						sprintf(buffer, "%.2d:%.2d:%.2d %.2d/%.2d/%.4d up:%.2d:%.2d:%.2d d:%d, s:%d m:%d tday:%lu\n",
+																						dt_.hour(),
 																						dt_.minute(),
 																						dt_.second(),
 																						dt_.day(),
@@ -238,8 +238,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 																						timesec_to_day(get_uptime()),
 																						static_cast<int>(state_mode),
 																						static_cast<int>(pump1_.state()),
-																						time_day_sec_
-																						);
+																						time_day_sec_);
 					} else if((command_str[3] == ':') && (command_str[5] == ';')) {
 						_aux[0] = '0';
 						_aux[1] = command_str[4];		// '0' in uint8_t is 48. ASCII
@@ -476,9 +475,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					break;
 				}
 				case 8: { // $08;
-					if(command_str[3]==';')
-					{
-						sprintf(buffer, "sensors request. Not implemented\n");
+					if(command_str[3]==';') {
+						peripheral_i2c_sensors_list(buffer);
+
 						// signal_request_sensors = 1;
 						// temp_sensor.requestTemperatures();
 						// if(dht0.read2())
@@ -1375,9 +1374,10 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux2[3] = command_str[7];		// '0' in uint8_t is 48. ASCII
 						_aux2[4] = '\0';
 						uint16_t output_temp = static_cast<uint16_t>(hexstr_to_int(&_aux2[0], 4));
-						ESP_LOGI(TAG_ACIONNA, "output_temp: 0x%04x", output_temp);
+						// ESP_LOGI(TAG_ACIONNA, "output_temp: 0x%04x", output_temp);
 						valves1_.module_put(output_temp);
-						sprintf(buffer, "PCY8575 put. verify get: 0x%04x\n", valves1_.module_get());
+						sprintf(buffer, "PCY8575 put 0x%04x\n", output_temp);
+						// sprintf(buffer, "PCY8575 put. verify get: 0x%04x\n", valves1_.module_get());
 					}
 					break;
 				}
@@ -1650,6 +1650,7 @@ void Acionna::init() {
 	#endif /* CONFIG_DEVICE_CLOCK_DS3231_SUPPORT */
 
 	// Sensors init
+	
 	// temp_sensor.begin();
 	// gpio_iomux_out(GPIO_NUM_13, 2, false);
 	// dht0.read2();
@@ -2055,11 +2056,22 @@ void Acionna::parser_(uint8_t* payload_str, int payload_str_len, uint8_t *comman
 		}
 	}
 }
+void Acionna::peripheral_i2c_sensors_list(char* buffer_str) {
+	char buffer_temp[45], str[50];
+	memset(buffer_str, 0, sizeof(*buffer_str));
+	sprintf(str, "Address found\n");
+	for(uint8_t i=0; i<128; i++) {
+		if(i2c_->probe(i) == true) {
+			sprintf(buffer_temp, "0x%02x\n", i);
+			strcat(buffer_str, buffer_temp);
+		}
+	}
+}
 void Acionna::run(void) {
 
 	msg_fetch_();					// fetch for a new command;
 
-	msg_exec_();					// parse and execute the commmand;
+	msg_exec_();					// parse and execute the commmand. Put cmd into handle_message;
 
 	msg_back_();					// send answer back to origin;
 }
@@ -2331,8 +2343,7 @@ void Acionna::sys_wifi_info_(char* buffer_str) {
 	wifi_ap_record_t wifi_info;
 	memset(buffer_str, 0, sizeof(*buffer_str));
 
-	if (esp_wifi_sta_get_ap_info(&wifi_info)== ESP_OK)
-	{
+	if (esp_wifi_sta_get_ap_info(&wifi_info) == ESP_OK) {
 		char *str0 = (char*) wifi_info.ssid;
 		sprintf(buffer_str, "SSID: %s, RSSI: %d\n", str0, static_cast<int>(wifi_info.rssi));
 	}
@@ -2372,14 +2383,11 @@ void Acionna::sys_wifi_mac_(char* buffer_str) {
 		strcat(buffer_str, buffer_temp);
 	}
 }
-void Acionna::sensor_(void) {
-
-}
 void Acionna::update_all() {
 	update_clock();				// update clock RTC time
 	update_objects();			// call valves, pump and pipe one second update
 	update_stored_data();		// do nothing
-	// update_sensors();		// test sensors
+	update_sensors();			// test sensors
 }
 void Acionna::update_clock() {
 
@@ -2410,11 +2418,11 @@ void Acionna::update_objects() {
 	// #endif
 }
 void Acionna::update_sensors() {
-	// if(!timeout_sensors)
-	// {
-	// 	timeout_sensors = timeout_sensors_cfg;
+	if(!timeout_sensors_) {
+		timeout_sensors_ = timeout_sensors_cfg_;
 
-		// signal_request_sensors = 1;
+		s0_.fetch();
+		printf("%.2u:%.2u:%.2u, T: %.2f C, H: %.2f %%\n", dt_.hour(), dt_.minute(), dt_.second() , s0_.temperature(), s0_.humidity());
 
 		// temp_sensor.requestTemperatures();
 		// if(dht0.read2())
@@ -2430,14 +2438,12 @@ void Acionna::update_sensors() {
 		// 	ESP_LOGI(TAG_DHT, "error reading");
 		// }
 		// vTaskDelay(10000 / portTICK_PERIOD_MS);
-	// }
-	// else
-	// 	timeout_sensors--;
+	}
+	else
+		timeout_sensors_--;
 }
 void Acionna::update_stored_data() {
 }
-
-
 
 
 

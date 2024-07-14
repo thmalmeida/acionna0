@@ -13,17 +13,16 @@
 // math
 #include "dsp.hpp"
 
-// Sensors
-// #include "aht10.hpp"
-// #include "bmp180.hpp"
-
 // Time clock
 #include "clockin.hpp"
-
 #include "date_time.hpp"
-#include "ds3231.hpp"
-// #include "rtc_time.hpp"
 #include "time_operations.hpp"
+
+// Sensors and modules over I2C
+// #include "bmp180.hpp"
+// #include "aht10.hpp"
+#include "ahtx0.hpp"
+#include "ds3231.hpp"
 
 // system 
 #include "json/ArduinoJson-v6.19.4.h"
@@ -122,6 +121,10 @@ private:
 	Pump pump1_;
 	Valves valves1_;
 
+	AHTX0 s0_;
+
+	I2C_Driver *i2c_;
+
 	states_flag flag_check_k1_ = states_flag::disable;					// check hardware input pin of k1
 	states_flag flag_check_k2_ = states_flag::disable;					// check hardware input pin of k2
 	states_flag flag_check_k3_ = states_flag::disable;					// check hardware input pin of k3
@@ -150,6 +153,12 @@ private:
 	states_flag ws_server_ans_flag_ = states_flag::disable;
 	states_flag bt_ans_flag_ = states_flag::disable;
 	states_flag ws_client_ans_flag_ = states_flag::disable;
+
+	// static ADC_Driver adc0(adc_mode::noption);
+
+	// Sensor time refresh
+	int timeout_sensors_ = 0;
+	int timeout_sensors_cfg_ = 10;
 	
 	uint8_t command_str_[20];											// command buffer array
 	// uint8_t command_str_len_ = 0;
@@ -196,6 +205,9 @@ private:
 	void msg_json_back_(void);
 
 	void parser_(uint8_t* payload_str, int payload_str_len, uint8_t* command_str, int& command_str_len);
+
+	// Peripherals
+	void peripheral_i2c_sensors_list(char* buffer_str);
 
 	void sys_chip_info(char* buffer_str);
 
