@@ -19,10 +19,12 @@
 #include "time_operations.hpp"
 
 // Sensors and modules over I2C
-// #include "bmp180.hpp"
+// #include "ds3231.hpp"
+// #include "ds1307.hpp"
 // #include "aht10.hpp"
 #include "ahtx0.hpp"
-#include "ds3231.hpp"
+#include "bmp280.hpp"
+// #include "bmp180.hpp"
 
 // system 
 #include "json/ArduinoJson-v6.19.4.h"
@@ -122,6 +124,7 @@ private:
 	Valves valves1_;
 
 	AHTX0 s0_;
+	BMP280 s1_;
 
 	I2C_Driver *i2c_;
 
@@ -227,6 +230,5 @@ private:
 	void sys_reset_reason_(char* buffer_str);
 	void sys_restart_(void);
 	void sys_ticks_per_us(char *buffer_str);
-	void sensor_(void);
 };
 #endif

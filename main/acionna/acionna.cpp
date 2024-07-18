@@ -5,7 +5,7 @@ static const char *TAG_ACIONNA = "Acionna0";
 volatile uint8_t flag_1sec = 0;
 volatile uint8_t flag_100ms = 0;
 
-Acionna::Acionna(ADC_Driver* adc, I2C_Driver *i2c) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 220), pump1_{&epoch_time_}, valves1_{i2c, &epoch_time_, &pressure_}, s0_(i2c), i2c_(i2c) {
+Acionna::Acionna(ADC_Driver* adc, I2C_Driver *i2c) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 220), pump1_{&epoch_time_}, valves1_{i2c, &epoch_time_, &pressure_}, s0_(i2c), s1_(i2c), i2c_(i2c) {
 // Acionna::Acionna(void) : valves1_{&i2c} {
 	// ADC_Driver adc0(adc_mode::oneshot);
 	// ADC_Driver adc0(adc_mode::oneshot);
@@ -1383,8 +1383,27 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 				}
 				case 5: {
 					// $85;	get output value
-					uint16_t output_temp = valves1_.module_get();
-					sprintf(buffer, "PCY8575 output: 0x%04x\n", output_temp);
+					if ((command_str[3] == ':') && (command_str[5] == ';')) {
+						_aux[0] = '0';
+						_aux[1] = command_str[4];
+						_aux[2] = '\0';
+
+						uint8_t cmd_temp = atoi(_aux);
+
+						if(!cmd_temp) {
+							valves1_.module_get1();
+							sprintf(buffer, "PCY8575 send cmd get1\n");
+						} else {
+							uint16_t output_temp = valves1_.module_get2();
+							sprintf(buffer, "PCY8575 send cmd get2 0x%04x\n", output_temp);
+						}
+					} else if (command_str[3] == ';') {
+						uint16_t output_temp = valves1_.module_get();
+						sprintf(buffer, "PCY8575 send cmd get: 0x%04x\n", output_temp);
+					} else {
+						sprintf(buffer, "Valve cmd Not implemented!\n");
+					}
+
 					break;
 				}
 				case 6: {
@@ -2421,9 +2440,9 @@ void Acionna::update_sensors() {
 	if(!timeout_sensors_) {
 		timeout_sensors_ = timeout_sensors_cfg_;
 
-		s0_.fetch();
-		printf("%.2u:%.2u:%.2u, T: %.2f C, H: %.2f %%\n", dt_.hour(), dt_.minute(), dt_.second() , s0_.temperature(), s0_.humidity());
-
+		// s0_.fetch();
+		// s1_.fetch();
+		// printf("%.2u:%.2u:%.2u, T: %.2f C, H: %.2f %%, P: %.2f Pa T: %.2f C\n", dt_.hour(), dt_.minute(), dt_.second() , s0_.temperature(), s0_.humidity(), s1_.pressure(), s1_.temperature());
 		// temp_sensor.requestTemperatures();
 		// if(dht0.read2())
 		// {
