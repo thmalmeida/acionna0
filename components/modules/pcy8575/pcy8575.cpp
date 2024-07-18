@@ -9,20 +9,15 @@ pcy8575::pcy8575(I2C_Driver *i2c) : i2c_(i2c) {
 void pcy8575::init(uint8_t mode) {
 }
 bool pcy8575::probe(void) {
-	// bool alive = i2c_->probe(PCY8575_ADDR);
-	// ESP_LOGI(TAG_PCY8575, "probe: %d", static_cast<int>(alive));
-	static int n_bytes = 1;
-	uint8_t data[n_bytes];
-	i2c_ans ret = i2c_->read(PCY8575_ADDR, PCY8575_REG_PROBE, &data[0], n_bytes);
-
-	for(int i=0; i<n_bytes; i++) {
-		ESP_LOGI(TAG_PCY8575, "Probe byte[%d]: 0x%02x",i, data[i]);
-	}
-
-	if(ret == i2c_ans::ok)
-		return true;
-	else
-		return false;
+	// i2c_ans ret = i2c_->read(PCY8575_ADDR, PCY8575_REG_PROBE, &data[0], n_bytes);
+	// 	for(int i=0; i<n_bytes; i++) {
+	// 	ESP_LOGI(TAG_PCY8575, "Probe byte[%d]: 0x%02x",i, data[i]);
+	// }
+	// if(ret == i2c_ans::ok)
+	// 	return true;
+	// else
+	// 	return false;
+	return i2c_->probe(PCY8575_ADDR);
 }
 void pcy8575::soft_reset(void) {
 	ESP_LOGI(TAG_PCY8575, "cmd soft reset");
@@ -73,9 +68,11 @@ void pcy8575::put(uint16_t word) {
 	// }
 }
 uint16_t pcy8575::get(void) {
-
 	uint8_t data[2];
-	i2c_->read(PCY8575_ADDR, PCY8575_REG_GET, &data[0], 2);
+	// i2c_->read(PCY8575_ADDR, PCY8575_REG_GET, &data[0], 2);
+	i2c_->write(PCY8575_ADDR, PCY8575_REG_GET);
+	delay_ms(PCY8575_DELAY_CMD);
+	i2c_->read(PCY8575_ADDR, &data[0], 2);
 
 	// for(int i=0; i<2; i++) {
 	// 	ESP_LOGI(TAG_PCY8575, "data_rx[%d]: 0x%02x", i, data[i]);
@@ -83,10 +80,25 @@ uint16_t pcy8575::get(void) {
 	output_ = static_cast<uint16_t>((data[1] << 8) | data[0]);
 	return output_;
 }
+void pcy8575::get1(void) {
+	// uint8_t data[2];
+	i2c_->write(PCY8575_ADDR, PCY8575_REG_GET);
+}
+uint16_t pcy8575::get2(void) {
+	uint8_t data[2];
+	// i2c_->read(PCY8575_ADDR, PCY8575_REG_GET, &data[0], 2);
+	i2c_->read(PCY8575_ADDR, &data[0], 2);
+	output_ = static_cast<uint16_t>((data[1] << 8) | data[0]);
+	return output_;
+}
 uint16_t pcy8575::temperature(void) {
 	
 	uint8_t data[2];
-	i2c_->read(PCY8575_ADDR, PCY8575_REG_TEMPERATURE, &data[0], 2);
+	// i2c_->read(PCY8575_ADDR, PCY8575_REG_TEMPERATURE, &data[0], 2);
+
+	i2c_->write(PCY8575_ADDR, PCY8575_REG_TEMPERATURE);
+	delay_ms(PCY8575_DELAY_CMD);
+	i2c_->read(PCY8575_ADDR, &data[0], 2);
 
 	// for(int i=0; i<2; i++) {
 	// 	ESP_LOGI(TAG_PCY8575, "data_temp[%d]: 0x%02x", i, data[i]);
@@ -96,7 +108,10 @@ uint16_t pcy8575::temperature(void) {
 uint32_t pcy8575::uptime(void) {
 	
 	uint8_t data[4];
-	i2c_->read(PCY8575_ADDR, PCY8575_REG_UPTIME, &data[0], 4);
+	// i2c_->read(PCY8575_ADDR, PCY8575_REG_UPTIME, &data[0], 4);
+	i2c_->write(PCY8575_ADDR, PCY8575_REG_UPTIME);
+	delay_ms(PCY8575_DELAY_CMD);
+	i2c_->read(PCY8575_ADDR, &data[0], 4);
 
 	// for(int i=0; i<sizeof(data); i++) {
 	// 	ESP_LOGI(TAG_PCY8575, "data_temp[%d]: 0x%02x", i, data[i]);
@@ -110,7 +125,10 @@ void pcy8575::i_process(uint8_t mode) {
 }
 uint16_t pcy8575::irms(void) {
 	uint8_t data[2];
-	i2c_->read(PCY8575_ADDR, PCY8575_REG_IRMS, &data[0], 2);
+	// i2c_->read(PCY8575_ADDR, PCY8575_REG_IRMS, &data[0], 2);
+	i2c_->write(PCY8575_ADDR, PCY8575_REG_IRMS);
+	delay_ms(PCY8575_DELAY_CMD);
+	i2c_->read(PCY8575_ADDR, &data[0], 2);
 
 	// for(int i=0; i<sizeof(data); i++) {
 	// 	ESP_LOGI(TAG_PCY8575, "data_temp[%d]: 0x%02x", i, data[i]);
@@ -119,7 +137,10 @@ uint16_t pcy8575::irms(void) {
 }
 void pcy8575::i_data(void) {		
 	uint8_t data[n_samples*2];
-	i2c_->read(PCY8575_ADDR, PCY8575_REG_I_DATA, &data[0], n_samples*2);
+	// i2c_->read(PCY8575_ADDR, PCY8575_REG_I_DATA, &data[0], n_samples*2);
+	i2c_->write(PCY8575_ADDR, PCY8575_REG_I_DATA);
+	delay_ms(PCY8575_DELAY_CMD);
+	i2c_->read(PCY8575_ADDR, &data[0], n_samples*2);
 
 	for(int i=0; i<n_samples; i++) {
 		stream_array_raw[i] = (data[2*i+1] << 8) | (data[2*i]);

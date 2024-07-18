@@ -30,6 +30,8 @@
 #define PCY8575_REG_I_SET_NP	0x0C
 #define PCY8575_REG_I_GET_NP	0x0D
 
+#define PCY8575_DELAY_CMD		10		// time delay between i2c write/read cmd in [ms]
+
 
 /* write mode
 
@@ -93,6 +95,8 @@ class pcy8575 {
 	int read(int pin);
 	void put(uint16_t word);
 	uint16_t get(void);
+	void get1(void);
+	uint16_t get2(void);
 	uint16_t temperature(void);
 	uint32_t uptime(void);
 	void i_process(uint8_t mode);
