@@ -139,6 +139,9 @@ public:
 	// chip initialize. Load eeprom calibration values;
 	void init(void);
 
+	// must call before ask for pressure and temperature;
+	void fetch(void);
+
 	// return temp in scale of 0.01 C;
 	double temperature(void);
 	
@@ -154,12 +157,8 @@ public:
 	// not tested yet. Suppose to calibrate the sea level pressure
 	void pressure_sea_level(uint32_t pressure, int32_t altitude);
 
-	// must call before ask for pressure and temperature;
-	void fetch(void);
-
 	// command chip reset
 	void reset(void);
-
 
 private:
 

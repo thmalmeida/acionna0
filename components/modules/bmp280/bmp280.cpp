@@ -7,6 +7,7 @@ BMP280::BMP280(I2C_Driver *i2c) : i2c_(i2c) {
 	printf("BMP280 status: %u\n", static_cast<uint8_t>(probe()));
 	#endif
 	delay_ms(BMP280_DELAY_INIT_MS);
+	init();
 }
 
 // user app functions
