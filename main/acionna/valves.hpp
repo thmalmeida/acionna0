@@ -480,6 +480,7 @@ public:
 	uint32_t get_valve_time_delay_close(void) {
 		return time_delay_close_config_;
 	}
+
 	// Test routines
 	unsigned int valves_test_routine() {
 		
@@ -511,6 +512,12 @@ public:
 	}
 	uint16_t module_get(void) {
 		return load_.get();
+	}
+	void module_get1(void) {
+		load_.get1();
+	}
+	uint16_t module_get2(void) {
+		return load_.get2();
 	}
 	uint16_t module_temperature(void) {
 		return load_.temperature();
@@ -580,7 +587,15 @@ private:
 		float rain_mm = 0.0;								// how much mm of rain it's desired [mm];
 	} valve_[number_valves];
 
-	static const int press_vec_n_ = 10;
+	// sequence operation (not used yet 20240723)
+	struct {
+		const int seq_size = 11;
+		int seq[seq_size] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+		int n = 12;
+	} sequence_list_;
+	// -----
+
+	static const int press_vec_n_ = 30;
 	int press_vec_[press_vec_n_] = {0};
 
 	uint32_t time_system_on_ = 0;							// current time on [s];
