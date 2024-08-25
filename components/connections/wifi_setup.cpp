@@ -289,15 +289,14 @@ void wifi_scan(char* str) {
 	esp_wifi_scan_start(NULL, true);
 	ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&number, ap_info));
 	ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
-	ESP_LOGI(TAG_WIFI, "Total APs scanned = %u", ap_count);
+	// ESP_LOGI(TAG_WIFI, "Total APs scanned = %u", ap_count);
 
 	char buffer_temp[45];
-
 	sprintf(str, "SSID\tCH\tRSSI\n");
 	for (int i = 0; i<number; i++) {
-		ESP_LOGI(TAG_WIFI, "SSID \t\t%s", ap_info[i].ssid);
-		ESP_LOGI(TAG_WIFI, "RSSI \t\t%d", ap_info[i].rssi);
-		ESP_LOGI(TAG_WIFI, "Channel \t\t%d\n", ap_info[i].primary);
+		// ESP_LOGI(TAG_WIFI, "SSID \t\t%s", ap_info[i].ssid);
+		// ESP_LOGI(TAG_WIFI, "RSSI \t\t%d", ap_info[i].rssi);
+		// ESP_LOGI(TAG_WIFI, "Channel \t\t%d\n", ap_info[i].primary);
 
 		sprintf(buffer_temp, "%s\t%d\t%d\n", ap_info[i].ssid, ap_info[i].primary, ap_info[i].rssi);
 		strcat(str, buffer_temp);
