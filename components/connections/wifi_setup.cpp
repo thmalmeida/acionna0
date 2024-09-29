@@ -5,6 +5,7 @@
 *      Author: thmalmeida
 */
 #include "wifi_setup.hpp"
+#include "ntp.hpp"
 
 ip_get_types ip_get_mode = ip_get_types::dhcp;
 ip_states ip_state = ip_states::ip_not_defined;
@@ -42,18 +43,42 @@ void wifi_sta_init(uint8_t ip_end) {
 			esp_netif_t *my_sta = esp_netif_create_default_wifi_sta();
 			// assert(my_sta);              // is that for debug?
 
-			esp_netif_dhcpc_stop(my_sta);
-			esp_netif_ip_info_t ip_info;
-			// esp_netif_set_ip4_addr();
-			IP4_ADDR(&ip_info.ip, 192, 168, 1, ip_end);
-			IP4_ADDR(&ip_info.gw, 192, 168, 1, 1);
-			IP4_ADDR(&ip_info.netmask, 255, 255, 255, 0);
-			esp_netif_set_ip_info(my_sta, &ip_info);
+			if(esp_netif_dhcpc_stop(my_sta) != ESP_OK) {
+				ESP_LOGE(TAG_WIFI, "dhcp stop fail");
+				return;
+			}
+			esp_netif_ip_info_t net_info;
+			memset(&net_info, 0, sizeof(esp_netif_ip_info_t));
+
+			// esp_netif_set_ip4_addr()
+			// net_info.ip.addr = ipaddr_addr(EXAMPLE_STATIC_IP_ADDR);
+			net_info.netmask.addr = ipaddr_addr("255.255.255.0");
+			net_info.gw.addr = ipaddr_addr("192.168.1.5");
+
+			IP4_ADDR(&net_info.ip, 192, 168, 1, ip_end);
+			// IP4_ADDR(&net_info.gw, 192, 168, 1, 5);
+			// IP4_ADDR(&net_info.netmask, 255, 255, 255, 0);
+			if(esp_netif_set_ip_info(my_sta, &net_info) != ESP_OK) {
+				ESP_LOGE(TAG_WIFI, "Failed on set static ip");
+				return;
+			}
 			ESP_LOGI(TAG_WIFI, "static ip mode");
+
+
+			esp_netif_dns_info_t dns_server;
+			memset(&dns_server,0,sizeof(dns_server));
+			IP4_ADDR(&dns_server.ip.u_addr.ip4, 8, 8, 8, 8);
+			dns_server.ip.type = IPADDR_TYPE_V4;
+
+			ESP_ERROR_CHECK(esp_netif_set_dns_info(my_sta, ESP_NETIF_DNS_MAIN, &dns_server));
+			// dns_info.ip.u_addr.ip4.addr
+			// esp_netif_set_dns_info()
+			ESP_LOGI(TAG_WIFI, "DNS set");
 			break;
 		}
 		default:
 			esp_netif_create_default_wifi_sta();
+			ESP_LOGI(TAG_WIFI, "dhcp mode");
 			break;
 	}
 
@@ -154,6 +179,15 @@ void wifi_sta_init(uint8_t ip_end) {
 // ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip));
 // ESP_ERROR_CHECK(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id));
 // vEventGroupDelete(s_wifi_event_group);
+}
+static esp_err_t wifi_set_dns_server(esp_netif_t *netif, uint32_t addr, esp_netif_dns_type_t type) {
+	if (addr && (addr != IPADDR_NONE)) {
+		esp_netif_dns_info_t dns;
+		dns.ip.u_addr.ip4.addr = addr;
+		dns.ip.type = IPADDR_TYPE_V4;
+		ESP_ERROR_CHECK(esp_netif_set_dns_info(netif, type, &dns));
+	}
+	return ESP_OK;
 }
 void wifi_sta_stop(void)
 {
@@ -371,6 +405,13 @@ void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_bas
 
 			// Start insecure http server
 			httpd_server_start();
+
+			// NTP ntp_client;
+			// ntp_client.timeout(1);
+			// // ntp_client.server_addr("143.107.229.211");
+			// ntp_client.server_name("a.st1.ntp.br", 123);
+			// ntp_client.fetch();
+			// // sprintf(buffer, "NTP request\n");
 
 			// Start secure http server SSL;
 			// httpd_ssl_server_start();
