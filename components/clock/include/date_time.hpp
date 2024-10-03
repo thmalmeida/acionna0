@@ -1,3 +1,8 @@
+/* Created by rnascunha
+*
+* Edited by thmalmeida on 20240415
+*/
+
 #ifndef	DATE_TIME_HPP__
 #define DATE_TIME_HPP__
 
@@ -24,7 +29,7 @@ enum class week_day {
 	SUNDAY
 };
 
-enum class time_format {
+enum class time_format : int {
 	H24 = 0,
 	H12
 };
@@ -39,7 +44,7 @@ enum class day_period {
 class Date_Time {
 	public:
 
-		Date_Time(time_format mode = time_format::H24, int fuse = 0);
+		Date_Time(time_format mode = time_format::H24, int fuse = -3);
 
 		// Set functions
 		void year(uint16_t yr);
@@ -78,7 +83,9 @@ class Date_Time {
 		// Other features
 		day_period period(void);
 		time_format time_mode(void);
-		int8_t time_fuse(void);
+
+		int fuse(void);
+		void fuse(int fs);
 
 		bool leap_year(void); 					/* ano bissexto */
 
@@ -100,7 +107,8 @@ class Date_Time {
 
 		time_format time_format_;		/* Modo 12 ou 24 horas */
 		day_period period_;			/* ND,AM,PM */
-		int8_t time_fuse_;			/* Fuso */
+		int fuse_;					/* Fuso in hours */
+		int fuse_sec_;
 };
 
 #endif /* DATE_TIME_HPP__ */

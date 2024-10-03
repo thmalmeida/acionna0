@@ -62,8 +62,13 @@ public:
 			*	- RTC
 			*	- High Resolution Timer */			
 		}
+		
 		uint32_t unix_time(void) {
 			return unix_time_;
+		}
+
+		void unix_time(uint32_t ut) {
+			dt_.unix_time(ut);
 		}
 
 		// Set functions

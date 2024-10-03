@@ -7,7 +7,7 @@
 
 static const uint8_t month_length_[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
-#define SEC_1970_TO_2000 	946684800
+#define SEC_1970_TO_2000 	946684800	// seconds from 1970 to 2000
 #define SECONDS_DAY			86400		// total of seconds in one day
 
 template <class T>
@@ -17,7 +17,8 @@ static inline const T& constrain(const T& n, const T& a, const T& b) {
 
 Date_Time::Date_Time(time_format mode, int fuse) {
 	time_format_ = mode;
-	time_fuse_ = fuse;
+	fuse_ = fuse;
+	fuse_sec_ = fuse_*3600;
 	period_ = day_period::ND;
 	date_time(0,0,0,0,0,0);
 }
@@ -71,6 +72,8 @@ void Date_Time::unix_time(uint32_t ut) {
 	// since 1970-01-01 00:00:00
 	unsigned long days, mins, secs, years, leap;
 
+	ut += fuse_sec_;
+
 	days = ut/(24L*60*60);
 	secs = ut % (24L*60*60);
 	second_ = secs % 60;
@@ -123,7 +126,7 @@ void Date_Time::time(Date_Time *time) {
 	time->second_ = second();
 	time->period_ = day_period();
 	time->time_format_ = time_mode();
-	time->time_fuse_ = time_fuse();
+	time->fuse_ = fuse();
 }
 void Date_Time::date_time(Date_Time *dt) {
 	date(dt);
@@ -142,18 +145,23 @@ uint32_t Date_Time::unix_time(void) {
 		++dc;
 	dc = dc + (365 * (year_ - 2000)) + (((year_ - 2000) + 3) / 4) - 1;
 
-	return ((((((dc * 24UL) + hour_) * 60) + minute_) * 60) + second_) + SEC_1970_TO_2000;
+	return ((((((dc * 24UL) + hour_) * 60) + minute_) * 60) + second_) - fuse_sec_ + SEC_1970_TO_2000;
+}
+int Date_Time::fuse(void) {
+	return fuse_;
 }
 
+void Date_Time::fuse(int fs) {
+	fuse_ = fs;
+	fuse_sec_ = fuse_*3600;
+}
 day_period Date_Time::period(void) {
 	return hour_ < 12 ? day_period::AM : day_period::PM;
 }
 time_format Date_Time::time_mode(void) {
 	return time_format_;
 }
-int8_t Date_Time::time_fuse(void) {
-	return time_fuse_;
-}
+
 /* Ref.: https://en.wikipedia.org/wiki/Leap_year
  * Each leap year has 366 days instead of 365. This extra leap day occurs
  * in each year that is a multiple of 4, except for years evenly divisible
