@@ -24,6 +24,8 @@
 // #include "aht10.hpp"
 #include "ahtx0.hpp"
 #include "bmp280.hpp"
+#include "ntp.hpp"
+
 // #include "bmp180.hpp"
 
 // system 
@@ -189,17 +191,18 @@ private:
 		// states_flag started = states_flag::disable;
 		states_flag flag_time_next_config = states_flag::disable;		// will enable when motor start into optimized cycle to enable next time setup when it turn off
 		
-		int cycles_i = 0;												// counter for number o cycles for each event
-		int event0_i = 0;												// the current event (type of start mode)
-		int event0_n_max = 1;											// the current event (type of start mode)
+		// indexes to fsm working
+		int cycle_i = 0;												// counter for number o cycles for each event
+		int event_i = 0;												// the current event (type of start mode)
+		int event_n = 1;												// n of events enable
 
 		struct {
-			start_types start_mode = start_types::direct_k2;
-			uint32_t time_to_shutdown = 0;
-			int cycles_n_max = 1;
-		}event0[9];
-
-	}optimized;
+			start_types start_mode = start_types::direct_k2;			// type of start motor
+			uint32_t time_to_shutdown = 0;								// time to stay on
+			int cycles_n = 1;											// number of cycles of this specific event
+		}event[9];														// event structure vector;
+	
+	}optimized;															// optimized structure
 
 	// communication member functions
 	void msg_fetch_(void);
@@ -230,5 +233,7 @@ private:
 	void sys_reset_reason_(char* buffer_str);
 	void sys_restart_(void);
 	void sys_ticks_per_us(char *buffer_str);
+
+	void ntp_show(char *buffer_str);
 };
 #endif

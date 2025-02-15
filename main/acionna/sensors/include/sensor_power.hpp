@@ -7,7 +7,8 @@
 
 class Sensor_Power {
 public:
-
+    double Irms;
+    
 
 private:
 };

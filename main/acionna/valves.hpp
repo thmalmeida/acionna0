@@ -41,9 +41,9 @@ class Valves {
 public:
 
 	// unsigned int time_total_cfg = 0;							// sum of programmed valves time [s];	
-	unsigned int time_valve_remain = 0;							// valve time elapsed before turn off [s];
-	unsigned int time_valve_change = 0;							// between changes to verify if pressure has been pressure recovered [s];
-	static const int number_valves = 11;
+	uint32_t time_valve_remain = 0;								// valve time elapsed before turn off [s];
+	uint32_t time_valve_change = 0;								// between changes to verify if pressure has been pressure recovered [s];
+	static const unsigned int n_valves = 11;					// number of valves to play
 	states_flag flag_inverted_sequence = states_flag::disable;	// sequence direction to switch automatic the valves programmed;
 	/* 
 	* When the system has far distance valves and has high pressure,
@@ -115,7 +115,7 @@ public:
 		calc_valve_flow_all();
 
 		// For debug purpose only
-		for(int i=1; i<number_valves; i++) {
+		for(int i=1; i<n_valves; i++) {
 			printf("valve[%d] area:%d, flow:%.1f\n", i, get_valve_area(i), valve_[i].flow);
 		}		
 
@@ -123,7 +123,7 @@ public:
 		// set_valve_time(12, 0);
 	}
 
-	// This functions should be called every 1 second interval
+	// This function is suppose to be called every 1 second interval
 	void update() {
 		if(state_valves_ == states_valves::automatic_switch) {
 
@@ -242,7 +242,7 @@ public:
 	uint32_t get_total_time_programmed(void) {
 		uint32_t _total_time = 0;
 
-		for(int i=0; i<number_valves; i++) {
+		for(int i=0; i<n_valves; i++) {
 			if(valve_[i].programmed == states_flag::enable) {
 				_total_time += valve_[i].time_elapsed_cfg;
 			}
@@ -254,7 +254,7 @@ public:
 	float get_total_volume_programmed(void) {
 		float _volume_total = 0.0;
 
-		for(int i=0; i<number_valves; i++) {
+		for(int i=0; i<n_valves; i++) {
 			if(valve_[i].programmed == states_flag::enable) {
 				_volume_total += valve_[i].volume;
 			}
@@ -264,7 +264,7 @@ public:
 	}
 
 	void set_valve_state(int valve_id, int _valve_state) {
-		if(valve_id && (valve_id <= number_valves))	{
+		if(valve_id && (valve_id <= n_valves))	{
 			load_.write(valve_id, _valve_state);
 		}
 		else
@@ -288,14 +288,14 @@ public:
 
 		// Set a kind of pointer to find_next() function find the next valve
 		if(flag_inverted_sequence == states_flag::enable)
-			valve_current_ = number_valves+1;			// if inverted sequence, start from last valve sector;
+			valve_current_ = n_valves+1;			// if inverted sequence, start from last valve sector;
 		else
 			valve_current_ = 0;							// if not, start from the first programmed valve sector.
 
 		// the update will call the find_next() function and find the next programmed valve.	
 	}
 	void stop(void) {
-		// for(int n=1; n<number_valves+1; n++)
+		// for(int n=1; n<n_valves+1; n++)
 		// {
 		// 	set_valve_state(n, 0);
 		// }
@@ -309,32 +309,12 @@ public:
 		state_valves_ = states_valves::system_off;	
 	}
 	unsigned int find_next(void) {
-		states_flag flag_valve_found_ = states_flag::disable;
+		flag_valve_found_ = states_flag::disable;
 
-		if(flag_inverted_sequence == states_flag::enable) {
-			do {
-				valve_current_--;
-				if(valve_current_)
-				{
-					if(get_valve_programmed(valve_current_) == states_flag::enable)
-					{
-						flag_valve_found_ = states_flag::enable;
-						time_valve_remain = get_valve_time(valve_current_)*60.0;
-						set_valve_state(valve_current_, 1);
-					}
-				}
-				else
-				{
-					flag_valve_found_ = states_flag::enable;
-					state_valves_ = states_valves::system_off;
-				}
-			} while(flag_valve_found_ == states_flag::disable);
-		}
-		else {
+		if(flag_inverted_sequence == states_flag::disable) {	// means direct sequence to follow
 			do {
 				valve_current_++;
-				if(valve_current_ < number_valves + 1)
-				{
+				if(valve_current_ < n_valves + 1) {
 					if(get_valve_programmed(valve_current_) == states_flag::enable)
 					{
 						flag_valve_found_ = states_flag::enable;
@@ -350,6 +330,88 @@ public:
 					return 0;
 				}
 
+			} while(flag_valve_found_ == states_flag::disable);
+		}
+		else {
+			do {
+				valve_current_--;
+				if(valve_current_)
+				{
+					if(get_valve_programmed(valve_current_) == states_flag::enable)
+					{
+						flag_valve_found_ = states_flag::enable;
+						time_valve_remain = get_valve_time(valve_current_)*60.0;
+						set_valve_state(valve_current_, 1);
+					}
+				}
+				else
+				{
+					flag_valve_found_ = states_flag::enable;
+					state_valves_ = states_valves::system_off;
+					valve_current_ = 0;	// added on 20240908
+					return 0;			// added on 20240908
+				}
+			} while(flag_valve_found_ == states_flag::disable);
+		}
+
+		// set_valve_state(valve_current_, 0);
+
+		return valve_current_;
+	}
+	unsigned int find_next_in_sequence(void) {
+		flag_valve_found_ = states_flag::disable;
+
+		int valve_current_i_;	// the index of valves sequence vector
+
+		if(flag_inverted_sequence == states_flag::disable) {	// means direct sequence to follow
+			do {
+				valve_current_i_++;
+				valve_current_ = sequence_vec_[valve_current_i_];
+				if(valve_current_ < n_valves + 1) {
+					// if(get_valve_pr)
+				}
+
+			} while(flag_valve_found_ == states_flag::disable);
+		}
+
+
+		if(flag_inverted_sequence == states_flag::disable) {	// means direct sequence to follow
+			do {
+				valve_current_++;
+				if(valve_current_ < n_valves + 1) {
+					if(get_valve_programmed(valve_current_) == states_flag::enable)
+					{
+						flag_valve_found_ = states_flag::enable;
+						time_valve_remain = get_valve_time(valve_current_)*60.0;
+						set_valve_state(valve_current_, 1);
+					}
+				} else {
+					flag_valve_found_ = states_flag::enable;
+					state_valves_ = states_valves::system_off;
+					valve_current_ = 0;
+					return 0;
+				}
+			} while(flag_valve_found_ == states_flag::disable);
+		}
+		else {
+			do {
+				valve_current_--;
+				if(valve_current_)
+				{
+					if(get_valve_programmed(valve_current_) == states_flag::enable)
+					{
+						flag_valve_found_ = states_flag::enable;
+						time_valve_remain = get_valve_time(valve_current_)*60.0;
+						set_valve_state(valve_current_, 1);
+					}
+				}
+				else
+				{
+					flag_valve_found_ = states_flag::enable;
+					state_valves_ = states_valves::system_off;
+					valve_current_ = 0;	// added on 20240908
+					return 0;			// added on 20240908
+				}
 			} while(flag_valve_found_ == states_flag::disable);
 		}
 
@@ -420,14 +482,14 @@ public:
 	*  @param valve_id valve id
 	*/
 	void calc_valve_flow(int valve_id) {
-		// for(int i=0; i<number_valves; i++) {
+		// for(int i=0; i<n_valves; i++) {
 			valve_[valve_id-1].flow = calc_flow_by_press(static_cast<float>(valve_[valve_id-1].pressure_exp));
 		// }
 	}
 	/* @brief Automated function to calculate flow rate for all valves [m3/h]
 	*/
 	void calc_valve_flow_all(void) {
-		for(int i=1; i<=number_valves; i++) {
+		for(int i=1; i<=n_valves; i++) {
 			calc_valve_flow(i);
 		}
 	}
@@ -441,7 +503,7 @@ public:
 		valve_[valve_id - 1].rain_mm = r_mm;
 	}
 	void set_valve_rain_mm_all(float r_mm) {
-		for(int i=1; i<=number_valves; i++) {
+		for(int i=1; i<=n_valves; i++) {
 			set_valve_rain_mm(i, r_mm);
 		}
 	}
@@ -470,7 +532,7 @@ public:
 		ESP_LOGI(TAG_VALVES, "volume:%.1f, rain_mm:%.1f, area:%d, flow:%.1f, time:%lu", valve_[i].volume, valve_[i].rain_mm, valve_[i].area, valve_[i].flow, valve_[i].time_elapsed_cfg);
 	}
 	void calc_time_by_rain_mm_all(void) {
-		for(int i=1; i<=number_valves; i++)
+		for(int i=1; i<=n_valves; i++)
 			calc_time_by_rain_mm(i);
 	}
 
@@ -484,7 +546,7 @@ public:
 	// Test routines
 	unsigned int valves_test_routine() {
 		
-		// for(int i=0; i<number_valves; i++) {
+		// for(int i=0; i<n_valves; i++) {
 
 		// }
 		// turn all drives off (wait a moment)
@@ -585,15 +647,11 @@ private:
 		float flow = 0.0;									// the flow rate by water pump with it's pressure [m3/h]
 		float volume = 0.0;									// volume of rain_mm in [m3]
 		float rain_mm = 0.0;								// how much mm of rain it's desired [mm];
-	} valve_[number_valves];
+		uint32_t time_delay_open = 30;						// time delay open transition is the time that valve usually takes to open (not used yet 20240902);
+	} valve_[n_valves];
 
-	// sequence operation (not used yet 20240723)
-	struct {
-		const int seq_size = 11;
-		int seq[seq_size] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-		int n = 12;
-	} sequence_list_;
-	// -----
+	// sequence vector operation (not used yet 20240723)
+	int sequence_vec_[n_valves];								// valve sequence vector
 
 	static const int press_vec_n_ = 30;
 	int press_vec_[press_vec_n_] = {0};

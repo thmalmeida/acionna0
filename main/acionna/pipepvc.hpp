@@ -42,10 +42,12 @@ public:
 //	uint8_t flag_PressureUnstable = 1;
 //	uint8_t flag_PressureDown = 0;		// flag for pressure down occurrence;
 
-	Pipepvc(ADC_Driver *adc, int channel, int press_psi_factory) : sensor0(adc, channel, press_psi_factory) {
+	Pipepvc(ADC_Driver *adc, int channel, int press_psi_factory, uint32_t* epoch_time) : sensor0(adc, channel, press_psi_factory), epoch_time_(epoch_time) {
 	}
 	void update(void) {
 		pressure_mca_ = sensor0.pressure_mca();
+
+		make_log();
 	}
 	/* Return the last current pipe pressure found
 	*/
@@ -58,6 +60,14 @@ public:
 	}
 	void sensor_pressure_ref(int value) {
 		sensor0.pressure_psi_max(value);
+	}
+
+	void make_log(void) {
+		// convert unix time to date time;
+		// compare interval;
+		// or
+		// just make log at some interval predefined;
+		// make log writing some array shifting values;
 	}
 	
 	int air_intake_detect(states_motor state_motor, states_motor state_motor_ref, int pressure_expected) {
@@ -165,6 +175,8 @@ public:
 private:
 	// ADC_Driver *adc_;
 	Sensor_Pressure sensor0;
+
+	uint32_t *epoch_time_;
 	// int channel_;
 	int pressure_mca_ = 0;					// converted value [m.c.a.];
 };

@@ -5,7 +5,7 @@ static const char *TAG_ACIONNA = "Acionna0";
 volatile uint8_t flag_1sec = 0;
 volatile uint8_t flag_100ms = 0;
 
-Acionna::Acionna(ADC_Driver* adc, I2C_Driver *i2c) : pipe1_(adc, 4, 150), pipe2_(adc, 7, 220), pump1_{&epoch_time_}, valves1_{i2c, &epoch_time_, &pressure_}, s0_(i2c), s1_(i2c), i2c_(i2c) {
+Acionna::Acionna(ADC_Driver* adc, I2C_Driver *i2c) : pipe1_(adc, 4, 150, &epoch_time_), pipe2_(adc, 7, 220, &epoch_time_), pump1_{&epoch_time_}, valves1_{i2c, &epoch_time_, &pressure_}, s0_(i2c), s1_(i2c), i2c_(i2c) {
 // Acionna::Acionna(void) : valves1_{&i2c} {
 	// ADC_Driver adc0(adc_mode::oneshot);
 	// ADC_Driver adc0(adc_mode::oneshot);
@@ -59,13 +59,14 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			$08:s[n];			- Sensor n probe;
 			$08:
 
-	$10:h:HHMMSS;				- Ajustes do calendário;
+	$10:X:ZZZZZZ;				- Ajustes do calendário;
 		$10:h:HHMMSS;			- Ajusta o horário do sistema;
 		$10:h:123040;			- E.g. ajusta a hora para 12:30:40
 		$10:d:DDMMAAAA;			- Ajusta a data do sistema no formato dia/mês/ano(4 dígitos);
 		$10:d:04091986;			- E.g. Altera a data para 04/09/1986;
 		$10:c;					- Shows the LSI current prescaler value;
 		$10:c:40123;			- Set new prescaler value;
+		$10:n;					- get ntp date time;
 
 	$2X;						- PWM led change
 		$20:DevName;			- Change bluetooth name;
@@ -519,7 +520,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 				sprintf(buffer, "Time: %.2d:%.2d:%.2d\n", dt_.hour(), dt_.minute(), dt_.second());
 			} else if ((command_str[3] == ':') && (command_str[4] == 'd') && (command_str[5] == ':') && (command_str[14] == ';')) {
-			// $10:d:13122022;
+			// $10:d:13122022; // $10:d:10082022;
 				_aux[0] = command_str[6];
 				_aux[1] = command_str[7];
 				_aux[2] = '\0';
@@ -542,7 +543,35 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 				dt_.update();
 
 				sprintf(buffer, "Date:%.2d/%.2d/%.4d\n", dt_.day(), dt_.month(), dt_.year());
-			} // $10:d:10082022;
+			} else if ((command_str[3] == ':') && (command_str[4] == 'n') && (command_str[5] == ';')) {
+				// $10:n;
+				// esp_netif_dns_info_t dns_info;
+				// esp_netif_get_dns_info(my_sa)
+				// esp_netif_dns_ge
+
+				// uint32_t y, x = 0x12345678;
+
+				// printf("endianess of x 0x%04lx is  ", x);
+				// netutils::endianess_show(x);
+
+				// y = htonl(x);
+				// printf("endianess of y 0x%04lx is  ", y);
+				// netutils::endianess_show(y);
+
+				NTP ntp_client;
+				ntp_client.timeout(1);
+				ntp_client.server_name("a.st1.ntp.br", 123);
+				// ntp_client.server_addr("200.160.7.186", 123);
+				
+				if(!ntp_client.fetch()) {
+					dt_.unix_time(ntp_client.unix_time());
+					dt_.update();
+					time_day_sec_ = dt_.hour()*3600 + dt_.minute()*60 + dt_.second();
+					sprintf(buffer, "NTP updated!\n");
+				} else {
+					sprintf(buffer, "NTP timeout\n");
+				}
+			}
 			break;
 		}
 		case 2: { // $2x:
@@ -644,7 +673,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 			}
 			break;
 		}
-		case 5: { // $50:h1:0900;
+		case 5: { // $5x...    e.g.: $50:h1:0900;
 			switch(opcode1) {
 				case 0: {
 					if(command_str[3] == ';') {
@@ -769,16 +798,15 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					}
 					break;
 				}
-				case 1: { // for optimized
+				case 1: { // $51...
 					if(command_str[3] == ';') {
-						// $51; show tm optimized setup
-
+						// $51; show optimized parameters
 						memset(buffer, 0, sizeof(buffer));
 						char buffer_temp[60];
 
 						sprintf(buffer, "opt- f:%d n:%d h:%.2d:%.2d td:%d nf:%d ns:%.2d:%.2d r:%.2d:%.2d ev:%d cy:%d\n",
 																		static_cast<int>(flag_check_time_match_optimized_),
-																		optimized.event0_n_max,
+																		optimized.event_n,
 																		timesec_to_hour(optimized.time_match_start),
 																		timesec_to_min(optimized.time_match_start),
 																		timesec_to_min(optimized.time_delay),
@@ -787,14 +815,14 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 																		timesec_to_min(optimized.time_match_next),
 																		timesec_to_hour(optimized.time_red),
 																		timesec_to_min(optimized.time_red),
-																		optimized.event0_i,
-																		optimized.cycles_i);
+																		optimized.event_i,
+																		optimized.cycle_i);
 
-						for(int i=0; i<optimized.event0_n_max; i++) {
+						for(int i=0; i<optimized.event_n; i++) {
 							sprintf(buffer_temp, "%d- m:%d t:%lu c:%d\n", i+1,
-																		static_cast<int>(optimized.event0[i].start_mode),
-																		optimized.event0[i].time_to_shutdown/60,
-																		optimized.event0[i].cycles_n_max);
+																		static_cast<int>(optimized.event[i].start_mode),
+																		optimized.event[i].time_to_shutdown/60,
+																		optimized.event[i].cycles_n);
 							strcat(buffer, buffer_temp);
 						}
 						strcat(buffer, "\n");
@@ -831,9 +859,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux[0] = command_str[6];
 						_aux[1] = command_str[7];
 						_aux[2] = '\0';
-						optimized.event0_n_max = atoi(_aux);
+						optimized.event_n = atoi(_aux);
 
-						sprintf(buffer, "set evt n:%d\n", optimized.event0_n_max);
+						sprintf(buffer, "set evt n:%d\n", optimized.event_n);
 					}
 					else if((command_str[3] == ':') && (command_str[4] == 'h') && (command_str[5] == ':') && (command_str[10] == ';')) {
 						// $51:h:hhmm;
@@ -886,13 +914,13 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux[0] = '0';
 						_aux[1] = command_str[8];
 						_aux[2] = '\0';
-						optimized.event0[index].start_mode = static_cast<start_types>(atoi(_aux));
+						optimized.event[index].start_mode = static_cast<start_types>(atoi(_aux));
 
 						// number of cycles for this specific event
 						_aux[0] = '0';
 						_aux[1] = command_str[10];
 						_aux[2] = '\0';
-						optimized.event0[index].cycles_n_max = static_cast<int>(atoi(_aux));
+						optimized.event[index].cycles_n = static_cast<int>(atoi(_aux));
 
 						// maximum time it can be on after start
 						_aux2[0] = '0';
@@ -900,9 +928,9 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux2[2] = command_str[13];
 						_aux2[3] = command_str[14];
 						_aux2[4] = '\0';
-						optimized.event0[index].time_to_shutdown = static_cast<uint32_t>(atoi(_aux2)*60);
+						optimized.event[index].time_to_shutdown = static_cast<uint32_t>(atoi(_aux2)*60);
 
-						sprintf(buffer, "set e%d m%d c:%d t:%lu\n", index+1, static_cast<int>(optimized.event0[index].start_mode), optimized.event0[index].cycles_n_max, optimized.event0[index].time_to_shutdown/60);
+						sprintf(buffer, "set e%d m%d c:%d t:%lu\n", index+1, static_cast<int>(optimized.event[index].start_mode), optimized.event[index].cycles_n, optimized.event[index].time_to_shutdown/60);
 					}
 					break;
 				}
@@ -933,8 +961,8 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 					break;
 				}
 				case 3: {
-					state_mode = states_mode::water_pump_control_night;
-					sprintf(buffer,"state mode: pumping all night s:%d\n", static_cast<int>(state_mode));
+					state_mode = states_mode::pump_optimized_control;
+					sprintf(buffer,"state mode: pump optimized control:%d\n", static_cast<int>(state_mode));
 					break;
 				}
 				default:
@@ -1232,13 +1260,13 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 						_aux[2] = '\0';
 						int valve_id = atoi(_aux);
 
-						if (valve_id <= valves1_.number_valves) {
+						if (valve_id <= valves1_.n_valves) {
 							if(command_str[8] == ';') {
 								// $80:v:01;
 								if(!valve_id) {
 									memset(buffer, 0, sizeof(buffer));
 									char buffer_temp[37];
-									for(int i=1; i<=valves1_.number_valves; i++) {
+									for(int i=1; i<=valves1_.n_valves; i++) {
 										sprintf(buffer_temp, "v[%02d]:%d pg:%d t:%lu r:%.1f V:%.1f p:%d\n", i, (int)valves1_.get_valve_state(i), (int)valves1_.get_valve_programmed(i), valves1_.get_valve_time(i), valves1_.get_valve_rain_mm(i), valves1_.get_valve_volume(i), valves1_.get_valve_pressure(i));
 										strcat(buffer, buffer_temp);
 									}
@@ -1255,7 +1283,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 									valves1_.set_valve_state(valve_id, 0);
 									sprintf(buffer, "set valve[%d]:%d", valve_id, (int)valves1_.get_valve_state(valve_id));
 								} else {
-									// for(int i=0; i<valves1_.number_valves; i++) {
+									// for(int i=0; i<valves1_.n_valves; i++) {
 									// 	valves1_.set_valve_state(i+1, 0);
 									// }
 									valves1_.module_put(0x0000);
@@ -1267,7 +1295,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 									valves1_.set_valve_state(valve_id, 1);
 									sprintf(buffer, "set valve[%d]:%d", valve_id, (int)valves1_.get_valve_state(valve_id));
 								} else {
-									// for(int i=0; i<valves1_.number_valves; i++) {
+									// for(int i=0; i<valves1_.n_valves; i++) {
 									// 	valves1_.set_valve_state(i+1, 1);
 									// }
 									valves1_.module_put(0x07FF);
@@ -1279,7 +1307,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 									valves1_.add(valve_id);
 									sprintf(buffer, "added valve %d: %d\n", valve_id, (int)valves1_.get_valve_programmed(valve_id));
 								} else {
-									for(int i=0; i<valves1_.number_valves; i++) {
+									for(int i=0; i<valves1_.n_valves; i++) {
 										valves1_.add(i+1);
 									}
 									sprintf(buffer, "added all valves");
@@ -1290,7 +1318,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 									valves1_.remove(valve_id);
 									sprintf(buffer, "removed valve %d: %d\n", valve_id, (int)valves1_.get_valve_programmed(valve_id));								
 								} else {
-									for(int i=0; i<valves1_.number_valves; i++) {
+									for(int i=0; i<valves1_.n_valves; i++) {
 										valves1_.remove(i+1);
 									}
 									sprintf(buffer, "removed all valves");
@@ -1311,7 +1339,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 									valves1_.set_valve_time(valve_id, valve_time);
 									sprintf(buffer, "valve %d: %lu min\n", valve_id, valves1_.get_valve_time(valve_id));
 								} else {
-									for(int i=0; i<valves1_.number_valves; i++) {
+									for(int i=0; i<valves1_.n_valves; i++) {
 										valves1_.set_valve_time(i+1, valve_time);
 									}
 									sprintf(buffer, "all times to %d min\n", valve_time);
@@ -1343,7 +1371,7 @@ std::string Acionna::handle_message(uint8_t* command_str) {
 
 									memset(buffer, 0, sizeof(buffer));
 									char buffer_temp[30];
-									for(int i=1; i<=valves1_.number_valves; i++) {
+									for(int i=1; i<=valves1_.n_valves; i++) {
 										sprintf(buffer_temp, "v[%02d]:%d pg:%d t:%lu mm:%.1f p:%d\n", i, (int)valves1_.get_valve_state(i), (int)valves1_.get_valve_programmed(i), valves1_.get_valve_time(i), valves1_.get_valve_rain_mm(i) ,valves1_.get_valve_pressure(i));
 										strcat(buffer, buffer_temp);
 									}
@@ -1625,10 +1653,12 @@ void Acionna::init() {
 
 	// 3 mac address listed - 18 length + 1 '\0' = 19 
 	char mac_table[4][18] = {
-							{"84:cc:a8:69:f6:f0"},	// .31 - test device;
+							// {"84:cc:a8:69:f6:f0"},	// .31 - test device;
+							// {"84:cc:a8:68:18:2c"},	// .31 - reservoir valve
 							{"84:cc:a8:69:97:7c"},	// .32 - poço cacimba;
 							{"84:cc:a8:69:9c:4c"},	// .33 - irrigação.
-							{"08:d1:f9:c7:f1:74"}};	// .34 - artesiano
+							{"08:d1:f9:c7:f1:74"},	// .34 - artesiano
+							{"08:d1:f9:e0:5a:40"}};	// .35 - reservoir valve
 
 	// Converting uint8_t vector mac address to string
 	for(int i=0; i<6; i++) {
@@ -1640,13 +1670,13 @@ void Acionna::init() {
 	}
 	// Compare the mac and set ip address end byte;
 	if(strcmp(mac_device, &mac_table[0][0]) == 0) {
-		wifi_ip_end = 31;
-	} else if(strcmp(mac_device, &mac_table[1][0]) == 0) {
 		wifi_ip_end = 32;
-	} else if(strcmp(mac_device, &mac_table[2][0]) == 0) {
+	} else if(strcmp(mac_device, &mac_table[1][0]) == 0) {
 		wifi_ip_end = 33;
-	} else if(strcmp(mac_device, &mac_table[3][0]) == 0) {
+	} else if(strcmp(mac_device, &mac_table[2][0]) == 0) {
 		wifi_ip_end = 34;
+	} else if(strcmp(mac_device, &mac_table[3][0]) == 0) {
+		wifi_ip_end = 35;
 	} else {
 		wifi_ip_end = 30;
 	}
@@ -1801,8 +1831,7 @@ void Acionna::operation_mode(void) {
 	// for all operation modes, check electrical and hydraulic parameters. Stop motor if limits occurs.
 	operation_pump_stop_check();
 
-	switch (state_mode)
-	{
+	switch (state_mode) {
 		case states_mode::system_off:				// $60;
 			operation_pump_lock_down();
 			break;
@@ -1816,7 +1845,7 @@ void Acionna::operation_mode(void) {
 			operation_pump_valves();
 			break;
 
-		case states_mode::water_pump_control_night:	// $63;
+		case states_mode::pump_optimized_control:	// $63;
 			operation_pump_start_match_optimized();
 			operation_pump_optimized();
 			break;
@@ -1827,23 +1856,19 @@ void Acionna::operation_mode(void) {
 	}
 }
 void Acionna::operation_pump_start_match(void) {
-
 	// time matches occurred into check_time_match(), start motor
 	if(flag_check_time_match_ == states_flag::enable) {
-
 		int index_found = 0;
 		// sweep vector programmed time and check each one with current time.
 		for(int i=0; i<time_match_n; i++) {
 			// compare the list time match with current time day second
-			if(time_match_list[i].time_match == time_day_sec_)
-			{
+			if(time_match_list[i].time_match == time_day_sec_) {
 				flag_time_match_ = states_flag::enable;
 				index_found = i;
 				// break;
 			}
 			// ESP_LOGI(TAG_ACIONNA, "TM FOR CHECK! tml:%d tds:%d", time_match_list[i].time_match, time_day_sec_);
 		}
-
 
 		if(flag_time_match_ == states_flag::enable) {
 			flag_time_match_ = states_flag::disable;
@@ -1861,17 +1886,16 @@ void Acionna::operation_pump_start_match(void) {
 	}
 }
 void Acionna::operation_pump_start_match_optimized(void) {
-	// global enable flag. If time match optimized enable, working on it for pump the water to reservoir
+	// global optimized enable flag. If time match optimized enable, working on it for pump the water to reservoir
 	if(flag_check_time_match_optimized_ == states_flag::enable) {
-
 		// if day time match with start time else, and clear counter parameters or
 		// else if day time match with next time, enable start motor flag only
 		if(optimized.time_match_start == time_day_sec_) {
 			flag_time_match_optimized_ = states_flag::enable;
 
 			// Reset counter parameters for next event cycle
-			optimized.event0_i = 0;
-			optimized.cycles_i = -1;
+			optimized.event_i = 0;
+			optimized.cycle_i = -1;	// why this?
 			// ESP_LOGI(TAG_ACIONNA, "optimized: start time match");
 		} else if(optimized.time_match_next == time_day_sec_) {
 			flag_time_match_optimized_ = states_flag::enable;
@@ -1888,26 +1912,26 @@ void Acionna::operation_pump_start_match_optimized(void) {
 			// find one valid event programmed cycle
 			do {
 				// increment the cycle into the same event.
-				optimized.cycles_i++;
-				if(optimized.cycles_i < optimized.event0[optimized.event0_i].cycles_n_max) {
-					// ESP_LOGI(TAG_ACIONNA, "optimized: IF event0_i:%d, cycles_i:%d", optimized.event0_i, optimized.cycles_i);
+				optimized.cycle_i++;
+				if(optimized.cycle_i < optimized.event[optimized.event_i].cycles_n) {
+					// ESP_LOGI(TAG_ACIONNA, "optimized: IF event0_i:%d, cycles_i:%d", optimized.event_i, optimized.cycle_i);
 					// If motor state is idle, turn it on! (log will be make by pump class?);
 					if(pump1_.state() == states_motor::off_idle) {
-						pump1_.start(optimized.event0[optimized.event0_i].start_mode);
-						// ESP_LOGI(TAG_ACIONNA, "optimized: start motor event:%d cycles_i:%d", optimized.event0_i, optimized.cycles_i);
+						pump1_.start(optimized.event[optimized.event_i].start_mode);
+						// ESP_LOGI(TAG_ACIONNA, "optimized: start motor event:%d cycles_i:%d", optimized.event_i, optimized.cycle_i);
 					}
 					// this is for algorithm to calculate the next turn on after turn off;
 					optimized.flag_time_next_config = states_flag::enable;
 
 					// if does exists programmed shutdown time, use it!
-					if(optimized.event0[optimized.event0_i].time_to_shutdown) {
-						pump1_.time_to_shutdown = optimized.event0[optimized.event0_i].time_to_shutdown;
+					if(optimized.event[optimized.event_i].time_to_shutdown) {
+						pump1_.time_to_shutdown = optimized.event[optimized.event_i].time_to_shutdown;
 					}
 				} else {
 					// go to next event
-					optimized.event0_i++;
-					optimized.cycles_i = -1;
-					// ESP_LOGI(TAG_ACIONNA, "optimized: ELSE event0_i:%d, cycles_i:%d", optimized.event0_i, optimized.cycles_i);
+					optimized.event_i++;
+					optimized.cycle_i = -1;
+					// ESP_LOGI(TAG_ACIONNA, "optimized: ELSE event0_i:%d, cycles_i:%d", optimized.event_i, optimized.cycle_i);
 				}
 
 				// counter to avoid an infinity loop
@@ -1918,7 +1942,7 @@ void Acionna::operation_pump_start_match_optimized(void) {
 					break;
 				}
 			// if does not exists more events programmed, finish the process.	
-			} while((optimized.event0_i < (optimized.event0_n_max)) && (optimized.flag_time_next_config == states_flag::disable));
+			} while((optimized.event_i < (optimized.event_n)) && (optimized.flag_time_next_config == states_flag::disable));
 		}
 
 		// here, we suppose the pump is on after start by time match or time match next. And then, configure next time if motor is off.
@@ -2050,8 +2074,7 @@ void Acionna::operation_pump_valves(void) {
 		pressure_ = pipe1_.pressure_mca();
 	}
 }
-void Acionna::parser_(uint8_t* payload_str, int payload_str_len, uint8_t *command_str, int& command_str_len)
-{
+void Acionna::parser_(uint8_t* payload_str, int payload_str_len, uint8_t *command_str, int& command_str_len) {
 	states_flag flag_instruction_write = states_flag::disable;
 
 	int j = 0;												// aux counter;
