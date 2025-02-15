@@ -343,21 +343,17 @@ void wifi_scan(char* str) {
 // ISR Handler
 void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
 	if (event_base == WIFI_EVENT) {
-		if (event_id == WIFI_EVENT_WIFI_READY)
-		{
+		if (event_id == WIFI_EVENT_WIFI_READY) {
 			ESP_LOGI(TAG_WIFI,"WiFi Ready!");
 		}
-		else if(event_id == WIFI_EVENT_SCAN_DONE)
-		{
+		else if(event_id == WIFI_EVENT_SCAN_DONE) {
 			ESP_LOGI(TAG_WIFI, "ESP32 finish scanning AP");
 		}
-		else if(event_id == WIFI_EVENT_STA_START)
-		{
+		else if(event_id == WIFI_EVENT_STA_START) {
 			esp_wifi_connect();
 			ESP_LOGI(TAG_WIFI, "ESP32 sta start event");
 		}
-		else if(event_id == WIFI_EVENT_STA_CONNECTED)
-		{
+		else if(event_id == WIFI_EVENT_STA_CONNECTED) {
 			wifi_state = conn_states::connected;
 			ESP_LOGI(TAG_WIFI, "connected to ap SSID:%s password:%s", WIFI_SSID_STA, WIFI_PASS);
 			ESP_LOGI(TAG_WIFI, "ESP32 station connected to AP");
@@ -388,14 +384,12 @@ void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_bas
 			// }
 			// ESP_LOGI(TAG_WIFI,"connect to the AP fail");
 		}
-		else if (event_id == WIFI_EVENT_STA_STOP)
-		{
+		else if (event_id == WIFI_EVENT_STA_STOP) {
 			ESP_LOGI(TAG_WIFI, "ESP32 station stop");
 		}
 	}
 	else if (event_base == IP_EVENT) {
-		if (event_id == IP_EVENT_STA_GOT_IP)
-		{
+		if (event_id == IP_EVENT_STA_GOT_IP) {
 			ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
 			ESP_LOGI(TAG_IP, "got ip0:" IPSTR, IP2STR(&event->ip_info.ip));
 			s_retry_num = 0;
@@ -417,8 +411,7 @@ void wifi_connection_event_handler(void* handler_arg, esp_event_base_t event_bas
 			// httpd_ssl_server_start();
 			
 		}
-		else if(event_id == IP_EVENT_STA_LOST_IP)
-		{
+		else if(event_id == IP_EVENT_STA_LOST_IP) {
 			ESP_LOGI(TAG_IP,"lost ip!!!!");
 			ip_state = ip_states::ip_not_defined;
 
