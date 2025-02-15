@@ -1895,54 +1895,53 @@ void Acionna::operation_pump_start_match_optimized(void) {
 
 			// Reset counter parameters for next event cycle
 			optimized.event_i = 0;
-			optimized.cycle_i = -1;	// why this?
+			optimized.cycle_i = 0;//-1;	// why should be -1?
+			optimized.flag_status_running = states_flag::enable;
 			// ESP_LOGI(TAG_ACIONNA, "optimized: start time match");
 		} else if(optimized.time_match_next == time_day_sec_) {
-			flag_time_match_optimized_ = states_flag::enable;
-			// ESP_LOGI(TAG_ACIONNA, "optimized: next time match");
+			// Motor must be off on next time match. Check it out
+			if(pump1_.state() == states_motor::off_idle)
+				flag_time_match_optimized_ = states_flag::enable;
+				// ESP_LOGI(TAG_ACIONNA, "optimized: next time match");
 		}
 
 		// if found time match optimized (from start time or next)
 		if(flag_time_match_optimized_ == states_flag::enable) {
 			flag_time_match_optimized_ = states_flag::disable;
 
-			// loop counter
-			int count_loop = 0;
-			
 			// find one valid event programmed cycle
 			do {
-				// increment the cycle into the same event.
-				optimized.cycle_i++;
-				if(optimized.cycle_i < optimized.event[optimized.event_i].cycles_n) {
-					// ESP_LOGI(TAG_ACIONNA, "optimized: IF event0_i:%d, cycles_i:%d", optimized.event_i, optimized.cycle_i);
-					// If motor state is idle, turn it on! (log will be make by pump class?);
-					if(pump1_.state() == states_motor::off_idle) {
-						pump1_.start(optimized.event[optimized.event_i].start_mode);
-						// ESP_LOGI(TAG_ACIONNA, "optimized: start motor event:%d cycles_i:%d", optimized.event_i, optimized.cycle_i);
-					}
-					// this is for algorithm to calculate the next turn on after turn off;
-					optimized.flag_time_next_config = states_flag::enable;
+				if(optimized.event_i < optimized.event_n) {
+					// increment the cycle into the same event.
+					if(optimized.cycle_i < optimized.event[optimized.event_i].cycles_n) {
+						// ESP_LOGI(TAG_ACIONNA, "optimized: IF event0_i:%d, cycles_i:%d", optimized.event_i, optimized.cycle_i);
+						// If motor state is idle, turn it on! (log will be make by pump class?);
+						if(pump1_.state() == states_motor::off_idle) {
+							pump1_.start(optimized.event[optimized.event_i].start_mode);
+							// ESP_LOGI(TAG_ACIONNA, "optimized: start motor event:%d cycles_i:%d", optimized.event_i, optimized.cycle_i);
+						}
+						// this is for algorithm to calculate the next turn on after turn off;
+						optimized.flag_time_next_config = states_flag::enable;
 
-					// if does exists programmed shutdown time, use it!
-					if(optimized.event[optimized.event_i].time_to_shutdown) {
-						pump1_.time_to_shutdown = optimized.event[optimized.event_i].time_to_shutdown;
+						// increment for next instant cycle compare;
+						optimized.cycle_i++;
+
+						// if does exists programmed shutdown time, use it!
+						if(optimized.event[optimized.event_i].time_to_shutdown) {
+							pump1_.time_to_shutdown = optimized.event[optimized.event_i].time_to_shutdown;
+						}
+					} else {
+						// go to next event
+						optimized.event_i++;
+						optimized.cycle_i = 0;
+						// ESP_LOGI(TAG_ACIONNA, "optimized: ELSE event0_i:%d, cycles_i:%d", optimized.event_i, optimized.cycle_i);
 					}
 				} else {
-					// go to next event
-					optimized.event_i++;
-					optimized.cycle_i = -1;
-					// ESP_LOGI(TAG_ACIONNA, "optimized: ELSE event0_i:%d, cycles_i:%d", optimized.event_i, optimized.cycle_i);
-				}
-
-				// counter to avoid an infinity loop
-				count_loop++;
-				// ESP_LOGI(TAG_ACIONNA, "optimized: loop count_i++:%d", count_loop);
-				if(count_loop > 4) {
-					// ESP_LOGI(TAG_ACIONNA, "optimized: loop count max");
-					break;
+					// finish the process;
+					optimized.flag_status_running = states_flag::disable;
 				}
 			// if does not exists more events programmed, finish the process.	
-			} while((optimized.event_i < (optimized.event_n)) && (optimized.flag_time_next_config == states_flag::disable));
+			} while((optimized.event_i < optimized.event_n) && (optimized.flag_time_next_config == states_flag::disable));
 		}
 
 		// here, we suppose the pump is on after start by time match or time match next. And then, configure next time if motor is off.

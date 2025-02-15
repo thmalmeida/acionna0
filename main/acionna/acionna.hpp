@@ -190,6 +190,8 @@ private:
 		uint32_t time_red = 6*3600;										// day time to stop system;
 		// states_flag started = states_flag::disable;
 		states_flag flag_time_next_config = states_flag::disable;		// will enable when motor start into optimized cycle to enable next time setup when it turn off
+
+		states_flag flag_status_running = states_flag::disable;			// Working status
 		
 		// indexes to fsm working
 		int cycle_i = 0;												// counter for number o cycles for each event
