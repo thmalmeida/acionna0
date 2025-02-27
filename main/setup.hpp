@@ -8,7 +8,6 @@
 #define __SETUP_HPP__
 
 #include "acionna/acionna.hpp"
-#include "pcy8575.hpp"
   
 // extern ADC_driver adc0;
 // extern Acionna acionna0;
