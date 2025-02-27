@@ -26,7 +26,7 @@
 #define TAG_DHT "DHT"
 
 
-#include "gpio_driver.h"
+#include "gpio_driver.hpp"
 #include "hardware_defs.h"
 
 

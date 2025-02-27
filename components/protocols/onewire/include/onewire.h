@@ -36,8 +36,7 @@
 // Platform specific I/O definitions
 
 #include <stdint.h>
-// #include "gpio.h"
-#include <gpio_driver.h>
+#include "gpio_driver.hpp"
 #include "crc.h"
 
 // ROM commands - Comandos para endereçar dispositivos

@@ -1,4 +1,4 @@
-#include <gpio_driver.h>
+#include "gpio_driver.hpp"
 
 #ifndef GPIO_INTERRUPT_FLAGS
 #define GPIO_INTERRUPT_FLAGS		(ESP_INTR_FLAG_LEVEL3|ESP_INTR_FLAG_IRAM)

@@ -1,10 +1,11 @@
 #ifndef _PUMP_HPP__
 #define _PUMP_HPP__
 
-#include "esp_log.h"
+// ESP32 specifics
+#include "esp_log.h"		// to make output log
 
-#include "adc.hpp"
-#include "gpio_driver.h"
+// #include "adc.hpp"
+#include "gpio_driver.hpp"
 #include <pinout.hpp>
 
 #include "helper.hpp"
@@ -394,7 +395,6 @@ public:
 	}log_motors[log_n]={};
 
 private:
-
 	// Output TRIACS hardware drive to contactors
 	GPIO_DRIVER ac_load_[3];
 	const std::size_t ac_load_count_ = sizeof(ac_load_) / sizeof(ac_load_[0]);
@@ -417,8 +417,6 @@ private:
 	states_switch state_k3_dev_ = states_switch::off;
 	states_switch state_Rth_ = states_switch::off;		// thermal relay output
 
-
-
 	// motor start variables used on y-delta start process
 	start_types start_y_delta_state_ = start_types::y_delta_req;
 
@@ -433,8 +431,7 @@ private:
 	uint32_t *epoch_time_;								// epoch time linked with system;
 	uint32_t time_last_stopped_ = 0;					// time of last stopped
 	
-	void update_switches_(void)
-	{
+	void update_switches_(void)	{
 		// we save all states to debug on $03; command.
 		state_k1_pin_ = read_k_pin_(1);
 		state_k2_pin_ = read_k_pin_(2);
@@ -510,8 +507,7 @@ private:
 				state_motor_ = states_motor::undefined;
 		}
 	}
-	void update_time_(void)
-	{
+	void update_time_(void) {
 		if((state_motor_ == states_motor::on_nominal_k1) || (state_motor_ == states_motor::on_nominal_k2) || (state_motor_ == states_motor::on_nominal_delta) || (state_motor_ == states_motor::on_speeding_up)) {
 			time_on_++;
 			make_log_update();
@@ -553,30 +549,25 @@ private:
 			ESP_LOGI(TAG_PUMP,"time_delta_to_y_switch_: %d", time_delta_to_y_switch_);
 		}
 	}
-	void drive_k_(int k_number, int level)
-	{
+	void drive_k_(int k_number, int level) {
 		ac_load_[k_number-1].write(level);
 	}
-	void drive_led_(states_switch state)
-	{
+	void drive_led_(states_switch state) {
 
 	}
-	states_switch read_k_(int k_number)
-	{
+	states_switch read_k_(int k_number) {
 		if(!gpio_generic_[k_number-1].read())
 			return states_switch::on;
 		else
 			return states_switch::off;
 	}
-	states_switch read_Rth_(void)
-	{
+	states_switch read_Rth_(void) {
 		if(!gpio_generic_[3].read())
 			return states_switch::on;
 		else
 			return states_switch::off;
 	}
-	states_switch read_k_pin_(int k_number)
-	{
+	states_switch read_k_pin_(int k_number) {
 			if(ac_load_[k_number-1].read())
 				return states_switch::on;
 			else
