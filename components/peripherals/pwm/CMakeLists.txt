@@ -1,3 +1,3 @@
 idf_component_register(SRCS pwm_ledc.cpp
-                       INCLUDE_DIRS include
-                       REQUIRES driver)
+                       REQUIRES esp_driver_ledc
+                       INCLUDE_DIRS include) 

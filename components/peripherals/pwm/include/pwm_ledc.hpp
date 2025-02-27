@@ -1,11 +1,10 @@
 #ifndef PWM_LEDC_HPP__
 #define PWM_LEDC_HPP__
 
-// #include <stdio.h>
-#include "driver/ledc.h"
+// esp32 especifics
+#include "driver/ledc.h"	// ledc lib
+#include "esp_log.h"		// For debug purpose
 
-// For debug purpose
-#include "esp_log.h"
 static const char *TAG_PWM = "PWM_LEDC";
 
 /*  ledc pwm peripheral are dividided into 2 groups of 8 channels. Each group has 4 timers.
@@ -100,8 +99,10 @@ public:
 		led0_channel_cfg.timer_sel = static_cast<ledc_timer_t>(timer_num_);
 		led0_channel_cfg.duty = duty_;
 		led0_channel_cfg.hpoint = 0;	// max of 0xfffff from 20 bit of counter register;
+		led0_channel_cfg.sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD;
 		led0_channel_cfg.flags.output_invert = invert;
 
+		ESP_LOGI(TAG_PWM, "init 2.c");
 		ESP_ERROR_CHECK(ledc_channel_config(&led0_channel_cfg));
 
 		ESP_LOGI(TAG_PWM, "init");
