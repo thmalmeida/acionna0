@@ -20,32 +20,34 @@ const httpd_uri_t ws = {
 };
 httpd_handle_t ws_server = NULL;   // Server instance global declaration
 httpd_config_t ws_server_config = {
-	tskIDLE_PRIORITY+5,    	 // task_priority
-	4096,                  	// stack_size
-	tskNO_AFFINITY,			// core_id
-	(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT),	// task_caps - memory allocating
-	CONFIG_WS_SERVER_PORT,	// server_port
-	32768,					// ctrl_port
-	5,                      // max_open_sockets
-	8,                      // max_uri_handlers
-	8,                      // max_resp_headers
-	5,                      // backlog_conn
-	false,                 	// lru_purge_enable
-	5,                      // recv_wait_timeout
-	5,                      // send_wait_timeout
-	NULL,                   // global_user_ctx
-	NULL,                   // global_user_ctx_free_fn
-	NULL,                   // global_transport_ctx
-	NULL,                   // global_transport_ctx_free_fn
-	false,					// enable/disable linger
-	0,						// linger timeout in seconds
-	false,					// keep_alive_enable
-	0,						// keep_alive_idle
-	0,						// keep_alive_interval
-	0,						// keep_alive_count
-	NULL,					// open_fn
-	NULL,					// close_fn
-	NULL					// uri_match_fn
+	tskIDLE_PRIORITY+5,    	 				// task_priority
+	4096,                  					// stack_size
+	tskNO_AFFINITY,							// core_id
+	(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT),// task_caps - memory allocating
+	CONFIG_HTTPD_MAX_REQ_HDR_LEN,			// max_req_hdr_len
+	CONFIG_HTTPD_MAX_URI_LEN,				// max_uri_len
+	CONFIG_WS_SERVER_PORT,					// server_port
+	32768,									// ctrl_port
+	5,                     					// max_open_sockets
+	8,                      				// max_uri_handlers
+	8,										// max_resp_headers
+	5,										// backlog_conn
+	false,									// lru_purge_enable
+	5,										// recv_wait_timeout
+	5,										// send_wait_timeout
+	NULL,									// global_user_ctx
+	NULL,									// global_user_ctx_free_fn
+	NULL,									// global_transport_ctx
+	NULL,									// global_transport_ctx_free_fn
+	false,									// enable/disable linger
+	0,										// linger timeout in seconds
+	false,									// keep_alive_enable
+	0,										// keep_alive_idle
+	0,										// keep_alive_interval
+	0,										// keep_alive_count
+	NULL,									// open_fn
+	NULL,									// close_fn
+	NULL									// uri_match_fn
 };
 
 // SSL
