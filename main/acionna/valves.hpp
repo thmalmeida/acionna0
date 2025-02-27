@@ -1,7 +1,7 @@
 #ifndef VALVES_HPP__
 #define VALVES_HPP__
 
-#include <adc.hpp>
+
 #include <pinout.hpp>
 
 #include "esp_log.h"

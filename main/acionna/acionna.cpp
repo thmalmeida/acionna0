@@ -5,12 +5,13 @@ static const char *TAG_ACIONNA = "Acionna0";
 volatile uint8_t flag_1sec = 0;
 volatile uint8_t flag_100ms = 0;
 
-Acionna::Acionna(ADC_Driver* adc, I2C_Driver *i2c) : pipe1_(adc, 4, 150, &epoch_time_), pipe2_(adc, 7, 220, &epoch_time_), pump1_{&epoch_time_}, valves1_{i2c, &epoch_time_, &pressure_}, s0_(i2c), s1_(i2c), i2c_(i2c) {
-// Acionna::Acionna(void) : valves1_{&i2c} {
-	// ADC_Driver adc0(adc_mode::oneshot);
-	// ADC_Driver adc0(adc_mode::oneshot);
-	// pipe1_(&adc0, 4, 150);
-	// pipe2_(&adc0, 7, 100);
+Acionna::Acionna(ADC_Driver *adc, I2C_Driver *i2c) :
+													pipe1_(adc, 4, 150, &epoch_time_),
+													pipe2_(adc, 7, 220, &epoch_time_),
+													pump1_{&epoch_time_},
+													valves1_{i2c, &epoch_time_, &pressure_},
+													s0_(i2c),
+													s1_(i2c) {
 	init();
 }
 uint32_t Acionna::get_uptime() {
@@ -1658,6 +1659,7 @@ void Acionna::init() {
 							{"84:cc:a8:69:97:7c"},	// .32 - poço cacimba;
 							{"84:cc:a8:69:9c:4c"},	// .33 - irrigação.
 							{"08:d1:f9:c7:f1:74"},	// .34 - artesiano
+							// {"84:cc:a8:68:18:2c"},	// .34 - artesiano
 							{"08:d1:f9:e0:5a:40"}};	// .35 - reservoir valve
 
 	// Converting uint8_t vector mac address to string
@@ -2098,15 +2100,15 @@ void Acionna::parser_(uint8_t* payload_str, int payload_str_len, uint8_t *comman
 	}
 }
 void Acionna::peripheral_i2c_sensors_list(char* buffer_str) {
-	char buffer_temp[45], str[50];
-	memset(buffer_str, 0, sizeof(*buffer_str));
-	sprintf(str, "Address found\n");
-	for(uint8_t i=0; i<128; i++) {
-		if(i2c_->probe(i) == true) {
-			sprintf(buffer_temp, "0x%02x\n", i);
-			strcat(buffer_str, buffer_temp);
-		}
-	}
+	// char buffer_temp[45], str[50];
+	// memset(buffer_str, 0, sizeof(*buffer_str));
+	// sprintf(str, "Address found\n");
+	// for(uint8_t i=0; i<128; i++) {
+	// 	if(i2c_->probe(i) == true) {
+	// 		sprintf(buffer_temp, "0x%02x\n", i);
+	// 		strcat(buffer_str, buffer_temp);
+	// 	}
+	// }
 }
 void Acionna::run(void) {
 

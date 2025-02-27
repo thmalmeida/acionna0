@@ -1,7 +1,6 @@
 #ifndef PIPEPVC_HPP
 #define PIPEPVC_HPP
 
-#include "adc.hpp"
 #include "sensor_pressure.hpp"
 #include "helper.hpp"
 
@@ -49,8 +48,7 @@ public:
 
 		make_log();
 	}
-	/* Return the last current pipe pressure found
-	*/
+	// Return the last current pipe pressure found
 	int pressure_mca(void) {
 		return pressure_mca_;
 	}

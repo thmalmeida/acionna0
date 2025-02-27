@@ -6,11 +6,11 @@
 #include "esp_flash.h"
 
 // peripherals
-#include "adc.hpp"
+#include "adc_driver.hpp"
 #include "i2c_driver.hpp"
 #include "timer_driver.hpp"
 
-// math
+// math signal processing
 #include "dsp.hpp"
 
 // Time clock
@@ -18,15 +18,16 @@
 #include "date_time.hpp"
 #include "time_operations.hpp"
 
+// Sync time over ntp
+#include "ntp.hpp"
+
 // Sensors and modules over I2C
 // #include "ds3231.hpp"
 // #include "ds1307.hpp"
 // #include "aht10.hpp"
 #include "ahtx0.hpp"
-#include "bmp280.hpp"
-#include "ntp.hpp"
-
 // #include "bmp180.hpp"
+#include "bmp280.hpp"
 
 // system 
 #include "json/ArduinoJson-v6.19.4.h"
@@ -128,7 +129,10 @@ private:
 	AHTX0 s0_;
 	BMP280 s1_;
 
-	I2C_Driver *i2c_;
+	// SENSORS_CTRL sc0_;
+
+	// I2C_Driver *i2c_;
+	// ADC_Driver *adc_;
 
 	states_flag flag_check_k1_ = states_flag::disable;					// check hardware input pin of k1
 	states_flag flag_check_k2_ = states_flag::disable;					// check hardware input pin of k2

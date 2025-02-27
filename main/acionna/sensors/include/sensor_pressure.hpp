@@ -3,7 +3,7 @@
 
 #define K_PSI_MCA 0.703089
 
-#include "adc.hpp"
+#include "adc_driver.hpp"
 // #include <gpio_driver.h>
 // #include <pinout.hpp>
 

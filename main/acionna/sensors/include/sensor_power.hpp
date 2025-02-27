@@ -1,7 +1,7 @@
 #ifndef SENSOR_POWER_HPP__
 #define SENSOR_POWER_HPP__
 
-#include "adc.hpp"
+// #include "adc_driver.hpp"
 // #include <gpio_driver.h>
 // #include <pinout.hpp>
 

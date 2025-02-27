@@ -1,4 +1,4 @@
-#include "adc.hpp"
+#include "adc_driver.hpp"
 
 static const char *TAG_ADC = "ADC";
 

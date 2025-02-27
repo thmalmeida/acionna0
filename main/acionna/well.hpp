@@ -1,8 +1,8 @@
 #ifndef WELL_HPP
 #define WELL_HPP
 
-#include <adc.hpp>
-#include <gpio_driver.h>
+#include "adc_driver.hpp"
+#include "gpio_driver.hpp"
 #include "pinout.hpp"
 
 #include "helper.hpp"

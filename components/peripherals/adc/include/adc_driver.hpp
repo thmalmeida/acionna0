@@ -36,7 +36,7 @@ enum class adc_mode {
 
 enum class adc_stream_states {
 	stopped = 0,
-	running
+	running	
 };
 
 class ADC_Driver{
